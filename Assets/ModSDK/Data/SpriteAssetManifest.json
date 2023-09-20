@@ -1,0 +1,389 @@
+{
+    "spriteAssets": [
+        {
+            "instanceID": 542930
+        },
+        {
+            "instanceID": 129782
+        },
+        {
+            "instanceID": 129970
+        },
+        {
+            "instanceID": 98946
+        },
+        {
+            "instanceID": 185706
+        },
+        {
+            "instanceID": 185732
+        },
+        {
+            "instanceID": 185818
+        },
+        {
+            "instanceID": 544412
+        },
+        {
+            "instanceID": 185760
+        },
+        {
+            "instanceID": 185874
+        },
+        {
+            "instanceID": 130142
+        },
+        {
+            "instanceID": 98474
+        },
+        {
+            "instanceID": 98458
+        },
+        {
+            "instanceID": 98118
+        },
+        {
+            "instanceID": 137222
+        },
+        {
+            "instanceID": 137386
+        },
+        {
+            "instanceID": 98666
+        },
+        {
+            "instanceID": 185660
+        },
+        {
+            "instanceID": 185674
+        },
+        {
+            "instanceID": 185650
+        },
+        {
+            "instanceID": 182486
+        },
+        {
+            "instanceID": 98132
+        },
+        {
+            "instanceID": 185316
+        },
+        {
+            "instanceID": 132622
+        },
+        {
+            "instanceID": 132624
+        },
+        {
+            "instanceID": 132522
+        },
+        {
+            "instanceID": 132518
+        },
+        {
+            "instanceID": 132526
+        },
+        {
+            "instanceID": 132626
+        },
+        {
+            "instanceID": 104722
+        },
+        {
+            "instanceID": 564510
+        },
+        {
+            "instanceID": 551488
+        },
+        {
+            "instanceID": 93840
+        },
+        {
+            "instanceID": 93452
+        },
+        {
+            "instanceID": 93450
+        },
+        {
+            "instanceID": 93438
+        },
+        {
+            "instanceID": 93436
+        },
+        {
+            "instanceID": 93066
+        },
+        {
+            "instanceID": 93058
+        },
+        {
+            "instanceID": 93060
+        },
+        {
+            "instanceID": 93064
+        },
+        {
+            "instanceID": 93056
+        },
+        {
+            "instanceID": 93072
+        },
+        {
+            "instanceID": 93068
+        },
+        {
+            "instanceID": 93070
+        },
+        {
+            "instanceID": 93062
+        },
+        {
+            "instanceID": 184006
+        },
+        {
+            "instanceID": 184018
+        },
+        {
+            "instanceID": 184008
+        },
+        {
+            "instanceID": 156040
+        },
+        {
+            "instanceID": 156052
+        },
+        {
+            "instanceID": 156064
+        },
+        {
+            "instanceID": 155936
+        },
+        {
+            "instanceID": 155948
+        },
+        {
+            "instanceID": 155960
+        },
+        {
+            "instanceID": 155970
+        },
+        {
+            "instanceID": 155982
+        },
+        {
+            "instanceID": 155994
+        },
+        {
+            "instanceID": 156006
+        },
+        {
+            "instanceID": 156018
+        },
+        {
+            "instanceID": 156074
+        },
+        {
+            "instanceID": 156086
+        },
+        {
+            "instanceID": 156098
+        },
+        {
+            "instanceID": 156110
+        },
+        {
+            "instanceID": 156122
+        }
+    ],
+    "gradientMaps": [
+        {
+            "instanceID": 185708
+        },
+        {
+            "instanceID": 506788
+        },
+        {
+            "instanceID": 506792
+        },
+        {
+            "instanceID": 506790
+        },
+        {
+            "instanceID": 506794
+        },
+        {
+            "instanceID": 506796
+        },
+        {
+            "instanceID": 506798
+        },
+        {
+            "instanceID": 506800
+        },
+        {
+            "instanceID": 185734
+        },
+        {
+            "instanceID": 506802
+        },
+        {
+            "instanceID": 506804
+        },
+        {
+            "instanceID": 506806
+        },
+        {
+            "instanceID": 506808
+        },
+        {
+            "instanceID": 506810
+        },
+        {
+            "instanceID": 506812
+        },
+        {
+            "instanceID": 506814
+        },
+        {
+            "instanceID": 185820
+        },
+        {
+            "instanceID": 506774
+        },
+        {
+            "instanceID": 506776
+        },
+        {
+            "instanceID": 506778
+        },
+        {
+            "instanceID": 506780
+        },
+        {
+            "instanceID": 506782
+        },
+        {
+            "instanceID": 506784
+        },
+        {
+            "instanceID": 506786
+        },
+        {
+            "instanceID": 185762
+        },
+        {
+            "instanceID": 506760
+        },
+        {
+            "instanceID": 506762
+        },
+        {
+            "instanceID": 506764
+        },
+        {
+            "instanceID": 506766
+        },
+        {
+            "instanceID": 506768
+        },
+        {
+            "instanceID": 506770
+        },
+        {
+            "instanceID": 506772
+        },
+        {
+            "instanceID": 185876
+        },
+        {
+            "instanceID": 506820
+        },
+        {
+            "instanceID": 506816
+        },
+        {
+            "instanceID": 506818
+        },
+        {
+            "instanceID": 98120
+        },
+        {
+            "instanceID": 93086
+        },
+        {
+            "instanceID": 103242
+        },
+        {
+            "instanceID": 103194
+        },
+        {
+            "instanceID": 103206
+        },
+        {
+            "instanceID": 103230
+        },
+        {
+            "instanceID": 103182
+        },
+        {
+            "instanceID": 93098
+        },
+        {
+            "instanceID": 103278
+        },
+        {
+            "instanceID": 103254
+        },
+        {
+            "instanceID": 103266
+        },
+        {
+            "instanceID": 103218
+        },
+        {
+            "instanceID": 93114
+        },
+        {
+            "instanceID": 93092
+        },
+        {
+            "instanceID": 93104
+        },
+        {
+            "instanceID": 546602
+        },
+        {
+            "instanceID": 93132
+        },
+        {
+            "instanceID": 93120
+        },
+        {
+            "instanceID": 93126
+        },
+        {
+            "instanceID": 93110
+        }
+    ],
+    "transformAnimations": [
+        {
+            "instanceID": 562140
+        },
+        {
+            "instanceID": 536512
+        },
+        {
+            "instanceID": 561470
+        },
+        {
+            "instanceID": 546382
+        },
+        {
+            "instanceID": 544680
+        },
+        {
+            "instanceID": 535992
+        }
+    ]
+}
