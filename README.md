@@ -12,6 +12,6 @@ This is the official Mod SDK for Core Keeper! Use it to create and publish amazi
 2. Open the project through [Unity Hub](https://unity.com/unity-hub).
 
 ## Getting started
-For a more detailed guide on how to get started, check [this page on mod.io]([https://mod.io/](https://mod.io/g/corekeeper/r/core-keeper-mod-sdk-introduction)).
+For a more detailed guide on how to get started, check [this page on mod.io](https://mod.io/g/corekeeper/r/core-keeper-mod-sdk-introduction).
 
 If you have questions, check [the mod-help channel on the Core Keeper Discord server](https://discord.gg/CoreKeeper).
