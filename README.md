@@ -1,7 +1,7 @@
 ![Core Keeper Mod SDK](banner.png)
 
 This is the official Mod SDK for Core Keeper! Use it to create and publish amazing mods.<br>
-<sub>If you are looking for existing mods, check [the official mod.io page]([https://mod.io/](https://mod.io/g/corekeeper)).</sub>
+<sub>If you are looking for existing mods, check [the official mod.io page](https://mod.io/g/corekeeper).</sub>
 
 ## Requirements
 [Unity Editor 2021.3.14f1](https://unity.com/releases/editor/whats-new/2021.3.14)
