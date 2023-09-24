@@ -60,7 +60,7 @@ namespace PugMod
 				originalAssetPaths = new List<string>(assetPaths);
 				List<string> manifest = new();
 
-				PreProcess(settings, modDirectory, assetPaths);
+				PreProcess(settings, installDirectory, assetPaths);
 
 				BuildConf(modDirectory, installDirectory, assetPaths, manifest);
 				BuildLocalization(modDirectory, installDirectory, assetPaths, manifest);
@@ -112,7 +112,7 @@ namespace PugMod
 			}
 		}
 		
-		private static void PreProcess(ModBuilderSettings modBuilderSettings, string modDirectory, List<string> assetPaths)
+		private static void PreProcess(ModBuilderSettings modBuilderSettings, string installDirectory, List<string> assetPaths)
 		{
 			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
 			{
@@ -123,7 +123,7 @@ namespace PugMod
 						if (type.IsClass && !type.IsAbstract && typeof(IPugModBuilderProcessor).IsAssignableFrom(type))
 						{
 							var processor = Activator.CreateInstance(type) as IPugModBuilderProcessor;
-							processor.Execute(modBuilderSettings, modDirectory, assetPaths);
+							processor.Execute(modBuilderSettings, installDirectory, assetPaths);
 						}
 					}
 				}
