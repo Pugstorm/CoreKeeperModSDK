@@ -8,8 +8,9 @@ using UnityEngine.Scripting;
 public class SpriteInstancingModBuilder : PugMod.IPugModBuilderProcessor
 {
 	[Preserve]
-	public void Execute(ModBuilderSettings modBuilderSettings, string modDirectory, List<string> assetPaths)
+	public void Execute(ModBuilderSettings settings, string installDirectory, List<string> assetPaths)
 	{
+		var modDirectory = settings.modPath;
 		List<SpriteAssetBase> spriteAssets = new();
 		List<Texture2D> gradientMaps = new();
 		List<TransformAnimation> transformAnimations = new();
