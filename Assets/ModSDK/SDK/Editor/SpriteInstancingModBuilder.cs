@@ -8,7 +8,7 @@ using UnityEngine.Scripting;
 public class SpriteInstancingModBuilder : PugMod.IPugModBuilderProcessor
 {
 	[Preserve]
-	public void Execute(ModBuilderSettings modBuilderSettings, string modDirectory, List<string> assetPaths)
+	public void Execute(ModBuilderSettings modBuilderSettings, string installDirectory, List<string> assetPaths)
 	{
 		List<SpriteAssetBase> spriteAssets = new();
 		List<Texture2D> gradientMaps = new();
@@ -41,7 +41,7 @@ public class SpriteInstancingModBuilder : PugMod.IPugModBuilderProcessor
 			return;
 		}
 
-		var manifestPath = Path.Combine(modDirectory, "SpriteAssetManifest.asset");
+		var manifestPath = Path.Combine(modBuilderSettings.modPath, "SpriteAssetManifest.asset");
 		SpriteAssetManifest manifest = AssetDatabase.LoadAssetAtPath<SpriteAssetManifest>(manifestPath);
 		if (manifest == null)
 		{

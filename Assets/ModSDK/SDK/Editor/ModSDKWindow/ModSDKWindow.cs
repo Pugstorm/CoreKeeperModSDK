@@ -76,7 +76,7 @@ namespace PugMod
 				
 				ModSDKWindow wnd = GetWindow<ModSDKWindow>("Mod SDK");
 
-				wnd.minSize = new Vector2(500, 300);
+				wnd.minSize = new Vector2(500, 400);
 				// Want to set size without messing with position so doing it in a somewhat hacky way
 				var oldMaxSize = wnd.maxSize;
 				wnd.maxSize = new Vector2(500, 400);
@@ -192,7 +192,20 @@ namespace PugMod
 		{
 			if (!ModIOUnity.IsInitialized())
 			{
+#if PUG_MODIO_TEST_ENVIRONMENT
+				ServerSettings serverSettings = new ServerSettings();
+				serverSettings.serverURL = "https://api.test.mod.io/v1";
+				serverSettings.gameId = 1085;
+				serverSettings.gameKey = "439b2418cf2a7e570994a32e856b55da";
+
+				BuildSettings buildSettings = new BuildSettings();
+				buildSettings.logLevel = LogLevel.Verbose;
+				buildSettings.userPortal = UserPortal.None;
+
+				Result result = ModIOUnity.InitializeForUser("PugModSDKUser", serverSettings, buildSettings);
+#else
 				Result result = ModIOUnity.InitializeForUser("PugModSDKUser");
+#endif
 				if (!result.Succeeded())
 				{
 					Debug.Log("Failed to initialize mod.io SDK");

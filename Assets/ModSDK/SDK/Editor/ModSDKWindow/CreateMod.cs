@@ -181,7 +181,20 @@ namespace PugMod
 
 					var path = EditorPrefs.GetString(GAME_INSTALL_PATH_KEY);
 
-					path = Path.Combine(path, "CoreKeeper_Data", "StreamingAssets", "Mods");
+					if (Directory.Exists(Path.Combine(path, "CoreKeeper_Data")))
+					{
+						path = Path.Combine(path, "CoreKeeper_Data", "StreamingAssets", "Mods");
+					}
+					else if (Directory.Exists(Path.Combine(path, "Assets")))
+					{
+						// Installing to another Unity project
+						path = Path.Combine(path, "Assets", "StreamingAssets", "Mods");
+					}
+					else
+					{
+						ShowError($"Can't find game at {path}");
+						return;
+					}
 
 					ModBuilder.BuildMod(modSettings, path, success =>
 					{

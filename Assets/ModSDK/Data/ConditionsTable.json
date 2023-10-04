@@ -1,10 +1,6 @@
 {
     "conditionCategories": [
         {
-            "category": "NEW (move these conditions to their corresponding category)",
-            "conditions": []
-        },
-        {
             "category": "Appearance",
             "conditions": [
                 {
@@ -14,7 +10,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92220
+                        "instanceID": 97952
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -26,7 +22,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92222
+                        "instanceID": 97954
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -38,7 +34,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92224
+                        "instanceID": 97956
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -50,7 +46,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92226
+                        "instanceID": 97958
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -61,13 +57,25 @@
             "category": "Armor",
             "conditions": [
                 {
+                    "Id": 185,
+                    "effect": 0,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 97960
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                },
+                {
                     "Id": 11,
                     "effect": 9,
                     "isAdditiveWithSelf": false,
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92228
+                        "instanceID": 97960
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -79,7 +87,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92228
+                        "instanceID": 97960
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -91,7 +99,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92228
+                        "instanceID": 97960
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -103,7 +111,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92228
+                        "instanceID": 97960
                     },
                     "useSameDescAsId": 11,
                     "isUnique": false
@@ -127,7 +135,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92228
+                        "instanceID": 97960
                     },
                     "useSameDescAsId": 48,
                     "isUnique": false
@@ -139,21 +147,9 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92228
+                        "instanceID": 97960
                     },
                     "useSameDescAsId": 48,
-                    "isUnique": false
-                },
-                {
-                    "Id": 185,
-                    "effect": 0,
-                    "isAdditiveWithSelf": false,
-                    "isPermanent": false,
-                    "isNegative": false,
-                    "icon": {
-                        "instanceID": 0
-                    },
-                    "useSameDescAsId": 0,
                     "isUnique": false
                 }
             ]
@@ -168,7 +164,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92230
+                        "instanceID": 97962
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -180,7 +176,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92230
+                        "instanceID": 97962
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -192,7 +188,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92232
+                        "instanceID": 97964
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -204,7 +200,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92230
+                        "instanceID": 97962
                     },
                     "useSameDescAsId": 173,
                     "isUnique": false
@@ -216,7 +212,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92230
+                        "instanceID": 97962
                     },
                     "useSameDescAsId": 173,
                     "isUnique": false
@@ -228,7 +224,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92230
+                        "instanceID": 97962
                     },
                     "useSameDescAsId": 173,
                     "isUnique": false
@@ -240,7 +236,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -288,7 +284,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92230
+                        "instanceID": 97962
                     },
                     "useSameDescAsId": 51,
                     "isUnique": false
@@ -300,7 +296,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92230
+                        "instanceID": 97962
                     },
                     "useSameDescAsId": 51,
                     "isUnique": false
@@ -341,7 +337,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92236
+                        "instanceID": 97968
                     },
                     "useSameDescAsId": 29,
                     "isUnique": false
@@ -353,7 +349,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92236
+                        "instanceID": 97968
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -406,7 +402,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92238
+                        "instanceID": 97970
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -435,7 +431,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92240
+                        "instanceID": 97972
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -447,7 +443,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92240
+                        "instanceID": 97972
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -541,7 +537,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92242
+                        "instanceID": 97974
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -553,7 +549,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -565,7 +561,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92242
+                        "instanceID": 97974
                     },
                     "useSameDescAsId": 12,
                     "isUnique": false
@@ -577,7 +573,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 12,
                     "isUnique": false
@@ -589,7 +585,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92242
+                        "instanceID": 97974
                     },
                     "useSameDescAsId": 12,
                     "isUnique": false
@@ -625,7 +621,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92242
+                        "instanceID": 97974
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -637,7 +633,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92242
+                        "instanceID": 97974
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -654,7 +650,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92242
+                        "instanceID": 97974
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -707,7 +703,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 0
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -719,7 +715,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 0
+                        "instanceID": 97978
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false
@@ -731,7 +727,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -743,7 +739,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -767,7 +763,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false
@@ -791,7 +787,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92246
+                        "instanceID": 97978
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false
@@ -803,7 +799,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -815,7 +811,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false
@@ -827,7 +823,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false
@@ -839,7 +835,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -851,7 +847,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false
@@ -863,7 +859,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92222
+                        "instanceID": 97954
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -875,7 +871,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false
@@ -887,7 +883,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -899,7 +895,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -923,7 +919,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -935,7 +931,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -947,7 +943,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 10,
                     "isUnique": false
@@ -959,7 +955,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -971,7 +967,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -983,7 +979,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -995,7 +991,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 10,
                     "isUnique": false
@@ -1007,7 +1003,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 22,
                     "isUnique": false
@@ -1019,7 +1015,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 10,
                     "isUnique": false
@@ -1031,7 +1027,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 10,
                     "isUnique": false
@@ -1043,7 +1039,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1055,7 +1051,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1067,7 +1063,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 22,
                     "isUnique": false
@@ -1079,7 +1075,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 22,
                     "isUnique": false
@@ -1091,7 +1087,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 22,
                     "isUnique": false
@@ -1132,7 +1128,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1156,7 +1152,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 96,
                     "isUnique": false
@@ -1173,7 +1169,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92248
+                        "instanceID": 97980
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1192,12 +1188,12 @@
                 },
                 {
                     "Id": 207,
-                    "effect": 16,
+                    "effect": 0,
                     "isAdditiveWithSelf": false,
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92250
+                        "instanceID": 97982
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1241,7 +1237,7 @@
             ]
         },
         {
-            "category": "Damage Reduction",
+            "category": "Damage Taken",
             "conditions": [
                 {
                     "Id": 33,
@@ -1250,7 +1246,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92228
+                        "instanceID": 97960
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1262,9 +1258,33 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92228
+                        "instanceID": 97960
                     },
                     "useSameDescAsId": 33,
+                    "isUnique": false
+                },
+                {
+                    "Id": 245,
+                    "effect": 97,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 97960
+                    },
+                    "useSameDescAsId": 244,
+                    "isUnique": false
+                },
+                {
+                    "Id": 244,
+                    "effect": 97,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": true,
+                    "icon": {
+                        "instanceID": 97984
+                    },
+                    "useSameDescAsId": 0,
                     "isUnique": false
                 }
             ]
@@ -1279,7 +1299,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92252
+                        "instanceID": 97986
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1291,7 +1311,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92252
+                        "instanceID": 97986
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1303,7 +1323,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92252
+                        "instanceID": 97986
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1378,7 +1398,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 0
+                        "instanceID": 97988
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1450,7 +1470,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92254
+                        "instanceID": 97990
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1503,7 +1523,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 0
+                        "instanceID": 97992
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1532,7 +1552,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92256
+                        "instanceID": 97994
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1544,7 +1564,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92256
+                        "instanceID": 97994
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1556,7 +1576,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92256
+                        "instanceID": 97994
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1573,7 +1593,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92258
+                        "instanceID": 97996
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1585,7 +1605,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92258
+                        "instanceID": 97996
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1609,7 +1629,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92222
+                        "instanceID": 97954
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1633,7 +1653,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92258
+                        "instanceID": 97996
                     },
                     "useSameDescAsId": 5,
                     "isUnique": false
@@ -1645,7 +1665,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92222
+                        "instanceID": 97954
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1657,7 +1677,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92258
+                        "instanceID": 97996
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1669,7 +1689,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92258
+                        "instanceID": 97996
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1681,7 +1701,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92258
+                        "instanceID": 97996
                     },
                     "useSameDescAsId": 5,
                     "isUnique": false
@@ -1693,7 +1713,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92258
+                        "instanceID": 97996
                     },
                     "useSameDescAsId": 5,
                     "isUnique": false
@@ -1705,7 +1725,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92258
+                        "instanceID": 97996
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1717,7 +1737,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92260
+                        "instanceID": 97998
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1746,7 +1766,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92240
+                        "instanceID": 97972
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1758,7 +1778,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92240
+                        "instanceID": 97972
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1782,7 +1802,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92246
+                        "instanceID": 97978
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1794,7 +1814,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92262
+                        "instanceID": 98000
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1806,7 +1826,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92240
+                        "instanceID": 97972
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1818,7 +1838,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92234
+                        "instanceID": 97966
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1830,7 +1850,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92222
+                        "instanceID": 97954
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1842,7 +1862,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92264
+                        "instanceID": 98002
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1883,7 +1903,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92266
+                        "instanceID": 98004
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1895,7 +1915,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92268
+                        "instanceID": 98006
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1919,7 +1939,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92228
+                        "instanceID": 97960
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1931,7 +1951,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92270
+                        "instanceID": 98008
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1955,7 +1975,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92272
+                        "instanceID": 98010
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1967,7 +1987,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92272
+                        "instanceID": 98010
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1979,7 +1999,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92274
+                        "instanceID": 98012
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -1987,6 +2007,18 @@
                 {
                     "Id": 213,
                     "effect": 79,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                },
+                {
+                    "Id": 243,
+                    "effect": 96,
                     "isAdditiveWithSelf": false,
                     "isPermanent": false,
                     "isNegative": false,
@@ -2008,7 +2040,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92222
+                        "instanceID": 97954
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2020,7 +2052,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92222
+                        "instanceID": 97954
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2061,7 +2093,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92276
+                        "instanceID": 98014
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2073,7 +2105,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92276
+                        "instanceID": 98014
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2085,7 +2117,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92278
+                        "instanceID": 98016
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2097,7 +2129,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92276
+                        "instanceID": 98014
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2121,7 +2153,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92276
+                        "instanceID": 98014
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2133,7 +2165,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92276
+                        "instanceID": 98014
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2150,7 +2182,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92264
+                        "instanceID": 98002
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2162,7 +2194,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92280
+                        "instanceID": 98018
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2198,7 +2230,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92280
+                        "instanceID": 98018
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2210,7 +2242,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92244
+                        "instanceID": 97976
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2234,7 +2266,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92280
+                        "instanceID": 98018
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2246,7 +2278,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92280
+                        "instanceID": 98018
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2258,7 +2290,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92280
+                        "instanceID": 98018
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2270,7 +2302,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92264
+                        "instanceID": 98002
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2282,7 +2314,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92282
+                        "instanceID": 98020
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2294,7 +2326,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92264
+                        "instanceID": 98002
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2306,7 +2338,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92264
+                        "instanceID": 98002
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2318,7 +2350,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92264
+                        "instanceID": 98002
                     },
                     "useSameDescAsId": 4,
                     "isUnique": false
@@ -2330,7 +2362,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92264
+                        "instanceID": 98002
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2348,13 +2380,25 @@
                     "isUnique": false
                 },
                 {
+                    "Id": 227,
+                    "effect": 89,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                },
+                {
                     "Id": 59,
                     "effect": 2,
                     "isAdditiveWithSelf": false,
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92264
+                        "instanceID": 98002
                     },
                     "useSameDescAsId": 4,
                     "isUnique": false
@@ -2366,7 +2410,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92284
+                        "instanceID": 98022
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2378,7 +2422,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92284
+                        "instanceID": 98022
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2496,7 +2540,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92274
+                        "instanceID": 98012
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2508,7 +2552,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92274
+                        "instanceID": 98012
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2520,7 +2564,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92252
+                        "instanceID": 97986
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2532,7 +2576,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92286
+                        "instanceID": 98024
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2544,7 +2588,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92288
+                        "instanceID": 98026
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2564,6 +2608,179 @@
                 {
                     "Id": 221,
                     "effect": 85,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                }
+            ]
+        },
+        {
+            "category": "Pet",
+            "conditions": [
+                {
+                    "Id": 228,
+                    "effect": 8,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 10,
+                    "isUnique": false
+                },
+                {
+                    "Id": 230,
+                    "effect": 22,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 22,
+                    "isUnique": false
+                },
+                {
+                    "Id": 229,
+                    "effect": 40,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 51,
+                    "isUnique": false
+                },
+                {
+                    "Id": 231,
+                    "effect": 41,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 52,
+                    "isUnique": false
+                },
+                {
+                    "Id": 233,
+                    "effect": 10,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 12,
+                    "isUnique": false
+                },
+                {
+                    "Id": 232,
+                    "effect": 57,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 99,
+                    "isUnique": false
+                },
+                {
+                    "Id": 234,
+                    "effect": 95,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                },
+                {
+                    "Id": 235,
+                    "effect": 90,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 98028
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                },
+                {
+                    "Id": 238,
+                    "effect": 93,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                },
+                {
+                    "Id": 237,
+                    "effect": 92,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                },
+                {
+                    "Id": 236,
+                    "effect": 91,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                },
+                {
+                    "Id": 239,
+                    "effect": 94,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                },
+                {
+                    "Id": 240,
+                    "effect": 0,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": false,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 0,
+                    "isUnique": false
+                },
+                {
+                    "Id": 241,
+                    "effect": 34,
                     "isAdditiveWithSelf": false,
                     "isPermanent": false,
                     "isNegative": false,
@@ -2609,7 +2826,7 @@
                     "isPermanent": false,
                     "isNegative": true,
                     "icon": {
-                        "instanceID": 92290
+                        "instanceID": 98030
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2650,7 +2867,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92292
+                        "instanceID": 98032
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2731,6 +2948,18 @@
                     },
                     "useSameDescAsId": 6,
                     "isUnique": true
+                },
+                {
+                    "Id": 242,
+                    "effect": 68,
+                    "isAdditiveWithSelf": false,
+                    "isPermanent": true,
+                    "isNegative": false,
+                    "icon": {
+                        "instanceID": 0
+                    },
+                    "useSameDescAsId": 6,
+                    "isUnique": true
                 }
             ]
         },
@@ -2756,7 +2985,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92274
+                        "instanceID": 98012
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2768,7 +2997,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92222
+                        "instanceID": 97954
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2864,7 +3093,7 @@
                     "isPermanent": false,
                     "isNegative": false,
                     "icon": {
-                        "instanceID": 92294
+                        "instanceID": 98034
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false
@@ -2887,6 +3116,10 @@
                     "isUnique": false
                 }
             ]
+        },
+        {
+            "category": "NEW (move these conditions to their corresponding category)",
+            "conditions": []
         }
     ]
 }

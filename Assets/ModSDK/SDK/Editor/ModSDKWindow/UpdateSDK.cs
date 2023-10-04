@@ -74,7 +74,7 @@ namespace PugMod
 					EditorPrefs.SetString(GAME_INSTALL_PATH_KEY, evt.newValue);
 				});
 
-				_browseButton.clicked += () => OpenFilePanel();
+				_browseButton.clicked += () => OpenFolderPanel();
 				_updateButton.clicked += () =>
 				{
 #if PUG_MOD_SDK
@@ -85,9 +85,9 @@ namespace PugMod
 				};
 			}
 
-			private void OpenFilePanel()
+			private void OpenFolderPanel()
 			{
-				string selectedPath = EditorUtility.OpenFolderPanel("Select a file", "", "");
+				string selectedPath = EditorUtility.OpenFolderPanel("Select Core Keeper install folder", "", "");
 				if (!string.IsNullOrEmpty(selectedPath) && VerifyPath(selectedPath))
 				{
 					DirectoryInfo dirInfo = new DirectoryInfo(selectedPath);
@@ -118,6 +118,11 @@ namespace PugMod
 
 				if (!File.Exists(Path.Combine(path, "CoreKeeper.exe")))
 				{
+					if (Directory.Exists(Path.Combine(path, "Assets")))
+					{
+						// Path looks like Unity project, accept this for dev work
+						return true;
+					}
 					if (!silent)
 						ShowError("Chosen path does not contain the Core Keeper game.");
 					return false;

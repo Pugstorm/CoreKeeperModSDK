@@ -161,7 +161,7 @@ namespace PugMod
 							Directory.CreateDirectory(textureAssetDir);
 						}
 						
-						File.Copy(path, textureAssetPath);
+						File.Copy(path, textureAssetPath, true);
 						AssetDatabase.Refresh();
 
 						var logoImporter = AssetImporter.GetAtPath(textureAssetPath) as TextureImporter;
@@ -226,6 +226,7 @@ namespace PugMod
 						name = modBuilderSettings.metadata.name,
 						logo = modIOSettings.logo,
 						summary = modIOSettings.summary,
+						visible = false,
 					};
 
 					if (!InitializeModIO())
@@ -272,40 +273,42 @@ namespace PugMod
 						return;
 					}
 
-					// I don't think we need to fill in existing, just leave stuff we don't want to set to null
-					//ModIOUnity.GetMod(new ModId(modIOSettings.modId), result =>
-					//{
-					//if (!result.result.Succeeded())
-					//{
-					//	ShowError($"Couldn't find mod {modIOSettings.modSettings.metadata.name} at mod.io");
-					//	return;
-					//}
-
-					var modProfileDetails = new ModProfileDetails
+					ModIOUnity.GetMod(new ModId(modIOSettings.modId), result =>
 					{
-						modId = new ModId(modIOSettings.modId),
-						name = modBuilderSettings.metadata.name,
-						logo = modIOSettings.logo,
-						summary = modIOSettings.summary,
-					};
-
-					ModIOUnity.EditModProfile(modProfileDetails, result =>
-					{
-						if (!result.Succeeded())
+						if (!result.result.Succeeded())
 						{
-							ShowError("Failed to update mod details");
+							ShowError($"Couldn't find mod {modIOSettings.modSettings.metadata.name} at mod.io");
 							return;
 						}
+						
+						Debug.Assert(modIOSettings.modId == result.value.id);
 
-						var modPath = TempExport(modIOSettings.modSettings, modIOSettings);
-						if (string.IsNullOrEmpty(modPath))
+						var modProfileDetails = new ModProfileDetails
 						{
-							return;
-						}
+							modId = new ModId(modIOSettings.modId),
+							name = modBuilderSettings.metadata.name,
+							logo = modIOSettings.logo,
+							summary = modIOSettings.summary,
+							visible = result.value.visible, // Not setting this will always set true anyway
+						};
 
-						Upload(modIOSettings, modPath);
+						ModIOUnity.EditModProfile(modProfileDetails, result =>
+						{
+							if (!result.Succeeded())
+							{
+								ShowError("Failed to update mod details");
+								return;
+							}
+
+							var modPath = TempExport(modIOSettings.modSettings, modIOSettings);
+							if (string.IsNullOrEmpty(modPath))
+							{
+								return;
+							}
+
+							Upload(modIOSettings, modPath);
+						});
 					});
-					//});
 				};
 
 				UpdateSelection();
@@ -468,36 +471,63 @@ namespace PugMod
 				_nameTextField.value = modBuilderSettings.metadata.name;
 				_createModProfileButton.style.display = DisplayStyle.Flex;
 
-				if (modIOSettings == null)
+				if (modIOSettings == null || modIOSettings.modId <= 0)
 				{
 					return;
 				}
 
-				_idTextField.value = modIOSettings.modId.ToString();
-				_idTextField.focusable = false;
-
-				_summaryTextField.value = modIOSettings.summary;
-				if (modIOSettings.logo != null)
-					_modLogo.style.backgroundImage = modIOSettings.logo;
-
-				if (modIOSettings.modId != 0)
+				InitializeModIO();
+				
+				ModIOUnity.GetMod(new ModId(modIOSettings.modId), result =>
 				{
+					if (result.result.errorCode == 20303)
+					{
+						Debug.LogError($"couldn't find mod with id {modIOSettings.modId}");
+						return;
+					}
+					
+					if (!result.result.Succeeded())
+					{
+						Debug.LogError($"failed to fetch mod info for mod with ID {modIOSettings.modId}: {result.result.message} (code: {result.result.errorCode}");
+						return;
+					}
+					
+					if (!GetModSettings(out modBuilderSettings, out var currentModIOSettings) || currentModIOSettings != modIOSettings)
+					{
+						return;
+					}
+					
 					_uploadButton.style.display = DisplayStyle.Flex;
 					_createModProfileButton.style.display = DisplayStyle.None;
 
-					InitializeModIO();
-
-					ModIOUnity.GetMod(new ModId(modIOSettings.modId), resultAndProfile =>
+					modIOSettings.summary = result.value.summary;
+					if (!string.IsNullOrEmpty(result.value.logoImage_Original.filename))
 					{
-						if (resultAndProfile.result.errorCode != 20303)
+						try
 						{
-							return;
-						}
+							ModIOUnity.DownloadTexture(result.value.logoImage_Original, downloadTextureResult =>
+							{
+								if (!downloadTextureResult.result.Succeeded())
+								{
+									return;
+								}
 
-						Debug.Log($"Couldn't find mod with ID {modIOSettings.modId}");
-						// TODO: Do we want to remove the setting in this case? Probably want some reconnect feature first..
-					});
-				}
+								modIOSettings.logo = downloadTextureResult.value;
+								if (modIOSettings.logo != null)
+									_modLogo.style.backgroundImage = modIOSettings.logo;
+							});
+						}
+						catch (Exception e)
+						{
+							Debug.LogException(e);
+						}
+					}
+					
+					_idTextField.value = modIOSettings.modId.ToString();
+					_idTextField.focusable = false;
+
+					_summaryTextField.value = modIOSettings.summary;
+				});
 			}
 		}
 	}

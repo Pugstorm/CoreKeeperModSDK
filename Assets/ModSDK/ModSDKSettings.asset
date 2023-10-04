@@ -23,6 +23,13 @@ MonoBehaviour:
   - Pug.UnityExtensions.dll
   - PugMod.SDK.Runtime.dll
   - PugProperties.dll
+  - Microsoft.Bcl.AsyncInterfaces.dll
+  - System.Buffers.dll
+  - System.Memory.dll
+  - System.Numerics.Vectors.dll
+  - System.Text.Encodings.dll
+  - System.Text.Json.dll
+  - System.Runtime.CompilerServices.Unsafe.dll
   excludeGameAssemblies:
   - mscorlib.dll
   - netstandard.dll
@@ -43,4 +50,4 @@ MonoBehaviour:
   - SpriteInstancing.dll
   sdkAssemblyPath: Assets/Plugins/CoreKeeperModSDK/
   gameAssemblyPath: Assets/Plugins/CoreKeeper/
-  initializedToVersion: 1
+  initializedToVersion: 2

@@ -8,7 +8,7 @@ public static class AssemblyDefinitionCreator
     {
         try
         {
-            var json = JsonUtility.ToJson(assemblyDefinition);
+            var json = JsonUtility.ToJson(assemblyDefinition, true);
             File.WriteAllText(assetPath, json, System.Text.Encoding.UTF8);
             return true;
         }

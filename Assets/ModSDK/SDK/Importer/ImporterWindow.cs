@@ -205,7 +205,11 @@ namespace PugMod
 
 					if (metaFileLookup.ContainsKey(assembly.Name))
 					{
-						metaFileLookup[assembly.Name].ExtractToFile(destPath + ".meta");
+						var metaFilePath = destPath + ".meta";
+						if (!File.Exists(metaFilePath))
+						{
+							metaFileLookup[assembly.Name].ExtractToFile(metaFilePath);
+						}
 					}
 			
 					assemblyDestPaths.Add(destPath);
