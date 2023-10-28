@@ -72,13 +72,18 @@ namespace PugMod
 				BuildConf(modDirectory, installDirectory, assetPaths, manifest);
 				BuildLocalization(modDirectory, installDirectory, assetPaths, manifest);
 
-				BuildScripts(modDirectory, modName, installDirectory, assetPaths, manifest);
+				BuildScripts(modDirectory, modName, installDirectory, assetPaths, manifest, settings.forceReimport);
 				BuildLibraries(modDirectory, installDirectory, assetPaths, manifest);
 
-				if (!BuildAssets(modDirectory, modName, installDirectory, Configs, assetPaths, manifest))
+				if (settings.buildBundles)
 				{
-					callback?.Invoke(false);
-					return;
+					var buildConfigs = Configs.Where(config => config.Name.Equals("Windows") || settings.buildLinux).ToList();
+
+					if (!BuildAssets(modDirectory, modName, installDirectory, buildConfigs, assetPaths, manifest))
+					{
+						callback?.Invoke(false);
+						return;
+					}
 				}
 
 				// Create mod manifest
@@ -187,7 +192,7 @@ namespace PugMod
 			}
 		}
 
-		private static void BuildScripts(string modDirectory, string modName, string outputPath, List<string> assetPaths, List<string> manifest)
+		private static void BuildScripts(string modDirectory, string modName, string outputPath, List<string> assetPaths, List<string> manifest, bool forceReimport)
 		{
 			DirectoryInfo directoryInfo = new(modDirectory);
 			List<string> scriptPaths = new();
@@ -213,9 +218,12 @@ namespace PugMod
 				assetPaths.RemoveAt(i);
 			}
 			
-			foreach (var asset in scriptPaths)
+			if (forceReimport)
 			{
-				AssetDatabase.ImportAsset(asset, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+				foreach (var asset in scriptPaths)
+				{
+					AssetDatabase.ImportAsset(asset, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+				}
 			}
 
 			var generatedCodeDirectories = new string[]
@@ -396,7 +404,8 @@ namespace PugMod
 			var parentDirectory = fileInfo.Directory;
 			while (parentDirectory != null && !parentDirectory.FullName.Equals(modDirectoryInfo.FullName))
 			{
-				if (parentDirectory.Name.Equals("Editor"))
+				if (parentDirectory.Name.Equals("Editor") ||
+				    parentDirectory.Name.Equals("CodeGen"))
 				{
 					return true;
 				}
