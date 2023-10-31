@@ -74,6 +74,8 @@ You shall indemnify and hold Pugstorm harmless at your own expense from any acti
 
 If you provide Pugstorm with any feedback or suggestions about the Mod Tool, or any of Pugstorms products (including any Mods Pugstorm creates), Pugstorm is free to use the feedback or suggestions however it chooses, without any obligation to account to you.
 
+Notwithstanding the foregoing or anything specified in this EULA, provided you do not actively encourage (directly or indirectly) that you require remuneration for any work you do on the Mod Tools and/or the Mods you create, you may passively receive so called ‘donations’ independently made by third parties in respect of your work on the Mod Tool and/or for their use of the Mods.
+
 <b>Use of Data</b>
 
 You agree that Pugstorm may collect and use technical data and related information, including but not limited to technical information about Your device, system and application software and peripherals, that is gathered periodically to facilitate the provision of software updates, product support, and other services (to You (if any) related to the Mod Tool.  Pugstorm may use this information, as long as it is in a form that does not personally identify You to improve it’s products or to provide services or technologies to You.
