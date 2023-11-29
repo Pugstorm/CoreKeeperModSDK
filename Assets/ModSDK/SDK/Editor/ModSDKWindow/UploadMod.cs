@@ -18,6 +18,7 @@ namespace PugMod
 			private VisualElement _modLogo;
 			private Button _modLogoButton;
 			private Button _uploadButton;
+			private Button _goToProfileButton;
 			private Button _createModProfileButton;
 
 			private List<ModBuilderSettings> _modSettings;
@@ -44,6 +45,7 @@ namespace PugMod
 				_modLogo = root.Q<VisualElement>("UploadModLogo");
 				_modLogoButton = root.Q<Button>("UploadModLogoButton");
 				_uploadButton = root.Q<Button>("UploadModButton");
+				_goToProfileButton = root.Q<Button>("GoToProfileButton");
 				_createModProfileButton = root.Q<Button>("CreateModProfile");
 
 				_idTextField = root.Q<TextField>("UploadModID");
@@ -311,6 +313,45 @@ namespace PugMod
 					});
 				};
 
+				_goToProfileButton.clicked += () =>
+				{
+					if (!GetModSettings(out var modBuilderSettings, out var modIOSettings) || modIOSettings == null)
+					{
+						return;
+					}
+
+					var metadata = modIOSettings.modSettings.metadata;
+
+					if (modIOSettings.modId == 0)
+					{
+						ShowError($"ModId not set for mod {metadata.name}");
+					}
+
+					if (!InitializeModIO())
+					{
+						return;
+					}
+
+					ModIOUnity.GetMod(new ModId(modIOSettings.modId), result =>
+					{
+						if (!result.result.Succeeded())
+						{
+							ShowError($"Couldn't find mod {modIOSettings.modSettings.metadata.name} at mod.io");
+							return;
+						}
+						
+						Debug.Assert(modIOSettings.modId == result.value.id);
+
+						if (string.IsNullOrEmpty(result.value.profilePageUrl))
+						{
+							ShowError($"No profile url for mod {modIOSettings.modSettings.metadata.name}");
+							return;
+						}
+
+						Application.OpenURL(result.value.profilePageUrl);
+					});
+				};
+
 				UpdateSelection();
 
 				_modList.RegisterValueChangedCallback(evt =>
@@ -452,6 +493,7 @@ namespace PugMod
 				//_form.style.display = DisplayStyle.None;
 				_modLogo.style.backgroundImage = AssetDatabase.LoadAssetAtPath<Texture2D>(DEFAULT_LOGO_PATH);
 				_uploadButton.style.display = DisplayStyle.None;
+				_goToProfileButton.style.display = DisplayStyle.None;
 				_createModProfileButton.style.display = DisplayStyle.None;
 				_summaryTextField.style.display = DisplayStyle.None;
 				_modLogo.style.display = DisplayStyle.None;
@@ -498,6 +540,7 @@ namespace PugMod
 					}
 					
 					_uploadButton.style.display = DisplayStyle.Flex;
+					_goToProfileButton.style.display = DisplayStyle.Flex;
 					_createModProfileButton.style.display = DisplayStyle.None;
 
 					modIOSettings.summary = result.value.summary;

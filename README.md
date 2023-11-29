@@ -4,7 +4,7 @@ This is the official Mod SDK for Core Keeper! Use it to create and publish amazi
 <sub>If you are looking for existing mods, check [the official mod.io page](https://mod.io/g/corekeeper).</sub>
 
 ## Requirements
-[Unity Editor 2021.3.14f1](https://unity.com/releases/editor/whats-new/2021.3.14)
+[Unity Editor 2022.3.10f1](https://unity.com/releases/editor/whats-new/2022.3.10)
 
 ## How to run
 
