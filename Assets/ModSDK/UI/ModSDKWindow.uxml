@@ -44,6 +44,7 @@
                     <ui:TextField picking-mode="Ignore" label="URL" name="UploadModURL" readonly="false" style="display: none;" />
                     <ui:TextField picking-mode="Ignore" label="Tags" name="UploadModTags" readonly="false" style="display: none;" />
                     <ui:Button text="Register at mod.io" display-tooltip-when-elided="true" name="CreateModProfile" />
+                    <ui:Button text="Go to mod page" display-tooltip-when-elided="true" name="GoToProfileButton" />
                     <ui:Button text="Upload to mod.io" display-tooltip-when-elided="true" name="UploadModButton" />
                 </ui:VisualElement>
             </ui:VisualElement>

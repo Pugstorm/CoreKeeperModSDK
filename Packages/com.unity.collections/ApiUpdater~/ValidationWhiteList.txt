@@ -1,0 +1,3 @@
+# https://confluence.unity3d.com/pages/viewpage.action?spaceKey=DEV&title=Package+Specifics+-+UPM
+
+ConfigurationValidation:

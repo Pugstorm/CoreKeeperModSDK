@@ -5,7 +5,8 @@
         "Unity.Entities",
         "Unity.Mathematics",
         "Unity.NetCode",
-        "PugRP"
+        "PugRP",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

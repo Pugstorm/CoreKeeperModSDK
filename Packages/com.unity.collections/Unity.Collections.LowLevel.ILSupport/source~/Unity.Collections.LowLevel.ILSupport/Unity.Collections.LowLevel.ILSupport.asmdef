@@ -1,0 +1,13 @@
+{
+    "name": "Unity.Collections.LowLevel.ILSupport",
+    "references": [
+    ],
+    "includePlatforms": [
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "autoReferenced": false,
+    "versionDefines": [],
+    "noEngineReferences": true
+}

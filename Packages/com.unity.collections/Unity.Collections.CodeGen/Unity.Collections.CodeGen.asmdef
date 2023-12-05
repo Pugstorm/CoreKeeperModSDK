@@ -1,0 +1,22 @@
+{
+    "name": "Unity.Collections.CodeGen",
+    "references": [
+        "Unity.Burst",
+        "Unity.Collections",
+		"Unity.Properties"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Mono.Cecil.dll",
+        "Mono.Cecil.Rocks.dll",
+        "Mono.Cecil.Pdb.dll",
+        "Unity.IL2CPP",
+        "Unity.IL2CPP.Common"
+    ],
+    "autoReferenced": false
+}

@@ -1,0 +1,56 @@
+apiRules:
+  - exclude:
+      # inherited Object methods
+      uidRegex: ^System\.Object\..*$
+      type: Method
+  - exclude:
+      # mentioning types from System.* namespace
+      uidRegex: ^System\..*$
+      type: Type
+  - exclude:
+      uidRegex: Tests$
+      type: Namespace
+  - exclude:
+      uidRegex: ^Unity\..*\.Tests\..*$
+      type: Namespace
+  - exclude:
+      uidRegex: .*Test.*
+  - exclude:
+      uidRegex: ^Unity\.Collections\.AllocatorManager\.BlockHandle
+      type: Type
+  - exclude:
+      uidRegex: ^Unity\.Collections\.AllocatorManager\.AudioKernel
+      type: Member
+  - exclude:
+      uidRegex: ^Unity\.Collections\.AllocatorManager\.Initialize
+      type: Method
+  - exclude:
+      uidRegex: ^Unity\.Collections\.AllocatorManager\.Shutdown
+      type: Method
+  - exclude:
+      uidRegex: ^Unity\.Collections\.AllocatorManager\.AllocatorHandle\.Function
+      type: Property
+  - exclude:
+      uidRegex: ^Unity\.Collections\.FixedBytes126
+      type: Type
+  - exclude:
+      uidRegex: ^Unity\.Collections\.FixedBytes16
+      type: Type
+  - exclude:
+      uidRegex: ^Unity\.Collections\.FixedBytes30
+      type: Type
+  - exclude:
+      uidRegex: ^Unity\.Collections\.FixedBytes4094
+      type: Type
+  - exclude:
+      uidRegex: ^Unity\.Collections\.FixedBytes510
+      type: Type
+  - exclude:
+      uidRegex: ^Unity\.Collections\.FixedBytes62
+      type: Type
+  - exclude:
+      uidRegex: ^Unity\.Collections\.LowLevel\.Unsafe\.UntypedUnsafeParallelHashMap
+      type: Type
+
+
+

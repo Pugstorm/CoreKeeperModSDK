@@ -15,6 +15,7 @@ namespace PugMod
 		public string guid;
 		public string name;
 		public bool skipSafetyChecks;
+		public bool disableScripts;
 		public bool accessesExtraAssemblies;
 		public bool disableHarmonyPatching;
 		public ModExistsOn requiredOn;
