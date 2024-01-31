@@ -20,7 +20,9 @@ Shader "SpriteObject/Simple"
 			#pragma multi_compile _ INSTANCING_ENABLED
 
 			#define PPU 16
+#if INSTANCING_ENABLED
 			#define INSTANCING_ON
+#endif
 
 			#include "UnityCG.cginc"
 			#include "SpriteObject.hlsl"

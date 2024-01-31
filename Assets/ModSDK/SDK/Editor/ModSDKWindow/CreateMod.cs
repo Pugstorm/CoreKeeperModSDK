@@ -185,6 +185,10 @@ namespace PugMod
 					{
 						path = Path.Combine(path, "CoreKeeper_Data", "StreamingAssets", "Mods");
 					}
+					else if (Directory.Exists(Path.Combine(path, "CoreKeeperServer_Data")))
+					{
+						path = Path.Combine(path, "CoreKeeperServer_Data", "StreamingAssets", "Mods");
+					}
 					else if (Directory.Exists(Path.Combine(path, "Assets")))
 					{
 						// Installing to another Unity project

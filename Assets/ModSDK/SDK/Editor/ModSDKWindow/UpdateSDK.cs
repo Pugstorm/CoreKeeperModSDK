@@ -116,19 +116,29 @@ namespace PugMod
 					return false;
 				}
 
-				if (!File.Exists(Path.Combine(path, "CoreKeeper.exe")))
+				if (File.Exists(Path.Combine(path, "CoreKeeper.exe")))
 				{
-					if (Directory.Exists(Path.Combine(path, "Assets")))
-					{
-						// Path looks like Unity project, accept this for dev work
-						return true;
-					}
-					if (!silent)
-						ShowError("Chosen path does not contain the Core Keeper game.");
-					return false;
+					return true;
 				}
 
-				return true;
+				if (File.Exists(Path.Combine(path, "CoreKeeperServer.exe")))
+				{
+					return true;
+				}
+				
+				if (Directory.Exists(Path.Combine(path, "Assets")))
+				{
+					// Path looks like Unity project, accept this for dev work
+					return true;
+				}
+
+				if (!silent)
+				{
+					ShowError("Chosen path does not contain the Core Keeper game.");
+				}
+
+				return false;
+
 			}
 		}
 	}
