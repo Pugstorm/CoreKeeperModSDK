@@ -1,0 +1,33 @@
+{
+    "name": "Unity.NetCode.Editor",
+    "rootNamespace": "",
+    "references": [
+        "Unity.Burst",
+        "Unity.NetCode",
+        "Unity.NetCode.Authoring.Hybrid",
+        "Unity.Entities",
+        "Unity.Entities.Hybrid",
+        "Unity.Scenes",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.Networking.Transport",
+        "Unity.Transforms",
+        "Unity.Logging",
+        "Unity.Entities.Editor",
+        "Unity.Properties.UI",
+        "Unity.Properties",
+        "Unity.Properties.UI.Editor",
+        "Unity.Entities.Build"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

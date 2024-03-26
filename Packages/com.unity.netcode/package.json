@@ -1,0 +1,26 @@
+{
+  "name": "com.unity.netcode",
+  "displayName": "Netcode for Entities",
+  "version": "1.0.15",
+  "unity": "2022.3",
+  "unityRelease": "0f1",
+  "description": "Unity's Data Oriented Technology Stack (DOTS) multiplayer netcode layer - a high level netcode system built on entities. This package provides a foundation for creating networked multiplayer applications within DOTS.",
+  "dependencies": {
+    "com.unity.transport": "2.0.1",
+    "com.unity.entities": "1.0.14",
+    "com.unity.logging": "1.0.14",
+    "com.unity.modules.animation": "1.0.0"
+  },
+  "_upm": {
+    "changelog": "### Changed\n\n* Updated com.unity.entities dependency to 1.0.14\n* Use of non required TempJob allocation and use Allocator.Temp instead.\n\n### Fixed\n\n* Runtime EntityQuery leaks and reduce runtime memory pressure due to continuously allocating queries without disposing.\n* Reduced memory usage in Editor tests, by avoiding allocating queries continuously in hot paths."
+  },
+  "upmCi": {
+    "footprint": "e6289d65df199ced74648f8de51830472111eac8"
+  },
+  "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.netcode@1.0/manual/index.html",
+  "repository": {
+    "url": "https://github.cds.internal.unity3d.com/unity/dots.git",
+    "type": "git",
+    "revision": "13433ff314ae6503bb855899b83d26a063650441"
+  }
+}

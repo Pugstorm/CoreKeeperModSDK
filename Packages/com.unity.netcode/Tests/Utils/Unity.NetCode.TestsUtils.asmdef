@@ -1,0 +1,35 @@
+{
+    "name": "Unity.NetCode.TestsUtils",
+    "references": [
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.NetCode",
+        "Unity.NetCode.Editor",
+        "Unity.Entities",
+        "Unity.Entities.Hybrid",
+        "Unity.Transforms",
+        "Unity.Networking.Transport",
+        "Unity.NetCode.Authoring.Hybrid",
+        "Unity.PerformanceTesting",
+        "Unity.Logging",
+        "Unity.Entities.Build",
+        "Unity.Scenes"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "autoReferenced": false,
+    "versionDefines": [
+      {
+        "name": "com.unity.test-framework.performance",
+        "expression": "0.0",
+        "define": "NETCODE_ENABLE_PERF_TESTS"
+      }
+    ],
+    "noEngineReferences": false
+}

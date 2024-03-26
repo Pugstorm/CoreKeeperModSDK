@@ -1,0 +1,12 @@
+{
+	"FilenameValidation":
+	{
+		"Filenames":
+		[
+			{
+				"Filename": "Runtime/Snapshot/SwitchPredictionSmoothingSystem.cs*",
+				"Targets": "+Switch"
+			}
+		]
+	}
+}

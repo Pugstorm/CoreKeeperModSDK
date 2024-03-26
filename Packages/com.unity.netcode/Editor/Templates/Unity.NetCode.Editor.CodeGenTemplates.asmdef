@@ -1,0 +1,23 @@
+{
+    "name": "Unity.NetCode.Editor.CodeGenTemplates",
+    "references": [
+        "Unity.NetCode",
+        "Unity.Entities",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.Networking.Transport"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "NETCODE_CODEGEN_TEMPLATES"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

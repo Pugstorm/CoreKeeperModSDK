@@ -1,0 +1,38 @@
+{
+    "name": "Unity.NetCode",
+    "rootNamespace": "",
+    "references": [
+        "Unity.Burst",
+        "Unity.Entities",
+        "Unity.Entities.Hybrid",
+        "Unity.Transforms",
+        "Unity.Collections",
+        "Unity.Scenes",
+        "Unity.Mathematics",
+        "Unity.Mathematics.Extensions",
+        "Unity.Networking.Transport",
+        "Unity.Build",
+        "Unity.Logging",
+        "Unity.Properties"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+          "name": "com.unity.logging",
+          "expression": "0.0",
+          "define": "USING_OBSOLETE_METHODS_VIA_INTERNALSVISIBLETO"
+        },
+        {
+            "name": "Unity",
+            "expression": "2022.2.14f1",
+            "define": "UNITY_2022_2_14F1_OR_NEWER"
+        }
+    ],
+    "noEngineReferences": false
+}

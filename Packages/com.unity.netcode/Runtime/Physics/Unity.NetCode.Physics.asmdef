@@ -1,0 +1,33 @@
+{
+    "name": "Unity.NetCode.Physics",
+    "references": [
+        "Unity.Burst",
+        "Unity.Entities",
+        "Unity.Entities.Hybrid",
+        "Unity.Networking.Transport",
+        "Unity.Scenes",
+        "Unity.NetCode",
+        "Unity.Transforms",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.Physics",
+        "Unity.Logging"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "ENABLE_UNITY_NETCODE_PHYSICS"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.physics",
+            "expression": "0.10.0-preview.1",
+            "define": "ENABLE_UNITY_NETCODE_PHYSICS"
+        }
+    ],
+    "noEngineReferences": false
+}

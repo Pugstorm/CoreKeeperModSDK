@@ -1,0 +1,46 @@
+{
+    "name": "Unity.NetCode.Physics.EditorTests",
+    "references": [
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.NetCode",
+        "Unity.NetCode.Physics",
+        "Unity.NetCode.Physics.Hybrid",
+        "Unity.NetCode.Editor",
+        "Unity.Physics",
+        "Unity.Physics.Hybrid",
+        "Unity.Entities",
+        "Unity.Entities.Hybrid",
+        "Unity.Transforms",
+        "Unity.Networking.Transport",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Unity.NetCode.EditorTests",
+        "Unity.NetCode.TestsUtils",
+        "Unity.NetCode.Authoring.Hybrid",
+        "Unity.Logging"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS",
+        "ENABLE_UNITY_NETCODE_PHYSICS"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.physics",
+            "expression": "0.10.0-preview.1",
+            "define": "ENABLE_UNITY_NETCODE_PHYSICS"
+        }
+    ],
+    "noEngineReferences": false
+}

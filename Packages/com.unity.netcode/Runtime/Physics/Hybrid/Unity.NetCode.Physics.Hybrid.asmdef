@@ -1,0 +1,33 @@
+{
+    "name": "Unity.NetCode.Physics.Hybrid",
+    "references": [
+        "Unity.Burst",
+        "Unity.Entities",
+        "Unity.Entities.Hybrid",
+        "Unity.NetCode",
+        "Unity.NetCode.Physics",
+        "Unity.Transforms",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.Physics",
+        "Unity.NetCode.Authoring.Hybrid"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "ENABLE_UNITY_NETCODE_PHYSICS",
+        "!UNITY_DOTSRUNTIME"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.physics",
+            "expression": "0.10.0-preview.1",
+            "define": "ENABLE_UNITY_NETCODE_PHYSICS"
+        }
+    ],
+    "noEngineReferences": false
+}

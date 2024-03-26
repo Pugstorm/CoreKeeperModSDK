@@ -117,16 +117,15 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.netcode": {
-      "version": "1.0.15",
+      "version": "file:com.unity.netcode",
       "depth": 0,
-      "source": "registry",
+      "source": "embedded",
       "dependencies": {
         "com.unity.transport": "2.0.1",
         "com.unity.entities": "1.0.14",
         "com.unity.logging": "1.0.14",
         "com.unity.modules.animation": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
+      }
     },
     "com.unity.nuget.mono-cecil": {
       "version": "1.11.4",

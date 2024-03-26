@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Unity NetDbg</title>
+<script src="netdbg.js"></script>
+<style>
+.LegendOverlay {
+	position:absolute;
+	max-height:200px;
+	overflow-y: auto;
+}
+.ConnectionTitle {
+	background: #aaa;
+	font-size: 1.2em;
+	padding: 5px;
+	margin-top: 5px;
+}
+#connectDlg {
+	position: fixed;
+	right: 10px;
+	top: 0;
+	padding: 0;
+}
+#connectUI, #connectingUI, #disconnectUI {
+	display:none;
+}
+.NetDbgDisconnected #connectUI {
+	display: block;
+	background-color: red;
+	padding: 2px;
+}
+.NetDbgConnecting #connectingUI {
+	display: block;
+	background-color: yellow;
+	padding: 2px;
+}
+.NetDbgConnected #disconnectUI {
+	display: block;
+	background-color: green;
+	padding: 2px;
+}
+.DetailsTitle {
+	font-size: 1.2em;
+	margin-top: 5px;
+}
+</style>
+</head>
+<body>
+<div id="controlPanel">
+	<input type="checkbox" id="liveUpdate" onchange="g_debugger.toggleLiveUpdate(this.checked);"><label for="liveUpdate">Live update</label>
+	<input type="checkbox" id="showPredictionErrors" onchange="g_debugger.invalidate();"><label for="showPredictionErrors">Show prediction errors</label>
+	<input type="checkbox" id="showTimeScale" onchange="g_debugger.invalidate();"><label for="showTimeScale" id="showTimeScaleLabel">Show time scale</label>
+	<input type="checkbox" id="showInterpolationDelay" onchange="g_debugger.invalidate();"><label for="showInterpolationDelay" id="showInterpolationDelayLabel">Show interpolation delay</label>
+	<input type="checkbox" id="showInterpolationTimeScale" onchange="g_debugger.invalidate();"><label for="showInterpolationTimeScale" id="showInterpolationTimeScaleLabel">Show Interpolation Time Scale</label>
+	<input type="checkbox" id="showSnapshotAge" onchange="g_debugger.invalidate();"><label for="showSnapshotAge" id="showSnapshotAgeLabel">Show snapshot age</label>
+	<input type="checkbox" id="showCommandAge" onchange="g_debugger.invalidate();"><label for="showCommandAge" id="showCommandAgeLabel">Show command age</label>
+	<input type="checkbox" id="showRTT" onchange="g_debugger.invalidate();"><label for="showRTT" id="showRTTLabel">Show RTT</label>
+	<input type="checkbox" id="showJitter" onchange="g_debugger.invalidate();"><label for="showJitter" id="showJitterLabel">Show Jitter</label>
+</div>
+<div id="connectionContainer"></div>
+<div id="connectDlg" class="NetDbgDisconnected">
+<div id="connectUI">
+<input type="text" id="connectUIButtonValue" value="localhost:8787">
+<input type="button" value="Connect" onclick="g_debugger.connect(this.parentElement.getElementsByTagName('input')[0].value);">
+</div>
+<div id="connectingUI">
+<input type="button" value="Cancel" onclick="g_debugger.disconnect();">
+</div>
+<div id="disconnectUI">
+<input type="button" value="Disconnect" onclick="g_debugger.disconnect();">
+</div>
+</div>
+</body>
+</html>
