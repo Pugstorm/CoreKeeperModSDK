@@ -1,4 +1,4 @@
-﻿$editorVersion = "2021.3.14f1"
+﻿$editorVersion = "2022.3.20f1"
 
 # Check if the UnitySetup module is installed
 if (-not (Get-Module -ListAvailable -Name UnitySetup)) {
