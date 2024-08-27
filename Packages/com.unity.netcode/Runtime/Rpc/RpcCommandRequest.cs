@@ -146,10 +146,9 @@ namespace Unity.NetCode
                         if (!rpcFromEntity.HasBuffer(dest.TargetConnection))
                         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-                            throw new InvalidOperationException("Cannot send RPC with no remote connection.");
-#else
-                            return;
+                            UnityEngine.Debug.LogWarning("Cannot send RPC with no remote connection.");
 #endif
+                            return;
                         }
                         var buffer = rpcFromEntity[dest.TargetConnection];
                         rpcQueue.Schedule(buffer, ghostFromEntity, action);
@@ -166,7 +165,9 @@ namespace Unity.NetCode
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
                 else
                 {
-                    throw new InvalidOperationException("Cannot send RPC with no remote connection.");
+                    UnityEngine.Debug.LogWarning("Cannot send RPC with no remote connection.");
+
+                    return;
                 }
 #endif
             }

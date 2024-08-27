@@ -34,15 +34,15 @@ namespace Unity.NetCode
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void SmoothingActionDelegate(IntPtr currentData, IntPtr previousData, IntPtr userData);
 
-        internal struct SmoothingActionState
+        internal unsafe struct SmoothingActionState
         {
             public int compIndex;
             public int compSize;
             public int serializerIndex;
             public int entityIndex;
-            public int compBackupOffset;
             public int userTypeId;
             public int userTypeSize;
+            public byte* backupData;
             public PortableFunctionPointer<SmoothingActionDelegate> action;
         }
 
@@ -78,7 +78,7 @@ namespace Unity.NetCode
                 compSize = -1,
                 serializerIndex = -1,
                 entityIndex = -1,
-                compBackupOffset = -1,
+                backupData = null,
                 userTypeId = -1,
                 userTypeSize = -1
             };
@@ -277,7 +277,7 @@ namespace Unity.NetCode
             [ReadOnly] public NativeParallelHashMap<ComponentType, GhostPredictionSmoothing.SmoothingActionState> smoothingActions;
             public NetworkTick tick;
 
-            const GhostComponentSerializer.SendMask requiredSendMask = GhostComponentSerializer.SendMask.Predicted;
+            const GhostSendType requiredSendMask = GhostSendType.OnlyPredictedClients;
 
             public unsafe void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
             {
@@ -306,27 +306,20 @@ namespace Unity.NetCode
                     return; // serialization data has not been loaded yet. This can only happen for prespawn objects
 
                 var typeData = GhostTypeCollection[ghostTypeId];
-
-                var headerSize = PredictionBackupState.GetHeaderSize();
-                var entitySize = PredictionBackupState.GetEntitiesSize(chunk.Capacity, out var singleEntitySize);
-
                 Entity* backupEntities = PredictionBackupState.GetEntities(state);
                 var entities = chunk.GetNativeArray(entityType);
 
                 var PredictedGhosts = chunk.GetNativeArray(ref predictedGhostType);
 
                 int numBaseComponents = typeData.NumComponents - typeData.NumChildComponents;
-                int baseOffset = typeData.FirstComponent;
-
                 var actions = new NativeList<GhostPredictionSmoothing.SmoothingActionState>(Allocator.Temp);
                 var childActions = new NativeList<GhostPredictionSmoothing.SmoothingActionState>(Allocator.Temp);
 
-                int backupOffset = headerSize + entitySize;
-
+                byte* dataPtr = PredictionBackupState.GetData(state);
                 // todo: this loop could be cached on chunk.capacity, because now we are re-calculating it everytime.
                 for (int comp = 0; comp < typeData.NumComponents; ++comp)
                 {
-                    int index = baseOffset + comp;
+                    int index = typeData.FirstComponent + comp;
                     int compIdx = GhostComponentIndex[index].ComponentIndex;
                     int serializerIdx = GhostComponentIndex[index].SerializerIndex;
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
@@ -336,28 +329,27 @@ namespace Unity.NetCode
                     if ((GhostComponentIndex[index].SendMask&requiredSendMask) == 0)
                         continue;
 
+                    //Buffer does not have any smoothing
                     if (GhostComponentCollection[serializerIdx].ComponentType.IsBuffer)
                     {
-                        backupOffset += PredictionBackupState.GetDataSize(GhostSystemConstants.DynamicBufferComponentSnapshotSize, chunk.Capacity);
+                        dataPtr = PredictionBackupState.GetNextData(dataPtr, GhostComponentSerializer.DynamicBufferComponentSnapshotSize, chunk.Capacity);
                         continue;
                     }
                     var compSize = GhostComponentCollection[serializerIdx].ComponentSize;
-
-                    if (smoothingActions.TryGetValue(GhostComponentCollection[serializerIdx].ComponentType,
-                        out var action))
+                    if (smoothingActions.TryGetValue(GhostComponentCollection[serializerIdx].ComponentType, out var action))
                     {
                         action.compIndex = compIdx;
                         action.compSize = compSize;
                         action.serializerIndex = serializerIdx;
                         action.entityIndex = GhostComponentIndex[index].EntityIndex;
-                        action.compBackupOffset = backupOffset;
+                        action.backupData = dataPtr;
 
                         if (comp < numBaseComponents)
                             actions.Add(action);
                         else
                             childActions.Add(action);
                     }
-                    backupOffset += PredictionBackupState.GetDataSize(compSize, chunk.Capacity);
+                    dataPtr = PredictionBackupState.GetNextData(dataPtr, compSize, chunk.Capacity);
                 }
 
                 foreach (var action in actions)
@@ -382,8 +374,7 @@ namespace Unity.NetCode
                                 usrDataPtr = usrData + action.userTypeSize * ent;
                             }
 
-                            byte* dataPtr = ((byte*) state) + action.compBackupOffset;
-                            action.action.Ptr.Invoke((IntPtr)(compData + action.compSize * ent), (IntPtr)(dataPtr + action.compSize * ent),
+                            action.action.Ptr.Invoke((IntPtr)(compData + action.compSize * ent), (IntPtr)(action.backupData + action.compSize * ent),
                                 (IntPtr)usrDataPtr);
                         }
                     }
@@ -412,9 +403,7 @@ namespace Unity.NetCode
                                 var usrData = (byte*)chunk.GetDynamicComponentDataArrayReinterpret<byte>(ref userTypes[action.userTypeId], action.userTypeSize).GetUnsafeReadOnlyPtr();
                                 usrDataPtr = usrData + action.userTypeSize * ent;
                             }
-
-                            byte* dataPtr = ((byte*) state) + action.compBackupOffset;
-                            action.action.Ptr.Invoke((IntPtr)(compData + action.compSize * childChunk.IndexInChunk), (IntPtr)(dataPtr + action.compSize * ent), (IntPtr)usrDataPtr);
+                            action.action.Ptr.Invoke((IntPtr)(compData + action.compSize * childChunk.IndexInChunk), (IntPtr)(action.backupData + action.compSize * ent), (IntPtr)usrDataPtr);
                         }
                     }
                 }

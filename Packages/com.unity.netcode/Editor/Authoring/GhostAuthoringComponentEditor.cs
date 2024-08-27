@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Entities.Conversion;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace Unity.NetCode.Editor
@@ -19,19 +20,14 @@ namespace Unity.NetCode.Editor
         SerializedProperty UsePreSerialization;
         SerializedProperty Importance;
 
-        internal static EntityPrefabComponentsPreview prefabPreview { get; private set; }
-        internal static Dictionary<GameObject, BakedGameObjectResult> bakedGameObjectResultsMap { get; private set; }
-        internal static GhostAuthoringComponent bakedGhostAuthoringComponent { get; private set; }
+
 
         internal static Color brokenColor = new Color(1f, 0.56f, 0.54f);
         internal static Color brokenColorUIToolkit = new Color(0.35f, 0.19f, 0.19f);
         internal static Color brokenColorUIToolkitText = new Color(0.9f, 0.64f, 0.61f);
 
-        internal static bool hasBakedNetCodePrefab => bakedGhostAuthoringComponent != null;
-        internal static bool bakingSucceeded => hasBakedNetCodePrefab && bakedGameObjectResultsMap != default;
-
         /// <summary>Aligned with NetCode for GameObjects.</summary>
-        public static Color netcodeColor => EditorGUIUtility.isProSkin ? new Color(0.91f, 0.55f, 0.86f) : new Color(0.8f, 0.14f, 0.5f);
+        public static Color netcodeColor => new Color(0.91f, 0.55f, 0.86f, 1f);
 
         void OnEnable()
         {
@@ -50,27 +46,25 @@ namespace Unity.NetCode.Editor
         {
             var authoringComponent = (GhostAuthoringComponent)target;
             var go = authoringComponent.gameObject;
+            var isPrefabEditable = IsPrefabEditable(go);
+            GUI.enabled = isPrefabEditable;
 
-            var isViewingPrefab = IsViewingPrefab(go, out var isViewingInstance);
-            if (isViewingPrefab)
+            var currentPrefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            var isViewingPrefab = PrefabUtility.IsPartOfPrefabAsset(go) || PrefabUtility.IsPartOfPrefabInstance(go) || (currentPrefabStage != null && currentPrefabStage.IsPartOfPrefabContents(go));
+            if (isPrefabEditable)
             {
-                if (!isViewingInstance)
+                if (authoringComponent.transform != authoringComponent.transform.root)
                 {
-                    if (authoringComponent.transform != authoringComponent.transform.root)
-                    {
-                        EditorGUILayout.HelpBox("The `GhostAuthoringComponent` must only be added to the root GameObject of a prefab. Cannot continue setup.", MessageType.Error);
-                        return;
-                    }
+                    EditorGUILayout.HelpBox("The `GhostAuthoringComponent` must only be added to the root GameObject of a prefab. This is invalid, please remove or correct this authoring.", MessageType.Error);
+                    GUI.enabled = false;
+                }
+
+                if (!isViewingPrefab)
+                {
+                    EditorGUILayout.HelpBox($"'{authoringComponent}' is not a recognised Prefab, so the `GhostAuthoringComponent` is not valid. Please ensure that this GameObject is an unmodified Prefab instance mapped to a known project asset.", MessageType.Error);
                 }
             }
-            else
-            {
-                var prefabInstanceStatus = PrefabUtility.GetPrefabInstanceStatus(go);
-                if (prefabInstanceStatus == PrefabInstanceStatus.NotAPrefab || prefabInstanceStatus == PrefabInstanceStatus.MissingAsset)
-                    EditorGUILayout.HelpBox($"'{authoringComponent}' is not a recognised Prefab, so the `GhostAuthoringComponent` is not valid. Please ensure that this GameObject is an unmodified Prefab instance mapped to a known project asset.", MessageType.Error);
-            }
 
-            GUI.enabled = isViewingPrefab;
 
             var originalColor = GUI.color;
 
@@ -115,55 +109,27 @@ namespace Unity.NetCode.Editor
                 GhostComponentAnalytics.BufferConfigurationData(authoringComponent, allComponentOverridesForGhost.Count);
             }
 
-            if (isViewingPrefab && !isViewingInstance && !go.GetComponent<GhostAuthoringInspectionComponent>())
+            if (isViewingPrefab && !go.GetComponent<GhostAuthoringInspectionComponent>())
             {
-                EditorGUILayout.HelpBox("To modify this ghost's per-entity component meta-data, add a `Ghost Authoring Inspection Component` (a MonoBehaviour) to the relevant authoring GameObject.", MessageType.Info);
+                EditorGUILayout.HelpBox("To modify this ghost's per-entity component meta-data, add a `Ghost Authoring Inspection Component` (a MonoBehaviour) to the relevant authoring GameObject. Inspecting children is supported by adding the Inspection component to the relevant child.", MessageType.Info);
             }
         }
 
         // TODO - Add guard against nested Ghost prefabs as they're invalid (although a non-ghost prefab containing ghost nested prefabs is valid AFAIK).
         /// <summary>
         /// <para>Lots of valid and invalid ways to view a prefab. These API calls check to ensure we're either:</para>
-        /// <para>- IN the prefabs own scene (thus it's a prefab).</para>
-        /// <para>- Selecting the prefab in the project.</para>
-        /// <para>Thus, it's invalid to select a prefab instance in some other scene or sub-scene (or some other prefabs scene).</para>
+        /// <para>- IN the prefabs own scene (thus it's editable).</para>
+        /// <para>- Selecting the prefab in the PROJECT.</para>
+        /// <para>- NOT selecting this prefab in a SCENE.</para>
         /// </summary>
-        internal static bool IsViewingPrefab(GameObject go, out bool isViewingInstance)
+        /// <remarks>Note that it is valid to add this Inspection onto a nested-prefab!</remarks>
+        internal static bool IsPrefabEditable(GameObject go)
         {
-            var isInPrefabScene = go.scene.IsValid();
-            isViewingInstance = PrefabUtility.IsPartOfPrefabInstance(go) || isInPrefabScene;
-            return !PrefabUtility.IsPartOfNonAssetPrefabInstance(go) && (isInPrefabScene || PrefabUtility.IsPartOfPrefabAsset(go));
-        }
-
-        internal static bool TryGetEntitiesAssociatedWithAuthoringGameObject(GhostAuthoringInspectionComponent ghostAuthoringInspection, out BakedGameObjectResult result)
-        {
-            result = default;
-            if (bakedGhostAuthoringComponent == null || bakedGhostAuthoringComponent.gameObject != ghostAuthoringInspection.transform.root.gameObject)
-            {
-                BakeNetCodePrefab(ghostAuthoringInspection.GetComponent<GhostAuthoringComponent>() ?? ghostAuthoringInspection.transform.root.GetComponent<GhostAuthoringComponent>());
-            }
-            return bakedGameObjectResultsMap != null && bakedGameObjectResultsMap.TryGetValue(ghostAuthoringInspection.gameObject, out result);
-        }
-
-        public static void BakeNetCodePrefab(GhostAuthoringComponent ghostAuthoring)
-        {
-            if (bakedGhostAuthoringComponent != ghostAuthoring || GhostAuthoringInspectionComponent.forceBake)
-            {
-                // These allow interop with GhostAuthoringInspectionComponentEditor.
-                bakedGhostAuthoringComponent = ghostAuthoring;
-                prefabPreview = new EntityPrefabComponentsPreview();
-                bakedGameObjectResultsMap = new Dictionary<GameObject, BakedGameObjectResult>(4);
-                try
-                {
-                    prefabPreview.BakeEntireNetcodePrefab(ghostAuthoring, bakedGameObjectResultsMap);
-                }
-                catch
-                {
-                    prefabPreview = default;
-                    bakedGameObjectResultsMap = default;
-                    throw;
-                }
-            }
+            if (PrefabUtility.IsPartOfImmutablePrefab(go))
+                return false;
+            if (PrefabUtility.IsPartOfPrefabAsset(go))
+                return true;
+            return !PrefabUtility.IsPartOfPrefabInstance(go);
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Unity.NetCode.Tests.Editor
 {
     [DisableAutoCreation]
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
-    [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
+    [UpdateInGroup(typeof(GhostSpawnClassificationSystemGroup))]
     [UpdateAfter(typeof(GhostSpawnClassificationSystem))]
     [CreateAfter(typeof(GhostCollectionSystem))]
     [CreateAfter(typeof(GhostReceiveSystem))]
@@ -90,7 +90,7 @@ namespace Unity.NetCode.Tests.Editor
                 testWorld.CreateWorlds(true, 1);
                 BuildPrefab(testWorld.ServerWorld, "TestPrefab");
                 BuildPrefab(testWorld.ClientWorlds[0], "TestPrefab");
-                testWorld.Connect(1f / 60f, 10);
+                testWorld.Connect(1f / 60f);
                 testWorld.GoInGame();
                 for(var i=0;i<32;++i)
                     testWorld.Tick(1.0f/60f);
@@ -114,7 +114,7 @@ namespace Unity.NetCode.Tests.Editor
                 BuildPrefab(testWorld.ServerWorld, "TestPrefab");
                 var clientPrefab = BuildPrefab(testWorld.ClientWorlds[0], "TestPrefab");
                 Assert.IsTrue(testWorld.ClientWorlds[0].EntityManager.HasComponent<PredictedGhostSpawnRequest>(clientPrefab));
-                testWorld.Connect(1f / 60f, 10);
+                testWorld.Connect(1f / 60f);
                 testWorld.GoInGame();
                 for(var i=0;i<32;++i)
                     testWorld.Tick(1.0f/60f);
@@ -153,7 +153,7 @@ namespace Unity.NetCode.Tests.Editor
                 }
 
 
-                testWorld.Connect(1f / 60f, 10);
+                testWorld.Connect(1f / 60f);
                 testWorld.GoInGame();
                 for(var i=0;i<32;++i)
                     testWorld.Tick(1.0f/60f);

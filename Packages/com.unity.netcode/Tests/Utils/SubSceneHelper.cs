@@ -38,7 +38,7 @@ namespace Unity.NetCode.Tests
             return EditorSceneManager.OpenScene(subScenePath, OpenSceneMode.Additive);
         }
 
-        static public void WaitUntilSceneEntityPresent(Hash128 subSceneGUID, World world, int timeoutMs = 10000)
+        public static void WaitUntilSceneEntityPresent(Hash128 subSceneGUID, World world, int timeoutMs = 10000)
         {
             var ent = SceneSystem.LoadSceneAsync(world.Unmanaged,
                 subSceneGUID,
@@ -180,15 +180,17 @@ namespace Unity.NetCode.Tests
         //Load into the terget world a list of subscene.
         //if the subScenes list is empty, a list of all the SubScene gameobjects in the active scene is retrieved
         //and loaded in the target world instead.
-        static public void LoadSubScene(World world, params SubScene[] subScenes)
+        public static void LoadSubScene(World world, params SubScene[] subScenes)
         {
-            if(subScenes.Length == 0)
+            if (subScenes.Length == 0)
+            {
                 subScenes = Object.FindObjectsByType<SubScene>(FindObjectsSortMode.None);
+            }
 
             var sceneEntities = new Entity[subScenes.Length];
-            for(int i=0;i<subScenes.Length;++i)
+            foreach (var subScene in subScenes)
             {
-                WaitUntilSceneEntityPresent(subScenes[i].SceneGUID, world);
+                WaitUntilSceneEntityPresent(subScene.SceneGUID, world);
             }
             for (int i = 0; i < subScenes.Length; ++i)
             {
@@ -197,15 +199,18 @@ namespace Unity.NetCode.Tests
                     Flags = SceneLoadFlags.BlockOnImport | SceneLoadFlags.BlockOnStreamIn
                 });
             }
-            bool loaded = false;
-            for(int i=0;i<128 && !loaded;++i)
+            var loaded = false;
+            for (int i = 0; i < 128 && !loaded; ++i)
             {
                 Thread.Sleep(100);
                 world.Update();
-                loaded = (sceneEntities.All(s => SceneSystem.IsSceneLoaded(world.Unmanaged, s)));
+                loaded = sceneEntities.All(s => SceneSystem.IsSceneLoaded(world.Unmanaged, s));
             }
-            if(!loaded)
-                throw new System.Exception($"Failed to load subscenes in world. {world.Name}");
+
+            if (!loaded)
+            {
+                throw new Exception($"Failed to load SubScenes in world. {world.Name}");
+            }
         }
 
         static public Entity LoadSubSceneAsync(World world, in NetCodeTestWorld testWorld, Hash128 subSceneGUID, float frameTime, int maxTicks=256)
@@ -224,14 +229,16 @@ namespace Unity.NetCode.Tests
             throw new System.Exception($"Failed to load subscene in world. {world.Name}");
         }
 
-        //Load the specified subscene in the both clients and server world.
-        //if the subScenes list is empty, a list of all the SubScene gameobjects in the active scene is retrieved
-        //and loaded in the worlds.
-        static public void LoadSubSceneInWorlds(in NetCodeTestWorld testWorld, params SubScene[] subScenes)
+        // Load the specified SubScene in the both clients and server world.
+        // if the subScenes list is empty, a list of all the SubScene GameObjects in the active scene is retrieved
+        // and loaded in the worlds.
+        public static void LoadSubSceneInWorlds(in NetCodeTestWorld testWorld, params SubScene[] subScenes)
         {
-            SubSceneHelper.LoadSubScene(testWorld.ServerWorld, subScenes);
-            for (int i = 0; i < testWorld.ClientWorlds.Length; ++i)
-                SubSceneHelper.LoadSubScene(testWorld.ClientWorlds[i], subScenes);
+            LoadSubScene(testWorld.ServerWorld, subScenes);
+            foreach (var clientWorld in testWorld.ClientWorlds)
+            {
+                LoadSubScene(clientWorld, subScenes);
+            }
         }
 
         //Load the scene entity and resolve the sections but not load the content.

@@ -1,9 +1,8 @@
-#if (UNITY_EDITOR || NETCODE_DEBUG) && !UNITY_DOTSRUNTIME
+#if (UNITY_EDITOR || NETCODE_DEBUG)
 using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 using Unity.Entities;
-using Unity.Profiling;
 
 namespace Unity.NetCode
 {
@@ -17,11 +16,14 @@ namespace Unity.NetCode
         static DebugGhostDrawer s_Instance;
 
         public static List<CustomDrawer> CustomDrawers = new List<CustomDrawer>(2);
-        public static World FirstServerWorld;
-        public static World FirstClientWorld;
+        
+        [Obsolete("Use ClientServerBootstrap.ServerWorld instead. RemoveAfter Entities 1.x")]
+        public static World FirstServerWorld => ClientServerBootstrap.ServerWorld;
+
+        [Obsolete("Use ClientServerBootstrap.ClientWorld instead. RemoveAfter Entities 1.x")]
+        public static World FirstClientWorld => ClientServerBootstrap.ClientWorld;
 
         static ulong s_LastNextSequenceNumber;
-        static ProfilerMarker s_RefreshWorldCachesMarker = new ProfilerMarker(nameof(s_RefreshWorldCachesMarker));
 
         /// <summary>
         ///     Replaces the existing DrawAction with the same name, if it already exists.
@@ -34,41 +36,11 @@ namespace Unity.NetCode
             CustomDrawers.Add(newDrawAction);
             CustomDrawers.Sort();
         }
+        
+        [Obsolete("This functionality is obsolete, worlds are no longer cached here. RemoveAfter Entities 1.x")]
+        public static void RefreshWorldCaches() {}
 
-        public static void RefreshWorldCaches()
-        {
-            using (s_RefreshWorldCachesMarker.Auto())
-            {
-                if (FirstServerWorld != null && !FirstServerWorld.IsCreated) FirstServerWorld = default;
-                if (FirstClientWorld != null && !FirstClientWorld.IsCreated) FirstClientWorld = default;
-
-                if (World.NextSequenceNumber != s_LastNextSequenceNumber)
-                {
-                    if (!HasRequiredWorlds)
-                    {
-                        for (var i = 0; i < World.All.Count && !HasRequiredWorlds; i++)
-                        {
-                            var world = World.All[i];
-                            if (FirstServerWorld == default && world.IsServer())
-                            {
-                                FirstServerWorld = world;
-                                continue;
-                            }
-
-                            if (FirstClientWorld == default)
-                            {
-                                if (world.IsClient())
-                                    FirstClientWorld = world;
-                            }
-                        }
-
-                        s_LastNextSequenceNumber = World.NextSequenceNumber;
-                    }
-                }
-            }
-        }
-
-        public static bool HasRequiredWorlds => FirstServerWorld != default && FirstClientWorld != default;
+        public static bool HasRequiredWorlds => ClientServerBootstrap.ServerWorld != default && ClientServerBootstrap.ClientWorld != default;
 
         /// <inheritdoc cref="DebugGhostDrawer"/>>
         public class CustomDrawer : IComparer<CustomDrawer>, IComparable<CustomDrawer>

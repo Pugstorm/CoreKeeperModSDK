@@ -6,11 +6,17 @@ using Unity.Networking.Transport.Utilities;
 using UnityEditor;
 using UnityEngine;
 
+#if UNITY_USE_MULTIPLAYER_ROLES
+using Unity.Multiplayer;
+using Unity.Multiplayer.Editor;
+#endif
+
 namespace Unity.NetCode
 {
     /// <summary>Developer preferences for the `MultiplayerPlayModeWindow`. Only applicable in editor.</summary>
     public static class MultiplayerPlayModePreferences
     {
+        public const bool DefaultSimulatorEnabled = true;
         public const SimulatorView DefaultSimulatorView = SimulatorView.PingView;
 
         const int k_MaxPacketDelayMs = 2000;
@@ -20,12 +26,14 @@ namespace Unity.NetCode
         static string s_PrefsKeyPrefix = $"MultiplayerPlayMode_{Application.productName}_";
         static string s_PlayModeTypeKey = s_PrefsKeyPrefix + "PlayMode_Type";
 
+        static string s_SimulatorEnabledKey = s_PrefsKeyPrefix + "SimulatorEnabled";
         static string s_RequestedSimulatorViewKey = s_PrefsKeyPrefix + "SimulatorView";
         static string s_SimulatorPreset = s_PrefsKeyPrefix + "SimulatorPreset";
 
         static string s_PacketDelayMsKey = s_PrefsKeyPrefix + "PacketDelayMs";
         static string s_PacketJitterMsKey = s_PrefsKeyPrefix + "PacketJitterMs";
         static string s_PacketDropPercentageKey = s_PrefsKeyPrefix + "PacketDropRate";
+        static string s_PacketFuzzPercentageKey = s_PrefsKeyPrefix + "PacketFuzzRate";
 
         static string s_RequestedNumThinClientsKey = s_PrefsKeyPrefix + "NumThinClients";
         static string s_StaggerThinClientCreationKey = s_PrefsKeyPrefix + "StaggerThinClientCreation";
@@ -35,17 +43,34 @@ namespace Unity.NetCode
 
         static string s_LagSpikeDurationSelectionKey = s_PrefsKeyPrefix + "LagSpikeDurationSelection";
 
-        public static bool SimulatorEnabled => RequestedSimulatorView != SimulatorView.Disabled;
         static string s_ApplyLoggerSettings = s_PrefsKeyPrefix + "NetDebugLogger_ApplyOverload";
         static string s_LoggerLevelType = s_PrefsKeyPrefix + "NetDebugLogger_LogLevelType";
         static string s_TargetShouldDumpPackets = s_PrefsKeyPrefix + "NetDebugLogger_ShouldDumpPackets";
         static string s_ShowAllSimulatorPresets = s_PrefsKeyPrefix + "ShowAllSimulatorPresets";
 
-        /// <summary>Editor "mode". Displays different data, and can be used to disable the simulator entirely.</summary>
+        /// <summary>Stores whether or not the user wishes to use the client simulator UTP module.
+        /// </summary>
+        public static bool SimulatorEnabled
+        {
+            get => EditorPrefs.GetBool(s_SimulatorEnabledKey, DefaultSimulatorEnabled);
+            set => EditorPrefs.SetBool(s_SimulatorEnabledKey, value);
+        }
+
+        /// <summary>Editor "mode". Stores the preferred mode that the Simulator is in.</summary>
         public static SimulatorView RequestedSimulatorView
         {
             get => (SimulatorView) EditorPrefs.GetInt(s_RequestedSimulatorViewKey, (int) DefaultSimulatorView);
-            set => EditorPrefs.SetInt(s_RequestedSimulatorViewKey, (int) value);
+            set
+            {
+#pragma warning disable CS0618
+                if (value == SimulatorView.Disabled)
+#pragma warning restore CS0618
+                {
+                    SimulatorEnabled = false;
+                    return;
+                }
+                EditorPrefs.SetInt(s_RequestedSimulatorViewKey, (int) value);
+            }
         }
 
         /// <inheritdoc cref="SimulatorUtility.Parameters"/>
@@ -53,14 +78,65 @@ namespace Unity.NetCode
         {
             Mode = ApplyMode.AllPackets, MaxPacketSize = NetworkParameterConstants.MTU, MaxPacketCount = k_DefaultSimulatorMaxPacketCount,
             PacketDelayMs = PacketDelayMs, PacketJitterMs = PacketJitterMs,
-            PacketDropPercentage = PacketDropPercentage, PacketDuplicationPercentage = 0, FuzzFactor = 0,
+            PacketDropPercentage = PacketDropPercentage, FuzzFactor = PacketFuzzPercentage, PacketDuplicationPercentage = 0,
         };
+
+#if UNITY_USE_MULTIPLAYER_ROLES
+        private static ClientServerBootstrap.PlayType MultiplayerRoleFlagsToPlayType(MultiplayerRoleFlags roleFlags)
+        {
+            switch (roleFlags)
+            {
+                case MultiplayerRoleFlags.Server:
+                    return ClientServerBootstrap.PlayType.Server;
+                case MultiplayerRoleFlags.Client:
+                    return ClientServerBootstrap.PlayType.Client;
+                case MultiplayerRoleFlags.ClientAndServer:
+                    return ClientServerBootstrap.PlayType.ClientAndServer;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(roleFlags), roleFlags, null);
+            }
+        }
+
+        private static MultiplayerRoleFlags PlayTypeToMultiplayerRoleFlags(ClientServerBootstrap.PlayType playType)
+        {
+            switch (playType)
+            {
+                case ClientServerBootstrap.PlayType.Server:
+                    return MultiplayerRoleFlags.Server;
+                case ClientServerBootstrap.PlayType.Client:
+                    return MultiplayerRoleFlags.Client;
+                case ClientServerBootstrap.PlayType.ClientAndServer:
+                    return MultiplayerRoleFlags.ClientAndServer;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(playType), playType, null);
+            }
+        }
+#endif
 
         /// <summary>Denotes what type of worlds are created by <see cref="ClientServerBootstrap"/> when entering playmode in the editor.</summary>
         public static ClientServerBootstrap.PlayType RequestedPlayType
         {
-            get => (ClientServerBootstrap.PlayType) EditorPrefs.GetInt(s_PlayModeTypeKey, (int) ClientServerBootstrap.PlayType.ClientAndServer);
-            set => EditorPrefs.SetInt(s_PlayModeTypeKey, (int) value);
+            get
+            {
+#if UNITY_USE_MULTIPLAYER_ROLES
+                if (Unity.Multiplayer.Editor.EditorMultiplayerManager.enableMultiplayerRoles)
+                {
+                    return MultiplayerRoleFlagsToPlayType(Unity.Multiplayer.Editor.EditorMultiplayerManager.activeMultiplayerRoleMask);
+                }
+#endif
+                return (ClientServerBootstrap.PlayType) EditorPrefs.GetInt(s_PlayModeTypeKey, (int) ClientServerBootstrap.PlayType.ClientAndServer);
+            }
+            set
+            {
+#if UNITY_USE_MULTIPLAYER_ROLES
+                if (Unity.Multiplayer.Editor.EditorMultiplayerManager.enableMultiplayerRoles)
+                {
+                    Unity.Multiplayer.Editor.EditorMultiplayerManager.activeMultiplayerRoleMask = PlayTypeToMultiplayerRoleFlags(value);
+                    return;
+                }
+#endif
+                EditorPrefs.SetInt(s_PlayModeTypeKey, (int) value);
+            }
         }
 
         private static string s_SimulateDedicatedServer = s_PrefsKeyPrefix + "SimulateDedicatedServer";
@@ -89,6 +165,13 @@ namespace Unity.NetCode
         {
             get => math.clamp(EditorPrefs.GetInt(s_PacketDropPercentageKey, 0), 0, 100);
             set => EditorPrefs.SetInt(s_PacketDropPercentageKey, math.clamp(value, 0, 100));
+        }
+
+        /// <inheritdoc cref="SimulatorUtility.Parameters.FuzzFactor"/>
+        public static int PacketFuzzPercentage
+        {
+            get => math.clamp(EditorPrefs.GetInt(s_PacketFuzzPercentageKey, 0), 0, 100);
+            set => EditorPrefs.SetInt(s_PacketFuzzPercentageKey, math.clamp(value, 0, 100));
         }
 
         /// <summary>Denotes how many thin client worlds are created in the <see cref="ClientServerBootstrap"/> (and at runtime, the PlayMode window).</summary>
@@ -165,7 +248,10 @@ namespace Unity.NetCode
         /// <summary>Returns true if the editor-inputted address is a valid connection address.</summary>
         public static bool IsEditorInputtedAddressValidForConnect(out NetworkEndpoint ep)
         {
-            if (AutoConnectionPort != 0 && NetworkEndpoint.TryParse(AutoConnectionAddress, AutoConnectionPort, out ep) && ep.IsValid && !ep.IsAny)
+            if (AutoConnectionPort != 0 && NetworkEndpoint.TryParse(AutoConnectionAddress, AutoConnectionPort, out ep, NetworkFamily.Ipv4) && !ep.IsAny)
+                return true;
+
+            if (AutoConnectionPort != 0 && NetworkEndpoint.TryParse(AutoConnectionAddress, AutoConnectionPort, out ep, NetworkFamily.Ipv6) && !ep.IsAny)
                 return true;
 
             ep = default;
@@ -182,16 +268,18 @@ namespace Unity.NetCode
                 PacketDelayMs = preset.PacketDelayMs;
                 PacketJitterMs = preset.PacketJitterMs;
                 PacketDropPercentage = math.clamp(preset.PacketLossPercent, 0, 100);
+                PacketFuzzPercentage = math.clamp(preset.PacketFuzzPercent, 0, 100);
             }
         }
     }
 
-    /// <summary>For the Multiplayer PlayMode Window.</summary>
+    /// <summary>For the PlayMode Tools Window.</summary>
     public enum SimulatorView
     {
-        Disabled,
-        PingView,
-        PerPacketView,
+        [Obsolete("Disabled is no longer supported. Use MultiplayerPlayModePreferences.SimulatorEnabled instead. RemovedAfter Entities 1.x")]
+        Disabled = 0,
+        PingView = 1,
+        PerPacketView = 2,
     }
 }
 #endif

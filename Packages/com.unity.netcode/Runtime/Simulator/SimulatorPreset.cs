@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Networking.Transport.Utilities;
 
 namespace Unity.NetCode
 {
@@ -38,9 +39,10 @@ namespace Unity.NetCode
         /// <param name="list">To append to.</param>
         public static void AppendBaseSimulatorPresets(List<SimulatorPreset> list)
         {
-            list.Add(new SimulatorPreset(k_CustomProfileKey, -1, -1, -1, k_CustomProfileTooltip));
-            list.Add(new SimulatorPreset("Custom / No Internet", 1000, 1000, 100, "Simulate the server becoming completely unreachable."));
-            list.Add(new SimulatorPreset("Custom / Unplayable Internet", 300, 400, 30, "Simulate barely having a connection at all, to observe what your users will experience when the internet is good enough to connect (sometimes), but not good enough to play.\n\nIt may take multiple attempts for the driver to connect.\n\nWe recommend detecting a \"minimum threshold of playable\", and to exclude (and inform) users when below this threshold."));
+            list.Add(new SimulatorPreset(k_CustomProfileKey, -1, -1, -1, 0, k_CustomProfileTooltip));
+            list.Add(new SimulatorPreset("Custom / No Internet", 1000, 1000, 100, 0,"Simulate the server becoming completely unreachable."));
+            list.Add(new SimulatorPreset("Custom / Unplayable Internet", 300, 400, 30, 0, "Simulate barely having a connection at all, to observe what your users will experience when the internet is good enough to connect (sometimes), but not good enough to play.\n\nIt may take multiple attempts for the driver to connect.\n\nWe recommend detecting a \"minimum threshold of playable\", and to exclude (and inform) users when below this threshold."));
+            list.Add(new SimulatorPreset("Custom / MitM (Man-in-the-Middle) Packet Corruption", 200, 400, 2, 1, "Simulate a malicious user attempting to catastrophically err your client, or (more likely) the server."));
 
             BuildProfiles(list, true, "Broadband [WIFI] / ", 1, 1, 1, k_MobileWifiDisclaimer);
         }
@@ -78,7 +80,7 @@ namespace Unity.NetCode
         /// <param name="list">To append to.</param>
         public static void AppendAdditionalPCSimulatorPresets(List<SimulatorPreset> list)
         {
-            list.Add(new SimulatorPreset("LAN [Local Area Network]", 1, 1, 1, "Playing on LAN is generally <1ms (i.e. simulator off), but we've included it for convenience."));
+            list.Add(new SimulatorPreset("LAN [Local Area Network]", 1, 1, 1, 0, "Playing on LAN is generally <1ms (i.e. simulator off), but we've included it for convenience."));
         }
 
         /// <summary>Builds sub-profiles for your profile. E.g. 4 regional options for your custom profile.</summary>
@@ -96,15 +98,15 @@ namespace Unity.NetCode
 
             if (showRegional)
             {
-                list.Add(new SimulatorPreset(name + "Regional [5th Percentile]", packetDelayMs + 9, packetJitterMs + 1, packetLossPercent + 1, tooltip + k_Perfect));
-                list.Add(new SimulatorPreset(name + "Regional [25th Percentile]", packetDelayMs + 15, packetJitterMs + 5, packetLossPercent + 1, tooltip + k_Decent));
-                list.Add(new SimulatorPreset(name + "Regional [50th Percentile]", packetDelayMs + 65, packetJitterMs + 10, packetLossPercent + 2, tooltip + k_Average));
-                list.Add(new SimulatorPreset(name + "Regional [95th Percentile]", packetDelayMs + 150, packetJitterMs + 10, packetLossPercent + 3, tooltip + k_Poor));
+                list.Add(new SimulatorPreset(name + "Regional [5th Percentile]", packetDelayMs + 9, packetJitterMs + 1, packetLossPercent + 1, 0, tooltip + k_Perfect));
+                list.Add(new SimulatorPreset(name + "Regional [25th Percentile]", packetDelayMs + 15, packetJitterMs + 5, packetLossPercent + 1, 0, tooltip + k_Decent));
+                list.Add(new SimulatorPreset(name + "Regional [50th Percentile]", packetDelayMs + 65, packetJitterMs + 10, packetLossPercent + 2, 0, tooltip + k_Average));
+                list.Add(new SimulatorPreset(name + "Regional [95th Percentile]", packetDelayMs + 150, packetJitterMs + 10, packetLossPercent + 3, 0, tooltip + k_Poor));
             }
 
-            list.Add(new SimulatorPreset(name + "International [25th Percentile]", packetDelayMs + 60, packetJitterMs + 5, packetLossPercent + 2, tooltip + k_InternationalDecent));
-            list.Add(new SimulatorPreset(name + "International [50th Percentile]", packetDelayMs + 120, packetJitterMs + 10, packetLossPercent + 2, tooltip + k_InternationalAverage));
-            list.Add(new SimulatorPreset(name + "International [95th Percentile]", packetDelayMs + 200, packetJitterMs + 15, packetLossPercent + 5, tooltip + k_InternationalPoor));
+            list.Add(new SimulatorPreset(name + "International [25th Percentile]", packetDelayMs + 60, packetJitterMs + 5, packetLossPercent + 2, 0, tooltip + k_InternationalDecent));
+            list.Add(new SimulatorPreset(name + "International [50th Percentile]", packetDelayMs + 120, packetJitterMs + 10, packetLossPercent + 2, 0, tooltip + k_InternationalAverage));
+            list.Add(new SimulatorPreset(name + "International [95th Percentile]", packetDelayMs + 200, packetJitterMs + 15, packetLossPercent + 5, 0, tooltip + k_InternationalPoor));
         }
 
 #if UNITY_EDITOR
@@ -115,7 +117,7 @@ namespace Unity.NetCode
         /// <param name="appendPresets"></param>
         public static void DefaultInUseSimulatorPresets(out string presetGroupName, List<SimulatorPreset> appendPresets)
         {
-            appendPresets.Add(new SimulatorPreset(k_CustomProfileKey, -1, -1, -1, k_CustomProfileTooltip));
+            appendPresets.Add(new SimulatorPreset(k_CustomProfileKey, -1, -1, -1, 0, k_CustomProfileTooltip));
             if (MultiplayerPlayModePreferences.ShowAllSimulatorPresets)
             {
                 presetGroupName = "All Presets";
@@ -157,6 +159,8 @@ namespace Unity.NetCode
         internal int PacketJitterMs;
         /// <inheritdoc cref="Unity.Networking.Transport.Utilities.SimulatorUtility.Parameters.PacketDropPercentage"/>
         internal int PacketLossPercent;
+        /// <inheritdoc cref="SimulatorUtility.Parameters.FuzzFactor"/>
+        internal int PacketFuzzPercent;
 
         // TODO - Make use of bandwidth data in later commit.
 
@@ -191,14 +195,30 @@ namespace Unity.NetCode
         /// <param name="packetDelayMs"></param>
         /// <param name="packetJitterMs"></param>
         /// <param name="packetLossPercent"></param>
+        /// <param name="packetFuzzPercent"></param>
         /// <param name="tooltip"></param>
-        public SimulatorPreset(string name, int packetDelayMs, int packetJitterMs, int packetLossPercent, string tooltip)
+        public SimulatorPreset(string name, int packetDelayMs, int packetJitterMs, int packetLossPercent, int packetFuzzPercent, string tooltip)
         {
             Name = name;
             Tooltip = tooltip;
             PacketDelayMs = packetDelayMs;
             PacketJitterMs = packetJitterMs;
             PacketLossPercent = packetLossPercent;
+            PacketFuzzPercent = packetFuzzPercent;
+        }
+
+        /// <summary>
+        /// Construct a new preset.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="packetDelayMs"></param>
+        /// <param name="packetJitterMs"></param>
+        /// <param name="packetLossPercent"></param>
+        /// <param name="tooltip"></param>
+        [Obsolete("Use other constructor. (RemovedAfter Entities 1.1)")]
+        public SimulatorPreset(string name, int packetDelayMs, int packetJitterMs, int packetLossPercent, string tooltip)
+            : this(name, packetDelayMs, packetJitterMs, packetLossPercent, 0, tooltip)
+        {
         }
     }
 }

@@ -49,8 +49,8 @@ namespace Unity.NetCode.Generators
                 }
 
                 var structNode = (TypeDeclarationSyntax) syntaxNode;
-
-                if (structNode.Modifiers.Any(m => m.IsKind(SyntaxKind.PrivateKeyword)))
+                
+                if(structNode.TypeParameterList != null)
                     return;
 
                 //Check for Variant attributes
@@ -72,40 +72,30 @@ namespace Unity.NetCode.Generators
 
                 using (new Profiler.Auto("Collect"))
                 {
+                    bool shouldAddType = true;
                     foreach (var b in structNode.BaseList.Types)
                     {
                         var interfaceType = b.Type;
-                        //Grab the Indentifier  and discard the qualifcation
-                        if (interfaceType.IsKind(SyntaxKind.QualifiedName))
-                            interfaceType = ((QualifiedNameSyntax) interfaceType).Right;
+                        //discard qualification
+                        if(interfaceType.IsKind(SyntaxKind.QualifiedName))
+                            interfaceType = ((QualifiedNameSyntax)interfaceType).Right;
 
-                        //Don't consider generic interface has candidate
                         if (interfaceType.IsKind(SyntaxKind.GenericName))
-                            continue;
-                        if (!interfaceType.IsKind(SyntaxKind.IdentifierName))
-                            continue;
-
-                        //The biggest limitation of these checks during syntax traversal is that
-                        //we can't detect if a type is an Rpc,Command,Component or Buffers if the struct
-                        //has an interface that inherit/derive from one of base entities or net-code ones.
-                        //ex:
-                        // interface KuKu : IComponentData
-                        // {}
-                        //
-                        // struct WhoAmI : KuKu {
-                        // ..
-                        // }
-                        // Technically WhoAmI is a IComponentData but the following test whould not recognize that.
-                        // Is not possible to make an interface sealed (like a class) so there is not way to prevent
-                        // that.
-                        // In order to be 100% sure to catch all possible use cases, an unknownCandidate array is populate
-                        // with all the struct witch have at least one element in the baselist.
-                        // That is unfornate, but without strong guarantee this is necessary. If the user respect the
-                        // guidelines, the checks will always works and less works is necessary. If they don't,
-                        // at least we are providing consistent logic, at the expenses of more costly checks.
-                        Candidates.Add(syntaxNode);
-                        break;
+                        {
+                            if (((GenericNameSyntax)interfaceType).TypeArgumentList.Arguments.Count == 0)
+                            {
+                                shouldAddType = false;
+                                break;
+                            }
+                        }
+                        else if (!interfaceType.IsKind(SyntaxKind.IdentifierName))
+                        {
+                            shouldAddType = false;
+                            break;
+                        }
                     }
+                    if(shouldAddType)
+                        Candidates.Add(structNode);
                 }
             }
         }

@@ -192,7 +192,7 @@ namespace Unity.NetCode.PrespawnTests
                 //Stream the sub scene in
                 SubSceneHelper.LoadSubSceneInWorlds(testWorld);
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 CheckPrespawnArePresent(numObjects, testWorld);
                 CheckComponents(numObjects, testWorld);
                 //To Disable the prespawn optimization, just remove the baselines
@@ -362,7 +362,7 @@ namespace Unity.NetCode.PrespawnTests
                 //Stream the sub scene in
                 SubSceneHelper.LoadSubSceneInWorlds(testWorld);
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 CheckPrespawnArePresent(numObjects*2, testWorld);
                 CheckComponents(numObjects*2, testWorld);
                 testWorld.GoInGame();
@@ -402,7 +402,7 @@ namespace Unity.NetCode.PrespawnTests
                 //Stream the sub scene in
                 SubSceneHelper.LoadSubSceneInWorlds(testWorld);
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 CheckPrespawnArePresent(numObjects, testWorld);
                 testWorld.GoInGame();
 

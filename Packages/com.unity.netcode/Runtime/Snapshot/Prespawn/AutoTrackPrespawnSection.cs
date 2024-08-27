@@ -53,7 +53,7 @@ namespace Unity.NetCode
                 .WithAll<NetworkId>()
                 .WithNone<NetworkStreamRequestDisconnect>();
             state.RequireForUpdate(state.GetEntityQuery(builder));
-            m_InitializedSections = state.GetEntityQuery(ComponentType.ReadOnly<SubSceneWithGhostClenup>());
+            m_InitializedSections = state.GetEntityQuery(ComponentType.ReadOnly<SubSceneWithGhostCleanup>());
             state.RequireForUpdate(m_InitializedSections);
 
             m_SectionLoadedFromEntity = state.GetComponentLookup<IsSectionLoaded>(true);
@@ -82,7 +82,7 @@ namespace Unity.NetCode
             [ReadOnly] public ComponentLookup<IsSectionLoaded> sectionLoadedFromEntity;
             public NetDebug netDebug;
             public EntityCommandBuffer entityCommandBuffer;
-            public void Execute(Entity entity, ref SubSceneWithGhostClenup stateComponent)
+            public void Execute(Entity entity, ref SubSceneWithGhostCleanup stateComponent)
             {
                 bool isLoaded = sectionLoadedFromEntity.HasComponent(entity);
                 if (!isLoaded && stateComponent.Streaming != 0)
@@ -111,13 +111,13 @@ namespace Unity.NetCode
         }
 
         [Conditional("NETCODE_DEBUG")]
-        private static void LogStopStreaming(in NetDebug netDebug, in SubSceneWithGhostClenup stateComponent)
+        private static void LogStopStreaming(in NetDebug netDebug, in SubSceneWithGhostCleanup stateComponent)
         {
             netDebug.DebugLog(FixedString.Format("Request stop streaming scene {0}",
                 NetDebug.PrintHex(stateComponent.SubSceneHash)));
         }
         [Conditional("NETCODE_DEBUG")]
-        private static void LogStartStreaming(in NetDebug netDebug, in SubSceneWithGhostClenup stateComponent)
+        private static void LogStartStreaming(in NetDebug netDebug, in SubSceneWithGhostCleanup stateComponent)
         {
             netDebug.DebugLog(FixedString.Format("Request start streaming scene {0}",
                 NetDebug.PrintHex(stateComponent.SubSceneHash)));

@@ -1,12 +1,14 @@
 using System;
 using System.Runtime.InteropServices;
 using Unity.Burst;
+using Unity.Burst.CompilerServices;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.NetCode.LowLevel.Unsafe;
 using Unity.Networking.Transport;
+using Unity.Networking.Transport.Utilities;
 using Unity.Profiling;
 
 namespace Unity.NetCode
@@ -22,6 +24,7 @@ namespace Unity.NetCode
         WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ServerSimulation)]
     [UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
     [UpdateAfter(typeof(BeginSimulationEntityCommandBufferSystem))]
+    [UpdateBefore(typeof(GhostSimulationSystemGroup))]
     public partial class NetworkReceiveSystemGroup : ComponentSystemGroup
     {
     }
@@ -54,7 +57,7 @@ namespace Unity.NetCode
     [UpdateInGroup(typeof(NetworkReceiveSystemGroup))]
     [UpdateBefore(typeof(NetworkStreamReceiveSystem))]
     [BurstCompile]
-    public unsafe partial struct NetworkStreamConnectSystem : ISystem
+    public partial struct NetworkStreamConnectSystem : ISystem
     {
         EntityQuery m_ConnectionRequestConnectQuery;
         ComponentLookup<ConnectionState> m_ConnectionStateFromEntity;
@@ -64,7 +67,6 @@ namespace Unity.NetCode
         {
             m_ConnectionRequestConnectQuery = state.GetEntityQuery(ComponentType.ReadWrite<NetworkStreamRequestConnect>());
             m_ConnectionStateFromEntity = state.GetComponentLookup<ConnectionState>();
-            state.RequireForUpdate(m_ConnectionRequestConnectQuery);
             state.RequireForUpdate<NetworkStreamDriver>();
             state.RequireForUpdate<NetDebug>();
         }
@@ -74,6 +76,9 @@ namespace Unity.NetCode
         {
             var netDebug = SystemAPI.GetSingleton<NetDebug>();
             ref var networkStreamDriver = ref SystemAPI.GetSingletonRW<NetworkStreamDriver>().ValueRW;
+            networkStreamDriver.ConnectionEventsList.Clear();
+
+            if (m_ConnectionRequestConnectQuery.IsEmpty) return;
             m_ConnectionStateFromEntity.Update(ref systemState);
             var stateFromEntity = m_ConnectionStateFromEntity;
 
@@ -131,7 +136,6 @@ namespace Unity.NetCode
         {
             m_ConnectionRequestListenQuery = state.GetEntityQuery(ComponentType.ReadWrite<NetworkStreamRequestListen>());
             m_ConnectionStateFromEntity = state.GetComponentLookup<NetworkStreamRequestListenResult>();
-            state.RequireForUpdate(m_ConnectionRequestListenQuery);
             state.RequireForUpdate<NetworkStreamDriver>();
             state.RequireForUpdate<NetDebug>();
         }
@@ -139,6 +143,9 @@ namespace Unity.NetCode
         {
             var netDebug = SystemAPI.GetSingleton<NetDebug>();
             ref var networkStreamDriver = ref SystemAPI.GetSingletonRW<NetworkStreamDriver>().ValueRW;
+            networkStreamDriver.ConnectionEventsList.Clear();
+
+            if (m_ConnectionRequestListenQuery.IsEmpty) return;
 
             m_ConnectionStateFromEntity.Update(ref systemState);
             var stateFromEntity = m_ConnectionStateFromEntity;
@@ -231,7 +238,6 @@ namespace Unity.NetCode
     /// </summary>
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ServerSimulation | WorldSystemFilterFlags.ThinClientSimulation)]
     [UpdateInGroup(typeof(NetworkReceiveSystemGroup))]
-    [CreateAfter(typeof(NetDebugSystem))]
     [CreateAfter(typeof(RpcSystem))]
     [BurstCompile]
     public unsafe partial struct NetworkStreamReceiveSystem : ISystem
@@ -265,13 +271,13 @@ namespace Unity.NetCode
         ComponentLookup<ConnectionState> m_ConnectionStateFromEntity;
         ComponentLookup<GhostInstance> m_GhostComponentFromEntity;
         ComponentLookup<NetworkId> m_NetworkIdFromEntity;
-        ComponentLookup<ClientServerTickRate> m_ClientServerTickRateFromEntity;
         ComponentLookup<NetworkStreamRequestDisconnect> m_RequestDisconnectFromEntity;
         ComponentLookup<NetworkStreamInGame> m_InGameFromEntity;
         BufferLookup<OutgoingRpcDataStreamBuffer> m_OutgoingRpcBufferFromEntity;
         BufferLookup<IncomingRpcDataStreamBuffer> m_RpcBufferFromEntity;
         BufferLookup<IncomingCommandDataStreamBuffer> m_CmdBufferFromEntity;
         BufferLookup<IncomingSnapshotDataStreamBuffer> m_SnapshotBufferFromEntity;
+        NativeList<NetCodeConnectionEvent> m_ConnectionEvents;
 
         public void OnCreate(ref SystemState state)
         {
@@ -284,12 +290,12 @@ namespace Unity.NetCode
 
             m_NumNetworkIds = new NativeReference<int>(Allocator.Persistent);
             m_FreeNetworkIds = new NativeQueue<int>(Allocator.Persistent);
+            m_ConnectionEvents = new NativeList<NetCodeConnectionEvent>(32, Allocator.Persistent);
 
             m_RpcQueue = SystemAPI.GetSingleton<RpcCollection>().GetRpcQueue<RpcSetNetworkId, RpcSetNetworkId>();
             m_ConnectionStateFromEntity = state.GetComponentLookup<ConnectionState>(false);
             m_GhostComponentFromEntity = state.GetComponentLookup<GhostInstance>(true);
             m_NetworkIdFromEntity = state.GetComponentLookup<NetworkId>(true);
-            m_ClientServerTickRateFromEntity = state.GetComponentLookup<ClientServerTickRate>();
             m_RequestDisconnectFromEntity = state.GetComponentLookup<NetworkStreamRequestDisconnect>();
             m_InGameFromEntity = state.GetComponentLookup<NetworkStreamInGame>();
 
@@ -297,7 +303,6 @@ namespace Unity.NetCode
             m_RpcBufferFromEntity = state.GetBufferLookup<IncomingRpcDataStreamBuffer>();
             m_CmdBufferFromEntity = state.GetBufferLookup<IncomingCommandDataStreamBuffer>();
             m_SnapshotBufferFromEntity = state.GetBufferLookup<IncomingSnapshotDataStreamBuffer>();
-
 
             NetworkEndpoint lastEp = default;
             NetworkDriverStore driverStore = default;
@@ -332,7 +337,7 @@ namespace Unity.NetCode
 
             var networkStreamEntity = state.EntityManager.CreateEntity(ComponentType.ReadWrite<NetworkStreamDriver>());
             state.EntityManager.SetName(networkStreamEntity, "NetworkStreamDriver");
-            SystemAPI.SetSingleton(new NetworkStreamDriver((void*)m_DriverPointers, m_NumNetworkIds, m_FreeNetworkIds, lastEp));
+            SystemAPI.SetSingleton(new NetworkStreamDriver((void*)m_DriverPointers, m_NumNetworkIds, m_FreeNetworkIds, lastEp, m_ConnectionEvents, m_ConnectionEvents.AsReadOnly()));
             state.RequireForUpdate<GhostCollection>();
             state.RequireForUpdate<NetworkTime>();
             state.RequireForUpdate<NetDebug>();
@@ -345,6 +350,7 @@ namespace Unity.NetCode
         {
             m_NumNetworkIds.Dispose();
             m_FreeNetworkIds.Dispose();
+            m_ConnectionEvents.Dispose();
 
             ref readonly var networkStreamDriver = ref SystemAPI.GetSingletonRW<NetworkStreamDriver>().ValueRO;
             if ((int)DriverState.Default == networkStreamDriver.DriverState)
@@ -364,7 +370,7 @@ namespace Unity.NetCode
         public void OnUpdate(ref SystemState state)
         {
             var networkTime = SystemAPI.GetSingleton<NetworkTime>();
-            var commandBuffer = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
+            var commandBuffer = SystemAPI.GetSingleton<NetworkGroupCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
             var netDebug = SystemAPI.GetSingleton<NetDebug>();
             FixedString128Bytes debugPrefix = $"[{state.WorldUnmanaged.Name}][Connection]";
 
@@ -410,50 +416,42 @@ namespace Unity.NetCode
             if (driverListening)
             {
                 m_GhostComponentFromEntity.Update(ref state);
-
                 // Schedule accept job
-                SystemAPI.TryGetSingleton<ClientServerTickRate>(out var tickRate);
                 var acceptJob = new ConnectionAcceptJob
                 {
                     driverStore = DriverStore,
                     commandBuffer = commandBuffer,
                     numNetworkId = m_NumNetworkIds,
                     freeNetworkIds = m_FreeNetworkIds,
+                    connectionEvents = m_ConnectionEvents,
                     rpcQueue = m_RpcQueue,
                     ghostFromEntity = m_GhostComponentFromEntity,
-                    tickRate = tickRate,
                     protocolVersion = SystemAPI.GetSingleton<NetworkProtocolVersion>(),
                     netDebug = netDebug,
-                    debugPrefix = debugPrefix
+                    debugPrefix = debugPrefix,
                 };
-                acceptJob.tickRate.ResolveDefaults();
+                SystemAPI.TryGetSingleton<ClientServerTickRate>(out var tickRate);
+                tickRate.ResolveDefaults();
+                acceptJob.tickRate = tickRate;
                 k_Scheduling.Begin();
                 state.Dependency = acceptJob.Schedule(state.Dependency);
                 k_Scheduling.End();
             }
             else
             {
-                if (!state.WorldUnmanaged.IsServer() && !SystemAPI.HasSingleton<ClientServerTickRate>())
-                {
-                    var newEntity = state.EntityManager.CreateEntity();
-                    var tickRate = new ClientServerTickRate();
-                    tickRate.ResolveDefaults();
-                    state.EntityManager.AddComponentData(newEntity, tickRate);
-                }
                 if (!m_RefreshTickRateQuery.IsEmptyIgnoreFilter)
                 {
-                    m_ClientServerTickRateFromEntity.Update(ref state);
-                    var refreshJob = new RefreshClientServerTickRate
+                    if (!SystemAPI.TryGetSingleton<ClientServerTickRate>(out var tickRate))
+                        state.EntityManager.CreateSingleton(tickRate);
+                    tickRate.ResolveDefaults();
+                    var requests = m_RefreshTickRateQuery.ToComponentDataArray<ClientServerTickRateRefreshRequest>(Allocator.Temp);
+                    foreach (var req in requests)
                     {
-                        commandBuffer = commandBuffer,
-                        netDebug = netDebug,
-                        debugPrefix = debugPrefix,
-                        tickRateEntity = SystemAPI.GetSingletonEntity<ClientServerTickRate>(),
-                        dataFromEntity = m_ClientServerTickRateFromEntity
-                    };
-                    k_Scheduling.Begin();
-                    state.Dependency = refreshJob.ScheduleByRef(state.Dependency);
-                    k_Scheduling.End();
+                        req.ApplyTo(ref tickRate);
+                        netDebug.DebugLog($"Using {debugPrefix} SimulationTickRate={tickRate.SimulationTickRate} NetworkTickRate={tickRate.NetworkTickRate} MaxSimulationStepsPerFrame={tickRate.MaxSimulationStepsPerFrame} TargetFrameRateMode={tickRate.TargetFrameRateMode} PredictedPhysicsPerTick={tickRate.PredictedFixedStepSimulationTickRatio}.");
+                    }
+                    SystemAPI.SetSingleton(tickRate);
+                    state.EntityManager.DestroyEntity(m_RefreshTickRateQuery);
                 }
                 m_FreeNetworkIds.Clear();
             }
@@ -479,6 +477,7 @@ namespace Unity.NetCode
                 requestDisconnectFromEntity = m_RequestDisconnectFromEntity,
                 inGameFromEntity = m_InGameFromEntity,
                 freeNetworkIds = m_FreeNetworkIds,
+                connectionEvents = m_ConnectionEvents,
 
                 outgoingRpcBuffer = m_OutgoingRpcBufferFromEntity,
                 rpcBuffer = m_RpcBufferFromEntity,
@@ -487,7 +486,7 @@ namespace Unity.NetCode
 
                 protocolVersion = SystemAPI.GetSingleton<NetworkProtocolVersion>(),
                 localTime = NetworkTimeSystem.TimestampMS,
-                serverTick = networkTime.ServerTick
+                lastServerTick = networkTime.ServerTick,
             };
 #if UNITY_EDITOR || NETCODE_DEBUG
             handleJob.netStats = SystemAPI.GetSingletonRW<GhostStatsCollectionCommand>().ValueRO.Value;
@@ -505,6 +504,7 @@ namespace Unity.NetCode
             public NetworkDriverStore driverStore;
             public NativeReference<int> numNetworkId;
             public NativeQueue<int> freeNetworkIds;
+            public NativeList<NetCodeConnectionEvent> connectionEvents;
             public RpcQueue<RpcSetNetworkId, RpcSetNetworkId> rpcQueue;
             public ClientServerTickRate tickRate;
             public NetworkProtocolVersion protocolVersion;
@@ -535,7 +535,8 @@ namespace Unity.NetCode
                         var connection = new NetworkStreamConnection
                         {
                             Value = con,
-                            DriverId = i
+                            DriverId = i,
+                            CurrentState = ConnectionState.State.Connected,
                         };
                         var ent = commandBuffer.CreateEntity();
                         commandBuffer.AddComponent(ent, connection);
@@ -567,34 +568,22 @@ namespace Unity.NetCode
                             netTickRate = tickRate.NetworkTickRate,
                             simMaxSteps = tickRate.MaxSimulationStepsPerFrame,
                             simMaxStepLength = tickRate.MaxSimulationStepBatchSize,
-                            simTickRate = tickRate.SimulationTickRate
+                            simTickRate = tickRate.SimulationTickRate,
+                            fixStepTickRatio = (int)tickRate.PredictedFixedStepSimulationTickRatio
                         });
-                        netDebug.DebugLog(FixedString.Format("{0} Accepted new connection {1} NetworkId={2}", debugPrefix, connection.Value.ToFixedString(), nid));
+
+                        connectionEvents.Add(new NetCodeConnectionEvent
+                        {
+                            Id = new NetworkId {Value = nid},
+                            ConnectionId = connection.Value,
+                            State = ConnectionState.State.Connected, // Handshake is not raised on the server, go straight to Connected.
+                            DisconnectReason = default,
+                            ConnectionEntity = ent,
+                        });
+
+                        netDebug.DebugLog(FixedString.Format("{0} Accepted new connection {1} NetworkId={2}.", debugPrefix, connection.Value.ToFixedString(), nid));
                     }
                 }
-            }
-        }
-
-        [BurstCompile]
-        [StructLayout(LayoutKind.Sequential)]
-        partial struct RefreshClientServerTickRate : IJobEntity
-        {
-            public EntityCommandBuffer commandBuffer;
-            public NetDebug netDebug;
-            public FixedString128Bytes debugPrefix;
-            public Entity tickRateEntity;
-            public ComponentLookup<ClientServerTickRate> dataFromEntity;
-            public void Execute(Entity entity, in ClientServerTickRateRefreshRequest req)
-            {
-                var tickRate = dataFromEntity[tickRateEntity];
-                tickRate.MaxSimulationStepsPerFrame = req.MaxSimulationStepsPerFrame;
-                tickRate.NetworkTickRate = req.NetworkTickRate;
-                tickRate.SimulationTickRate = req.SimulationTickRate;
-                tickRate.MaxSimulationStepBatchSize = req.MaxSimulationStepBatchSize;
-                dataFromEntity[tickRateEntity] = tickRate;
-                var dbgMsg = FixedString.Format("Using SimulationTickRate={0} NetworkTickRate={1} MaxSimulationStepsPerFrame={2} TargetFrameRateMode={3}", tickRate.SimulationTickRate, tickRate.NetworkTickRate, tickRate.MaxSimulationStepsPerFrame, (int)tickRate.TargetFrameRateMode);
-                netDebug.DebugLog(FixedString.Format("{0} {1}", debugPrefix, dbgMsg));
-                commandBuffer.RemoveComponent<ClientServerTickRateRefreshRequest>(entity);
             }
         }
 
@@ -610,6 +599,7 @@ namespace Unity.NetCode
             public ComponentLookup<NetworkStreamRequestDisconnect> requestDisconnectFromEntity;
             public ComponentLookup<NetworkStreamInGame> inGameFromEntity;
             public NativeQueue<int> freeNetworkIds;
+            public NativeList<NetCodeConnectionEvent> connectionEvents;
 
             public BufferLookup<OutgoingRpcDataStreamBuffer> outgoingRpcBuffer;
             public BufferLookup<IncomingRpcDataStreamBuffer> rpcBuffer;
@@ -619,32 +609,20 @@ namespace Unity.NetCode
             public NetworkProtocolVersion protocolVersion;
 
             public uint localTime;
-            public NetworkTick serverTick;
+            public NetworkTick lastServerTick;
 #if UNITY_EDITOR || NETCODE_DEBUG
             public NativeArray<uint> netStats;
 #endif
+
             public void Execute(Entity entity, ref NetworkStreamConnection connection,
                 ref NetworkSnapshotAck snapshotAck)
             {
-                if (requestDisconnectFromEntity.HasComponent(entity))
+                var disconnectReason = NetworkStreamDisconnectReason.ConnectionClose;
+                if (Hint.Unlikely(requestDisconnectFromEntity.TryGetComponent(entity, out var disconnectRequest)))
                 {
-                    var disconnect = requestDisconnectFromEntity[entity];
-                    var id = -1;
-                    if (networkIdFromEntity.HasComponent(entity))
-                    {
-                        id = networkIdFromEntity[entity].Value;
-                        freeNetworkIds.Enqueue(id);
-                    }
+                    disconnectReason = disconnectRequest.Reason;
                     driverStore.Disconnect(connection);
-                    if (connectionStateFromEntity.HasComponent(entity))
-                    {
-                        var state = connectionStateFromEntity[entity];
-                        state.DisconnectReason = disconnect.Reason;
-                        state.CurrentState = ConnectionState.State.Disconnected;
-                        connectionStateFromEntity[entity] = state;
-                    }
-                    commandBuffer.DestroyEntity(entity); // This can cause issues if some other system adds components while it is in the queue
-                    netDebug.DebugLog(FixedString.Format("{0} Disconnecting {1} NetworkId={2} Reason={3}", debugPrefix, connection.Value.ToFixedString(), id, DisconnectReasonEnumToString.Convert((int)disconnect.Reason)));
+                    // Disconnect cleanup will be handled below.
                 }
                 else if (!inGameFromEntity.HasComponent(entity))
                 {
@@ -657,43 +635,24 @@ namespace Unity.NetCode
                     };
                 }
 
-                if (!connection.Value.IsCreated)
+                if (Hint.Unlikely(!connection.Value.IsCreated))
+                {
+                    netDebug.LogError($"{debugPrefix} Stale NetworkStreamConnection.Value ({connection.Value.ToFixedString()}, driverId: {connection.DriverId}, protocolVersionReceived: {connection.ProtocolVersionReceived}) found on {entity.ToFixedString()}! Did you modify `Value` in your code?");
                     return;
-                if (!outgoingRpcBuffer.HasBuffer(entity))
+                }
+
+                if (Hint.Unlikely(!outgoingRpcBuffer.HasBuffer(entity)))
                 {
                     var buf = commandBuffer.AddBuffer<OutgoingRpcDataStreamBuffer>(entity);
                     RpcCollection.SendProtocolVersion(buf, protocolVersion);
                 }
                 var driver = driverStore.GetNetworkDriver(connection.DriverId);
-                if (connectionStateFromEntity.HasComponent(entity))
-                {
-                    var state = connectionStateFromEntity[entity];
-                    var newState = state;
-                    switch (driver.GetConnectionState(connection.Value))
-                    {
-                    case NetworkConnection.State.Disconnected:
-                        newState.CurrentState = ConnectionState.State.Disconnected;
-                        break;
-                    case NetworkConnection.State.Connecting:
-                        newState.CurrentState = ConnectionState.State.Connecting;
-                        break;
-                    case NetworkConnection.State.Connected:
-                        newState.CurrentState = ConnectionState.State.Connected;
-                        break;
-                    default:
-                        newState.CurrentState = ConnectionState.State.Unknown;
-                        break;
-                    }
-                    if (newState.CurrentState == ConnectionState.State.Connected)
-                    {
-                        if (networkIdFromEntity.HasComponent(entity))
-                            newState.NetworkId = networkIdFromEntity[entity].Value;
-                        else
-                            newState.CurrentState = ConnectionState.State.Handshake;
-                    }
-                    if (!state.Equals(newState))
-                        connectionStateFromEntity[entity] = newState;
-                }
+
+                // Update State:
+                var lastState = connection.CurrentState;
+                connection.CurrentState = driver.GetConnectionState(connection.Value).ToNetcodeState(networkIdFromEntity.TryGetComponent(entity, out var nid));
+
+                // Event popping:
                 DataStreamReader reader;
                 NetworkEvent.Type evt;
                 while ((evt = driver.PopEventForConnection(connection.Value, out reader)) != NetworkEvent.Type.Empty)
@@ -701,33 +660,16 @@ namespace Unity.NetCode
                     switch (evt)
                     {
                         case NetworkEvent.Type.Connect:
+                        {
+                            // This event is only invoked on the client. The server bypasses, as part of the Accept() call.
+                            snapshotAck.SnapshotPacketLoss = default;
                             break;
+                        }
                         case NetworkEvent.Type.Disconnect:
-                            var reason = NetworkStreamDisconnectReason.ConnectionClose;
                             if (reader.Length == 1)
-                                reason = (NetworkStreamDisconnectReason)reader.ReadByte();
-
-                            if (connectionStateFromEntity.HasComponent(entity))
-                            {
-                                var state = connectionStateFromEntity[entity];
-                                state.CurrentState = ConnectionState.State.Disconnected;
-                                state.DisconnectReason = reason;
-                                connectionStateFromEntity[entity] = state;
-                            }
-
-                            commandBuffer.DestroyEntity(entity);
-
-                            if (cmdBuffer.HasBuffer(entity))
-                                cmdBuffer[entity].Clear();
-                            connection.Value = default(NetworkConnection);
-                            var id = -1;
-                            if (networkIdFromEntity.HasComponent(entity))
-                            {
-                                id = networkIdFromEntity[entity].Value;
-                                freeNetworkIds.Enqueue(id);
-                            }
-                            netDebug.DebugLog(FixedString.Format("{0} {1} closed NetworkId={2} Reason={3}", debugPrefix, connection.Value.ToFixedString(), id, DisconnectReasonEnumToString.Convert((int)reason)));
-                            return;
+                                disconnectReason = (NetworkStreamDisconnectReason) reader.ReadByte();
+                            // Disconnect cleanup will be handled below.
+                            goto doubleBreak;
                         case NetworkEvent.Type.Data:
                             var msgType = reader.ReadByte();
                             switch ((NetworkStreamProtocol)msgType)
@@ -751,10 +693,12 @@ namespace Unity.NetCode
                                     var cmdTick = new NetworkTick{SerializedData = tickReader.ReadUInt()};
                                     var isValidCmdTick = !snapshotAck.LastReceivedSnapshotByLocal.IsValid || cmdTick.IsNewerThan(snapshotAck.LastReceivedSnapshotByLocal);
 #if UNITY_EDITOR || NETCODE_DEBUG
-                                    netStats[0] = serverTick.SerializedData;
+                                    netStats[0] = lastServerTick.SerializedData;
                                     netStats[1] = (uint)reader.Length - 1u;
                                     if (!isValidCmdTick || buffer.Length > 0)
+                                    {
                                         netStats[2] = netStats[2] + 1;
+                                    }
 #endif
                                     // Do not try to process incoming commands which are older than commands we already processed
                                     if (!isValidCmdTick)
@@ -767,19 +711,40 @@ namespace Unity.NetCode
                                 }
                                 case NetworkStreamProtocol.Snapshot:
                                 {
-                                    if (!snapshotBuffer.HasBuffer(entity))
+                                    if (Hint.Unlikely(!snapshotBuffer.TryGetBuffer(entity, out var buffer)))
                                         break;
+
                                     uint remoteTime = reader.ReadUInt();
                                     uint localTimeMinusRTT = reader.ReadUInt();
                                     snapshotAck.ServerCommandAge = reader.ReadInt();
                                     snapshotAck.UpdateRemoteTime(remoteTime, localTimeMinusRTT, localTime);
 
-                                    var buffer = snapshotBuffer[entity];
-#if UNITY_EDITOR || NETCODE_DEBUG
+                                    // SSId:
+                                    var currentSnapshotSequenceId = reader.ReadByte();
+
+                                    // Copy the reader here, as we want to pass the ServerTick into the GhostReceiveSystem,
+                                    // and that'll fail if we read too far.
+                                    var copyOfReader = reader;
+                                    var newServerTick = new NetworkTick{SerializedData = copyOfReader.ReadUInt()};
+
+                                    // Skip old snapshots:
+                                    var isValid = !snapshotAck.LastReceivedSnapshotByLocal.IsValid || newServerTick.IsNewerThan(snapshotAck.LastReceivedSnapshotByLocal);
+                                    UpdatePacketLossStats(ref snapshotAck.SnapshotPacketLoss, isValid, currentSnapshotSequenceId, ref snapshotAck, in netDebug, buffer);
+                                    if (!isValid)
+                                        break;
+                                    snapshotAck.LastReceivedSnapshotByLocal = newServerTick;
+                                    snapshotAck.CurrentSnapshotSequenceId = currentSnapshotSequenceId;
+
+                                    // Limitation: Clobber any previous snapshot, even if said snapshot has not been processed yet.
                                     if (buffer.Length > 0)
+                                    {
+#if UNITY_EDITOR || NETCODE_DEBUG
                                         netStats[2] = netStats[2] + 1;
 #endif
-                                    buffer.Clear();
+                                        buffer.Clear();
+                                    }
+
+                                    // Save the new snapshot to the buffer, so we can process it in GhostReceiveSystem.
                                     buffer.Add(ref reader);
                                     break;
                                 }
@@ -787,6 +752,9 @@ namespace Unity.NetCode
                                 {
                                     uint remoteTime = reader.ReadUInt();
                                     uint localTimeMinusRTT = reader.ReadUInt();
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+                                    UnityEngine.Debug.Assert(reader.GetBytesRead() == RpcCollection.k_RpcCommonHeaderLengthBytes);
+#endif
                                     snapshotAck.UpdateRemoteTime(remoteTime, localTimeMinusRTT, localTime);
                                     var buffer = rpcBuffer[entity];
                                     buffer.Add(ref reader);
@@ -803,6 +771,112 @@ namespace Unity.NetCode
                             break;
                     }
                 }
+                doubleBreak:
+
+                // React to changes:
+                if(Hint.Unlikely(connection.CurrentState != lastState))
+                {
+                    // Raise Events: See rules in network-connection.md.
+                    // Note that we intentionally bypass states on the server here,
+                    // so there are other event evocations scattered around.
+                    connectionEvents.Add(new NetCodeConnectionEvent
+                    {
+                        Id = new NetworkId {Value = nid.Value},
+                        ConnectionId = connection.Value,
+                        State = connection.CurrentState,
+                        DisconnectReason = disconnectReason,
+                        ConnectionEntity = entity,
+                    });
+                }
+
+                // Handle disconnects:
+                // Fix for issue where: Transport does not raise the Disconnect event locally for any connection that is manually Disconnected.
+                // Thus, we (Netcode) need to duplicate the event via status polling.
+                if (Hint.Unlikely(connection.CurrentState == ConnectionState.State.Disconnected))
+                {
+                    commandBuffer.RemoveComponent<NetworkStreamConnection>(entity);
+                    commandBuffer.DestroyEntity(entity);
+
+                    if (cmdBuffer.HasBuffer(entity))
+                        cmdBuffer[entity].Clear();
+
+                    var id = -1;
+                    if (networkIdFromEntity.HasComponent(entity))
+                    {
+                        id = networkIdFromEntity[entity].Value;
+                        freeNetworkIds.Enqueue(id);
+                    }
+
+                    netDebug.DebugLog($"{debugPrefix} {connection.Value.ToFixedString()} closed NetworkId={id} Reason={disconnectReason.ToFixedString()}.");
+                    connection.Value = default;
+                }
+
+                // Update ConnectionState:
+                if (connectionStateFromEntity.TryGetComponent(entity, out var existingState))
+                {
+                    var newState = existingState;
+                    newState.DisconnectReason = disconnectReason;
+                    newState.CurrentState = connection.CurrentState;
+                    newState.NetworkId = nid.Value;
+                    if (Hint.Unlikely(!existingState.Equals(newState)))
+                        connectionStateFromEntity[entity] = newState;
+                }
+            }
+
+            /// <summary>
+            /// Records SnapshotSequenceId [SSId] statistics, detecting packet loss, packet duplication, and out of order packets.
+            /// </summary>
+            // ReSharper disable once UnusedParameter.Local
+            private static void UpdatePacketLossStats(ref SnapshotPacketLossStatistics stats, bool snapshotIsConfirmedNewer, in byte currentSnapshotSequenceId, ref NetworkSnapshotAck snapshotAck, in NetDebug netDebug, DynamicBuffer<IncomingSnapshotDataStreamBuffer> buffer)
+            {
+                if (stats.NumPacketsReceived == 0) snapshotAck.CurrentSnapshotSequenceId = (byte) (currentSnapshotSequenceId - 1);
+                stats.NumPacketsReceived++;
+
+                var sequenceIdDelta = snapshotAck.CalculateSequenceIdDelta(currentSnapshotSequenceId, snapshotIsConfirmedNewer);
+                if (snapshotIsConfirmedNewer)
+                {
+                    // Detect packet loss:
+                    var numDroppedPackets = sequenceIdDelta - 1;
+                    if (numDroppedPackets > 0)
+                    {
+                        stats.NumPacketsDroppedNeverArrived += (ulong) numDroppedPackets;
+#if NETCODE_DEBUG
+                        // TODO - Make it possible to access NetDebugPacket.Log((FixedString512Bytes)$"[SSId:{currentSnapshotSequenceId}] Inferred {numDroppedPackets} snapshots dropped!");
+#endif
+                    }
+
+                    // Netcode limitation: We can only process one snapshot per tick!
+                    if (buffer.Length > 0)
+                    {
+                        stats.NumPacketsCulledAsArrivedOnSameFrame++;
+#if NETCODE_DEBUG
+                    // TODO - Make it possible to access NetDebugPacket.Log((FixedString512Bytes)$"[SSId:{currentSnapshotSequenceId}] Clobbering previous snapshot ({stats->LastSnapshotSequenceId}) as it arrived on same frame!");
+#endif
+                    }
+
+                    return;
+                }
+
+                // Detect out of order and duplicate packets:
+                if (sequenceIdDelta == 0)
+                {
+                    // We can't track any previous duplicate packets (unless we keep an ack history),
+                    // so we don't track it at all. Just log.
+#if NETCODE_DEBUG
+                        // TODO - Make it possible to access NetDebugPacket.Log((FixedString512Bytes) $"[SSId:{currentSnapshotSequenceId}] Detected duplicated snapshot packet!");
+#endif
+                    return;
+                }
+
+                stats.NumPacketsCulledOutOfOrder++;
+                // Technically a packet we skipped over was counted as dropped, but it just arrived.
+                // We may not even know about it, as jitter during connection can cause us to detect
+                // dropped packets that we should never have received anyway.
+                if (stats.NumPacketsDroppedNeverArrived > 0)
+                    stats.NumPacketsDroppedNeverArrived--;
+#if NETCODE_DEBUG
+                        // TODO - Make it possible to access NetDebugPacket.Log((FixedString512Bytes) $"[SSId:{currentSnapshotSequenceId}] Arrived {math.abs(sequenceIdDelta)} ServerTicks late!");
+#endif
             }
         }
     }

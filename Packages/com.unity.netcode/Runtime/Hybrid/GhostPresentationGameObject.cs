@@ -58,6 +58,7 @@ namespace Unity.NetCode.Hybrid
     /// or do all spawning in the BeginSimulationCommandBufferSystem to make sure the game objects are created at the same time
     /// </summary>
     // This is right after GhostSpawnSystemGroup on a client and right after BeginSimulationEntityCommandBufferSystem on server
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ServerSimulation)]
     [RequireMatchingQueriesForUpdate]
     [UpdateInGroup(typeof(NetworkReceiveSystemGroup), OrderFirst = true)]
     public partial class GhostPresentationGameObjectSystem : SystemBase
@@ -117,8 +118,7 @@ namespace Unity.NetCode.Hybrid
                     var owner = go.GetComponent<GhostPresentationGameObjectEntityOwner>();
                     if (owner != null)
                     {
-                        owner.World = World;
-                        owner.Entity = entity;
+                        owner.Initialize(entity, World);
                     }
                     idx = m_GameObjects.Count;
                     m_GameObjects.Add(go);
@@ -156,13 +156,9 @@ namespace Unity.NetCode.Hybrid
     /// This system will update the presentation GameObjects transform based on the current transform
     /// of the entity owning it.
     /// </summary>
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ServerSimulation)]
     [UpdateInGroup(typeof(TransformSystemGroup))]
-#if !ENABLE_TRANSFORM_V1
     [UpdateAfter(typeof(LocalToWorldSystem))]
-#else
-    [UpdateAfter(typeof(TRSToLocalToWorldSystem))]
-#endif
-
     public partial class GhostPresentationGameObjectTransformSystem : SystemBase
     {
         private GhostPresentationGameObjectSystem m_GhostPresentationGameObjectSystem;

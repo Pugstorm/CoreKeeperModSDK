@@ -136,7 +136,7 @@ namespace Unity.NetCode.Generators
                     post = templateData.Substring(regionEnd + 1);
                 templateData = pre + post;
             }
-
+            m_Fragments.Add("__GHOST_AGGREGATE_WRITE__", new FragmentData{Template = "", Content = ""});
             m_FileTemplate = templateData;
         }
 
@@ -169,7 +169,7 @@ namespace Unity.NetCode.Generators
                     var name = match.Value;
                     var nameEnd = name.IndexOf("__", 2, StringComparison.Ordinal);
                     if (nameEnd < 0)
-                        throw new InvalidOperationException($"Invalid key in GhostCodeGen fragment {fragment} while generating '{m_Context.generatedNs}.{m_Context.generatorName}'.");
+                        m_Context.diagnostic.LogError($"Invalid key in GhostCodeGen fragment {fragment} while generating '{m_Context.generatedNs}.{m_Context.generatorName}'.");
                     m_Context.diagnostic.LogError($"GhostCodeGen did not replace {name} in fragment {fragment} while generating '{m_Context.generatedNs}.{m_Context.generatorName}'.");
                 }
                 throw new InvalidOperationException($"GhostCodeGen failed for fragment {fragment} while generating '{m_Context.generatedNs}.{m_Context.generatorName}'.");

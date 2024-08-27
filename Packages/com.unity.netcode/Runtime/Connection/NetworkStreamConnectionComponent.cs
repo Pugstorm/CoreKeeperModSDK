@@ -21,7 +21,8 @@ namespace Unity.NetCode
     /// <para>- <see cref="CommandTarget"/></para>
     /// Client connections also have a <see cref="IncomingSnapshotDataStreamBuffer"/> to handle server ghost snapshots.
     ///</summary>
-    public struct NetworkStreamConnection : IComponentData
+    /// <remarks>Never destroy this entity yourself. You'll receive an error if you attempt to do so.</remarks>
+    public struct NetworkStreamConnection : ICleanupComponentData
     {
         /// <summary>
         /// The underlyng transport <see cref="NetworkConnection"/>
@@ -37,6 +38,12 @@ namespace Unity.NetCode
         /// 1 indicates that the remote version protocol has been received.
         /// </summary>
         public int ProtocolVersionReceived;
+
+        /// <summary>
+        /// Cache of the last state pulled from the driver.
+        /// </summary>
+        /// <remarks>May be stale, as only refreshed once per <see cref="SimulationSystemGroup"/> tick.</remarks>
+        public ConnectionState.State CurrentState;
     }
 
     /// <summary>
@@ -91,6 +98,10 @@ namespace Unity.NetCode
         BadProtocolVersion,
         /// <summary>NetCode-specific: Denotes that we've detected a hash miss-match in an RPC, or an unknown RPC. Implies that this is an incompatible server/client pair.</summary>
         InvalidRpc,
+        /// <inheritdoc cref="DisconnectReason.AuthenticationFailure"/>
+        AuthenticationFailure,
+        /// <inheritdoc cref="DisconnectReason.ProtocolError"/>
+        ProtocolError,
     }
 
     /// <summary>
@@ -152,6 +163,26 @@ namespace Unity.NetCode
         /// <param name="other">The component to compare</param>
         /// <returns></returns>
         public bool Equals(ConnectionState other) => CurrentState == other.CurrentState && NetworkId == other.NetworkId && DisconnectReason == other.DisconnectReason;
+
+        /// <summary>
+        /// Converts from the Transport state to ours.
+        /// </summary>
+        /// <param name="transportState"></param>
+        /// <param name="hasHandshaked"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        internal static State Convert(NetworkConnection.State transportState, bool hasHandshaked)
+        {
+            switch (transportState)
+            {
+                case NetworkConnection.State.Disconnected: return State.Disconnected;
+                case NetworkConnection.State.Disconnecting: return State.Disconnected;
+                case NetworkConnection.State.Connecting: return State.Connecting;
+                case NetworkConnection.State.Connected: return hasHandshaked ? State.Connected : State.Handshake;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(transportState), transportState, nameof(Convert));
+            }
+        }
     }
 
     /// <summary>

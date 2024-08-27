@@ -26,24 +26,48 @@ namespace Unity.NetCode.LowLevel.Unsafe
     /// </summary>
     public unsafe struct GhostComponentSerializer
     {
+        ///<summary>
+        /// Dynamic Buffer have a special entry in the snapshot data that is used to track the len and offset of the
+        /// the buffer data inside the <see cref="SnapshotDynamicDataBuffer"/> buffer. This shadow component entry has the
+        /// following format:
+        /// <list type="bullet">
+        /// <li>uint Length: the length of the buffer</li>
+        /// <li>uint Offset: the position in bytes from the beginning of the dynamic data buffer (for that specific history slot)</li>
+        /// </list>
+        /// </summary>
+        public const int DynamicBufferComponentSnapshotSize = sizeof(uint) + sizeof(uint);
+        /// <summary>
+        /// The number of change mask bits used the shadow buffer data. The change mask for the buffer is like this:
+        /// <list type="bullet">
+        /// <li>00 : nothing change</li>
+        /// <li>01 : len is the same, content has changed.</li>
+        /// <li>10 : len is changed, we consider the content has changed too. (may change in the future).</li>
+        /// </list>
+        /// </summary>
+        public const int DynamicBufferComponentMaskBits = 2;
         /// <summary>
         /// A bitflag used to mark to which ghost type a component should be serialized to.
         /// </summary>
+        /// <remarks>Duplicates <see cref="GhostSendType"/>, which should be used instead.</remarks>
         [Flags]
+        [Obsolete("Due to changes to the source generator, this enum is now both redundant and deprecated, as it duplicates `GhostSendType`. Unfortunately, not UnityUpgradable to GhostSendType as enum names have changed. (RemovedAfter Entities 1.0)", false)]
         public enum SendMask
         {
             /// <summary>
             /// The component should be not replicated.
             /// </summary>
+            /// <remarks>Maps to <see cref="GhostSendType.DontSend"/>.</remarks>
             None = 0,
             /// <summary>
             /// The component is replicated only to interpolated ghosts.
             /// </summary>
+            /// <remarks>Maps to <see cref="GhostSendType.OnlyInterpolatedClients"/>.</remarks>
             Interpolated = 1,
             /// <summary>
             /// The component is replicated only to predicted ghosts.
             /// </summary>
-            Predicted = 2
+            /// <remarks>Maps to <see cref="GhostSendType.OnlyPredictedClients"/>.</remarks>
+            Predicted = 2,
         }
 
         /// <summary>
@@ -55,17 +79,18 @@ namespace Unity.NetCode.LowLevel.Unsafe
         /// Delegate method to use to post-serialize buffers when the ghost use pre-serialization optimization.
         /// </summary>
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void PostSerializeBufferDelegate(IntPtr snapshotData, int snapshotOffset, int snapshotStride, int maskOffsetInBits, int count, IntPtr baselines, ref DataStreamWriter writer, ref StreamCompressionModel compressionModel, IntPtr entityStartBit, IntPtr snapshotDynamicDataPtr, IntPtr dynamicSizePerEntity, int dynamicSnapshotMaxOffset);
+        public delegate void PostSerializeBufferDelegate(IntPtr snapshotData, int snapshotOffset, int snapshotStride, int maskOffsetInBits, int changeMaskBits, int count, IntPtr baselines, ref DataStreamWriter writer, ref StreamCompressionModel compressionModel, IntPtr entityStartBit, IntPtr snapshotDynamicDataPtr, IntPtr dynamicSizePerEntity, int dynamicSnapshotMaxOffset);
         /// <summary>
         /// Delegate method used to serialize the component data for the root entity into the outgoing data stream.
         /// Works in batches.
         /// </summary>
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void SerializeDelegate(IntPtr stateData, IntPtr snapshotData, int snapshotOffset, int snapshotStride, int maskOffsetInBits, IntPtr componentData, int componentStride, int count, IntPtr baselines, ref DataStreamWriter writer, ref StreamCompressionModel compressionModel, IntPtr entityStartBit);
+        public delegate void SerializeDelegate(IntPtr stateData, IntPtr snapshotData, int snapshotOffset, int snapshotStride, int maskOffsetInBits, IntPtr componentData, int count, IntPtr baselines, ref DataStreamWriter writer, ref StreamCompressionModel compressionModel, IntPtr entityStartBit);
         /// <summary>
         /// Delegate method used to serialize the component data present in the child entity into the outgoing data stream.
         /// Works on a single entity at time.
         /// </summary>
+        [Obsolete("The SerializeChildDelegate delegate has been deprecated and will be removed. Please use only use the SerializeDelegate instead", false)]
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void SerializeChildDelegate(IntPtr stateData, IntPtr snapshotData, int snapshotOffset, int snapshotStride, int maskOffsetInBits, IntPtr componentData, int count, IntPtr baselines, ref DataStreamWriter writer, ref StreamCompressionModel compressionModel, IntPtr entityStartBit);
         /// <summary>
@@ -73,7 +98,7 @@ namespace Unity.NetCode.LowLevel.Unsafe
         /// Works in batches.
         /// </summary>
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void SerializeBufferDelegate(IntPtr stateData, IntPtr snapshotData, int snapshotOffset, int snapshotStride, int maskOffsetInBits, IntPtr componentData, IntPtr componentDataLen, int count, IntPtr baselines, ref DataStreamWriter writer, ref StreamCompressionModel compressionModel, IntPtr entityStartBit, IntPtr snapshotDynamicDataPtr, ref int snapshotDynamicDataOffset, IntPtr dynamicSizePerEntity, int dynamicSnapshotMaxOffset);
+        public delegate void SerializeBufferDelegate(IntPtr stateData, IntPtr snapshotData, int snapshotOffset, int snapshotStride, int maskOffsetInBits, int changeMaskBits, IntPtr componentData, IntPtr componentDataLen, int count, IntPtr baselines, ref DataStreamWriter writer, ref StreamCompressionModel compressionModel, IntPtr entityStartBit, IntPtr snapshotDynamicDataPtr, ref int snapshotDynamicDataOffset, IntPtr dynamicSizePerEntity, int dynamicSnapshotMaxOffset);
         /// <summary>
         /// Delegate method used to transfer the component data to/from the snapshot buffer.
         /// </summary>
@@ -163,7 +188,7 @@ namespace Unity.NetCode.LowLevel.Unsafe
             /// Indicates for which type of ghosts the component should be replicated. The mask is set by code-gen base on the
             /// <see cref="PrefabType"/> constraint.
             /// </summary>
-            public SendMask SendMask;
+            public GhostSendType SendMask;
             /// <summary>
             /// Store the <see cref="GhostComponentAttribute.OwnerSendType"/> if the attribute is present on the component. Otherwise is set
             /// to <see cref="SendToOwnerType.All"/>.
@@ -185,6 +210,7 @@ namespace Unity.NetCode.LowLevel.Unsafe
             /// Delegate method used to serialize the component data present in the child entity into the outgoing data stream.
             /// Work on a single entity at time.
             /// </summary>
+            [Obsolete("The SerializeChild method has been deprecated. Please use only Serialize instead", false)]
             public PortableFunctionPointer<SerializeChildDelegate> SerializeChild;
             /// <summary>
             /// Delegate method used to serialize the buffer content for the whole chunk. Work in batch for the whole chunk.
@@ -223,7 +249,7 @@ namespace Unity.NetCode.LowLevel.Unsafe
             /// </summary>
             public Unity.Profiling.ProfilerMarker ProfilerMarker;
             #endif
-            #if UNITY_EDITOR || NETCODE_DEBUG
+#if UNITY_EDITOR || NETCODE_DEBUG
             /// <summary>
             /// String buffer, containing the list of all replicated field names. Empty for component type that can be only interpolated.
             /// (see <see cref="PrefabType"/>).
@@ -242,6 +268,10 @@ namespace Unity.NetCode.LowLevel.Unsafe
             /// For internal use only. The index inside the prediction error names cache (see <see cref="GhostCollectionSystem"/>).
             /// </summary>
             internal int FirstNameIndex;
+            /// <summary>
+            /// For internal use only. The hash of the ghost variation type fullname. Used mostly for validation
+            /// </summary>
+            public ulong VariantTypeFullNameHash;
 #endif
         }
 
@@ -250,14 +280,14 @@ namespace Unity.NetCode.LowLevel.Unsafe
         /// </summary>
         /// <remarks>
         /// For buffers in particular, the <see cref="SnapshotData"/> contains only offset and length information (the buffer data resides inside the
-        /// <see cref="SnapshotDynamicDataBuffer"/>), and the reported size is always equal to the <see cref="GhostSystemConstants.DynamicBufferComponentSnapshotSize"/>.
+        /// <see cref="SnapshotDynamicDataBuffer"/>), and the reported size is always equal to the <see cref="GhostComponentSerializer.DynamicBufferComponentSnapshotSize"/>.
         /// </remarks>
         /// <param name="serializer"></param>
         /// <returns></returns>
         public static int SizeInSnapshot(in State serializer)
         {
             return serializer.ComponentType.IsBuffer
-                ? SnapshotSizeAligned(GhostSystemConstants.DynamicBufferComponentSnapshotSize)
+                ? SnapshotSizeAligned(GhostComponentSerializer.DynamicBufferComponentSnapshotSize)
                 : SnapshotSizeAligned(serializer.SnapshotSize);
         }
 
@@ -273,6 +303,17 @@ namespace Unity.NetCode.LowLevel.Unsafe
             return ref UnsafeUtility.AsRef<T>((byte*)value+offset);
         }
         /// <summary>
+        /// Helper method to get a reference to a struct data from its address in memory.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="offset"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static ref readonly T TypeCastReadonly<T>(IntPtr value, int offset = 0) where T: struct
+        {
+            return ref UnsafeUtility.AsRef<T>((byte*)value+offset);
+        }
+        /// <summary>
         /// Return a pointer to the memory address for the given <paramref name="value"/> instance.
         /// </summary>
         /// <param name="value"></param>
@@ -281,6 +322,21 @@ namespace Unity.NetCode.LowLevel.Unsafe
         public static IntPtr IntPtrCast<T>(ref T value) where T: struct
         {
             return (IntPtr)UnsafeUtility.AddressOf(ref value);
+        }
+
+        /// <summary>
+        /// The compressed size in bits necessary to encode a given unsigned int <paramref name="value"/> in delta in respect
+        /// to the given <paramref name="baseline"/>.
+        /// </summary>
+        /// <param name="value">the value to encode</param>
+        /// <param name="baseline">the baseline used to calculate the delta</param>
+        /// <param name="model">the compression model to use</param>
+        /// <returns>the number of bits necessary to encode the value</returns>
+        static public int GetDeltaCompressedSizeInBits(uint value, uint baseline, in StreamCompressionModel model)
+        {
+            int delta = (int)(baseline - value);
+            uint zigZagEncoded = (uint)((delta >> 31) ^ (delta << 1));
+            return model.GetCompressedSizeInBits(zigZagEncoded);
         }
 
         /// <summary>
@@ -293,6 +349,10 @@ namespace Unity.NetCode.LowLevel.Unsafe
         /// <param name="numBits"></param>
         public static void CopyToChangeMask(IntPtr bitData, uint src, int offset, int numBits)
         {
+            Assertions.Assert.IsTrue(offset >= 0);
+            Assertions.Assert.IsTrue(numBits >= 0);
+            Assertions.Assert.IsTrue(numBits <= 32);
+            //Expect the src[31:numBits] to be equals to 0.
             var bits = (uint*)bitData;
             int idx = offset >> 5;
             int bitIdx = offset & 0x1f;
@@ -310,9 +370,81 @@ namespace Unity.NetCode.LowLevel.Unsafe
                 bits[idx+1] |= src >> usedBits;
             }
         }
+
+        /// <summary>
+        /// For internal use only, reset the <paramref name="bitData"/> bitmask bits from the given <paramref name="offset"/>
+        /// and for the required number of bits.
+        /// </summary>
+        /// <param name="bitData"></param>
+        /// <param name="offset"></param>
+        /// <param name="numBits"></param>
+        static public void ResetChangeMask(IntPtr bitData, int offset, int numBits)
+        {
+            Assertions.Assert.IsTrue(offset >= 0);
+            Assertions.Assert.IsTrue(numBits >= 0);
+            var bits = (uint*)bitData;
+            int idx = offset >> 5;
+            int bitIdx = offset & 0x1f;
+            var remainingBits = 32 - bitIdx;
+            //If the bits fit in the current int mask out the region to 0
+            if (numBits < remainingBits)
+            {
+                bits[idx] &= (uint)(((1UL << bitIdx)-1) | ~((1UL << (bitIdx+numBits))-1));
+            }
+            else
+            {
+                //reset up to the next 32-offset bits to 0 (align to the next work)
+                bits[idx] &= (uint)(((1UL << bitIdx)-1));
+                numBits -= remainingBits;
+                //fill to 0 all mask words
+                while (numBits > 32)
+                {
+                    bits[++idx] = 0;
+                    numBits -=32;
+                }
+                //clear the remaining bits in the next change mask uint (starting from offset 0)
+                if (numBits > 0)
+                {
+                    bits[++idx] &= ~((1u << numBits)-1);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reset the changemask and the snapshot data to the default value (all 0)
+        /// </summary>
+        /// <param name="snapshot"></param>
+        /// <param name="snapshotOffset"></param>
+        /// <param name="snapshotSize"></param>
+        /// <param name="changeMask"></param>
+        /// <param name="maskOffset"></param>
+        /// <param name="changeMaskBits"></param>
+        static public void ClearSnapshotDataAndMask(IntPtr snapshot, int snapshotOffset, int snapshotSize, IntPtr changeMask, int maskOffset,
+            int changeMaskBits)
+        {
+            ResetChangeMask(changeMask, maskOffset, changeMaskBits);
+            var componentUintSize = SnapshotSizeAligned(snapshotSize)/4;
+            var snapshotData = (uint*)(snapshot + snapshotOffset);
+            for(int i=0;i<componentUintSize;++i) snapshotData[i] = 0;
+        }
+
+        /// <summary>
+        /// For internal use only, reset one bit in the bitmask array at the given <param name="offset"></param>
+        /// </summary>
+        /// <param name="bitData"></param>
+        /// <param name="offset"></param>
+        static internal void ResetChangeMaskBit(IntPtr bitData, int offset)
+        {
+            Assertions.Assert.IsTrue(offset >= 0);
+            var bits = (uint*)bitData;
+            int idx = offset >> 5;
+            int bitIdx = offset & 0x1f;
+            bits[idx] &= ~(1U << bitIdx);
+        }
+
         /// <summary>
         /// Extract from the source buffer an unsigned integer, representing a portion of a bitmask
-        /// starting from the given offset and number of bits.
+        /// starting from the given offset and number of bits (up to 32 bits max).
         /// </summary>
         /// <param name="bitData"></param>
         /// <param name="offset"></param>
@@ -320,6 +452,8 @@ namespace Unity.NetCode.LowLevel.Unsafe
         /// <returns></returns>
         public static uint CopyFromChangeMask(IntPtr bitData, int offset, int numBits)
         {
+            Assertions.Assert.IsTrue(offset >= 0);
+            Assertions.Assert.IsTrue(numBits >= 0);
             var bits = (uint*)bitData;
             int idx = offset >> 5;
             int bitIdx = offset & 0x1f;

@@ -69,7 +69,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -116,7 +116,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -133,7 +133,7 @@ namespace Unity.NetCode.Tests
 
                 //testWorld.ConvertGhostCollection(testWorld.ClientWorlds[0]);
                 onDemandSystem.IsLoading = false;
-                LogAssert.Expect(UnityEngine.LogType.Error, new Regex("The ghost collection contains a ghost which does not have a valid prefab on the client!"));
+                LogAssert.Expect(UnityEngine.LogType.Error, new Regex("^The ghost collection contains a ghost which does not have a valid prefab on the client!"));
                 LogAssert.Expect(UnityEngine.LogType.Error, "Disconnecting all the connections because of errors while processing the ghost prefabs (see previous reported errors).");
                 for (int i = 0; i < 2; ++i)
                     testWorld.Tick(frameTime);

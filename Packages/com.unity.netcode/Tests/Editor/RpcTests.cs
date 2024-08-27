@@ -27,7 +27,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 for (int i = 0; i < 33; ++i)
                     testWorld.Tick(1f / 60f);
@@ -53,7 +53,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 var remote = testWorld.TryGetSingletonEntity<NetworkStreamConnection>(testWorld.ClientWorlds[0]);
                 testWorld.ClientWorlds[0].GetExistingSystemManaged<ClientRcpSendSystem>().Remote = remote;
@@ -86,7 +86,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 for (int i = 0; i < 33; ++i)
                     testWorld.Tick(1f / 60f);
@@ -113,7 +113,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 int SendCount = 5;
                 ServerRpcBroadcastSendSystem.SendCount = SendCount;
@@ -127,7 +127,7 @@ namespace Unity.NetCode.Tests
         }
 
         [Test]
-        public void Rpc_SendingBeforeGettingNetworkId_Throws()
+        public void Rpc_SendingBeforeGettingNetworkId_LogWarning()
         {
             using (var testWorld = new NetCodeTestWorld())
             {
@@ -143,9 +143,9 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
-                LogAssert.Expect(LogType.Exception, new Regex("InvalidOperationException: Cannot send RPC with no remote connection."));
+                LogAssert.Expect(LogType.Warning, new Regex("Cannot send RPC with no remote connection."));
                 for (int i = 0; i < 33; ++i)
                     testWorld.Tick(1f / 60f);
 
@@ -180,7 +180,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 LogAssert.Expect(LogType.Error, new Regex("RpcSystem received invalid rpc"));
                 for (int i = 0; i < 32; ++i)
@@ -212,7 +212,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 for (int i = 0; i < 33; ++i)
                     testWorld.Tick(1f / 60f);
@@ -242,7 +242,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 for (int i = 0; i < 33; ++i)
                     testWorld.Tick(1f / 60f);
@@ -290,7 +290,7 @@ namespace Unity.NetCode.Tests
                 testWorld.CreateWorlds(true, 1);
 
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 // Go in-game
                 testWorld.GoInGame();
 
@@ -361,6 +361,38 @@ namespace Unity.NetCode.Tests
                 //The received entity must be null
                 rpcReceived = RecvRpc(testWorld.ServerWorld);
                 Assert.IsTrue(rpcReceived.entity == Entity.Null);
+            }
+        }
+
+        [Test]
+        public void WarnsIfApplicationRunInBackgroundIsFalse()
+        {
+            const float dt = 1f/60f;
+            var existingRunInBackground = Application.runInBackground;
+            try
+            {
+                using var testWorld = new NetCodeTestWorld();
+                testWorld.Bootstrap(true);
+                testWorld.CreateWorlds(true, 1);
+
+                Application.runInBackground = false;
+                testWorld.Connect(dt, 4);
+                // Warning is suppressed by default.
+                testWorld.Tick(dt);
+                // Un-suppress it.
+                Assert.IsTrue(testWorld.TrySetSuppressRunInBackgroundWarning(false), "Failed to suppress!");
+                // Expect two logs, one per world:
+                var regex = new Regex(@"Netcode detected that you don't have Application\.runInBackground enabled");
+                LogAssert.Expect(LogType.Error, regex);
+                LogAssert.Expect(LogType.Error, regex);
+                testWorld.Tick(dt);
+                // When the client is DC'd, it should not warn.
+                testWorld.DisposeServerWorld();
+                testWorld.Tick(dt);
+            }
+            finally
+            {
+                Application.runInBackground = existingRunInBackground;
             }
         }
 

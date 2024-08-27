@@ -19,8 +19,7 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [
-        "ENABLE_UNITY_NETCODE_PHYSICS",
-        "!UNITY_DOTSRUNTIME"
+        "ENABLE_UNITY_NETCODE_PHYSICS"
     ],
     "versionDefines": [
         {

@@ -33,6 +33,12 @@
     "defineConstraints": [
         "UNITY_INCLUDE_TESTS"
     ],
-    "versionDefines": [],
+    "versionDefines": [
+      {
+        "name": "com.unity.logging",
+        "expression": "0.0",
+        "define": "USING_UNITY_LOGGING"
+      }
+    ],
     "noEngineReferences": false
 }

@@ -235,7 +235,7 @@ namespace Unity.NetCode.Tests
                 ghostConfig.SupportAutoCommandTarget = true;
                 Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObject));
                 testWorld.CreateWorlds(true, 1);
-                Assert.IsTrue(testWorld.Connect(m_DeltaTime, 64));
+                testWorld.Connect(m_DeltaTime);
                 testWorld.GoInGame();
 
                 var serverConnectionEnt = testWorld.TryGetSingletonEntity<NetworkId>(testWorld.ServerWorld);
@@ -295,7 +295,7 @@ namespace Unity.NetCode.Tests
                 ghostConfig.DefaultGhostMode = GhostMode.Predicted;
                 Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObject));
                 testWorld.CreateWorlds(true, 2);
-                Assert.IsTrue(testWorld.Connect(m_DeltaTime, 64));
+                testWorld.Connect(m_DeltaTime);
                 testWorld.GoInGame();
 
                 using var serverConnectionQuery = testWorld.ServerWorld.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<NetworkId>());
@@ -345,38 +345,10 @@ namespace Unity.NetCode.Tests
                     testWorld.Tick(m_DeltaTime);
 
                 // Input buffer must be added to the prefab
-                // We don't see the input buffer type here as it's generated, so we detect the name in the component list instead
-                var archTypes = new NativeList<EntityArchetype>(Allocator.Temp);
-                testWorld.ServerWorld.EntityManager.GetAllArchetypes(archTypes);
-                bool foundBuffer = false;
-                var expectedBufferName = new FixedString128Bytes("Unity.NetCode.EditorTests.Generated.InputRemoteTestComponentDataInputBufferData");
-                foreach (var archType in archTypes)
-                {
-                    if (archType.Prefab)
-                    {
-                        foreach (var component in archType.GetComponentTypes())
-                        {
-                            if (component.GetDebugTypeName() == expectedBufferName)
-                                foundBuffer = true;
-                        }
-                    }
-                }
-                Assert.IsTrue(foundBuffer);
-
-                testWorld.ClientWorlds[0].EntityManager.GetAllArchetypes(archTypes);
-                foundBuffer = false;
-                foreach (var archType in archTypes)
-                {
-                    if (archType.Prefab)
-                    {
-                        foreach (var component in archType.GetComponentTypes())
-                        {
-                            if (component.GetDebugTypeName() == expectedBufferName)
-                                foundBuffer = true;
-                        }
-                    }
-                }
-                Assert.IsTrue(foundBuffer);
+                Assert.IsTrue(testWorld.ServerWorld.EntityManager.HasBuffer<InputBufferData<InputRemoteTestComponentData>>(serverEntPlayer1));
+                Assert.IsTrue(testWorld.ServerWorld.EntityManager.HasBuffer<InputBufferData<InputRemoteTestComponentData>>(serverEntPlayer2));
+                Assert.IsTrue(testWorld.ClientWorlds[0].EntityManager.HasBuffer<InputBufferData<InputRemoteTestComponentData>>(clientEnt1OwnPlayer));
+                Assert.IsTrue(testWorld.ClientWorlds[1].EntityManager.HasBuffer<InputBufferData<InputRemoteTestComponentData>>(clientEnt2OwnPlayer));
 
                 // Validate that client 2 actually has input buffer data (copied to component) from client 1 and reversed
                 testWorld.ClientWorlds[0].EntityManager.CompleteAllTrackedJobs();
@@ -419,26 +391,23 @@ namespace Unity.NetCode.Tests
 
                 testWorld.CreateWorlds(true, 1);
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
 
-                var inputComponentDataBufferType = GetComponentType(testWorld.ServerWorld, nameof(InputComponentData));
-                var inputRemoteComponentDataBufferType = GetComponentType(testWorld.ServerWorld, nameof(InputRemoteTestComponentData));
                 testWorld.SpawnOnServer(gameObject0);
                 testWorld.SpawnOnServer(gameObject1);
-
                 CheckComponent(testWorld.ServerWorld, ComponentType.ReadOnly<InputComponentData>(), 1);
                 CheckComponent(testWorld.ServerWorld, ComponentType.ReadOnly<InputRemoteTestComponentData>(), 1);
-                CheckComponent(testWorld.ServerWorld, inputComponentDataBufferType, 1);
-                CheckComponent(testWorld.ServerWorld, inputRemoteComponentDataBufferType, 1);
+                CheckComponent(testWorld.ServerWorld, ComponentType.ReadOnly<InputBufferData<InputComponentData>>(), 1);
+                CheckComponent(testWorld.ServerWorld, ComponentType.ReadOnly<InputBufferData<InputRemoteTestComponentData>>(), 1);
 
                 for (int i = 0; i < 64; ++i)
                     testWorld.Tick(frameTime);
 
                 CheckComponent(testWorld.ClientWorlds[0], ComponentType.ReadOnly<InputComponentData>(), 1);
                 CheckComponent(testWorld.ClientWorlds[0], ComponentType.ReadOnly<InputRemoteTestComponentData>(), 1);
-                CheckComponent(testWorld.ClientWorlds[0], inputComponentDataBufferType, 1);
-                CheckComponent(testWorld.ClientWorlds[0], inputRemoteComponentDataBufferType, 1);
+                CheckComponent(testWorld.ClientWorlds[0], ComponentType.ReadOnly<InputBufferData<InputComponentData>>(), 1);
+                CheckComponent(testWorld.ClientWorlds[0], ComponentType.ReadOnly<InputBufferData<InputRemoteTestComponentData>>(), 1);
             }
         }
 
@@ -470,11 +439,9 @@ namespace Unity.NetCode.Tests
 
                 testWorld.CreateWorlds(true, 1);
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
 
-                var inputComponentDataWithGhostFieldsBufferType = GetComponentType(testWorld.ServerWorld, nameof(InputComponentDataAllPredictedWithGhostFields));
-                var inputComponentDataBufferType = GetComponentType(testWorld.ServerWorld, nameof(InputComponentDataAllPredicted));
                 var clientConnectionEnt = testWorld.TryGetSingletonEntity<NetworkId>(testWorld.ClientWorlds[0]);
                 var netId = testWorld.ClientWorlds[0].EntityManager.GetComponentData<NetworkId>(clientConnectionEnt).Value;
 
@@ -485,16 +452,12 @@ namespace Unity.NetCode.Tests
 
                 CheckComponent(testWorld.ServerWorld, ComponentType.ReadOnly<InputComponentDataAllPredictedWithGhostFields>(), 1);
                 CheckComponent(testWorld.ServerWorld, ComponentType.ReadOnly<InputComponentDataAllPredicted>(), 1);
-                CheckComponent(testWorld.ServerWorld, inputComponentDataWithGhostFieldsBufferType, 1);
-                CheckComponent(testWorld.ServerWorld, inputComponentDataBufferType, 1);
 
                 for (int i = 0; i < 64; ++i)
                     testWorld.Tick(frameTime);
 
                 CheckComponent(testWorld.ClientWorlds[0], ComponentType.ReadOnly<InputComponentDataAllPredictedWithGhostFields>(), 1);
                 CheckComponent(testWorld.ClientWorlds[0], ComponentType.ReadOnly<InputComponentDataAllPredicted>(), 1);
-                CheckComponent(testWorld.ClientWorlds[0], inputComponentDataWithGhostFieldsBufferType, 1);
-                CheckComponent(testWorld.ClientWorlds[0], inputComponentDataBufferType, 1);
             }
         }
 
@@ -532,8 +495,8 @@ namespace Unity.NetCode.Tests
                 using var collectionQuery = testWorld.ServerWorld.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<GhostComponentSerializerCollectionData>());
                 var collectionData = collectionQuery.GetSingleton<GhostComponentSerializerCollectionData>();
                 GhostComponentSerializer.State inputBufferWithGhostFieldsSerializerState = default;
-                var inputBufferType = GetComponentType(testWorld.ServerWorld, nameof(InputComponentDataWithGhostComponent));
-                var inputBufferWithFieldsType = GetComponentType(testWorld.ServerWorld, nameof(InputComponentDataWithGhostComponentAndGhostFields));
+                var inputBufferType = ComponentType.ReadWrite<InputBufferData<InputComponentDataWithGhostComponent>>();
+                var inputBufferWithFieldsType = ComponentType.ReadWrite<InputBufferData<InputComponentDataWithGhostComponentAndGhostFields>>();
                 foreach (var state in collectionData.Serializers)
                 {
                     if (state.ComponentType.CompareTo(inputBufferWithFieldsType) == 0)
@@ -587,7 +550,7 @@ namespace Unity.NetCode.Tests
                 CheckComponent(testWorld.ServerWorld, inputBufferWithFieldsType, 0);
 
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
                 for (int i = 0; i < 64; ++i)
                     testWorld.Tick(frameTime);
@@ -607,25 +570,6 @@ namespace Unity.NetCode.Tests
                 var compCount = ghosts.Length;
                 Assert.AreEqual(expectedCount, compCount);
             }
-        }
-
-        ComponentType GetComponentType(World w, string componentName)
-        {
-            var archTypes = new NativeList<EntityArchetype>(Allocator.Temp);
-            w.EntityManager.GetAllArchetypes(archTypes);
-            var expectedBufferName = new FixedString128Bytes($"Unity.NetCode.EditorTests.Generated.{componentName}InputBufferData");
-            foreach (var archType in archTypes)
-            {
-                if (archType.Prefab)
-                {
-                    foreach (var component in archType.GetComponentTypes())
-                    {
-                        if (component.GetDebugTypeName() == expectedBufferName)
-                            return component;
-                    }
-                }
-            }
-            return null;
         }
     }
 }

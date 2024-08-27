@@ -1,3 +1,4 @@
+using System;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.NetCode.LowLevel.Unsafe;
@@ -40,6 +41,16 @@ namespace Unity.NetCode
             /// The history slot index that contains the ghost snapshot (that is <b>newer</b> than the target <see cref="Tick"/>).
             /// </summary>
             public int AfterIdx;
+            /// <summary>
+            /// The required values of the <see cref="GhostComponentAttribute.OwnerSendType"/> property in order for a component to be sent.
+            /// The mask depends on the presence and value of the <see cref="GhostOwner"/> component:
+            /// <list type="bullet">
+            /// <li><see cref="SendToOwnerType.All"/>if the <see cref="GhostOwner"/> is not present on the entity</li>
+            /// <li><see cref="SendToOwnerType.SendToOwner"/>if the value of the <see cref="GhostOwner"/> is equals to the <see cref="NetworkId"/> of the client.</li>
+            /// <li><see cref="SendToOwnerType.SendToNonOwner"/>if the value of the <see cref="GhostOwner"/> is different than the <see cref="NetworkId"/> of the client.</li>
+            /// </list>
+            /// </summary>
+            public SendToOwnerType RequiredOwnerSendMask;
             /// <summary>
             /// The network id of the client owning the ghost. 0 if the ghost does not have a <see cref="NetCode.GhostOwner"/>.
             /// </summary>
@@ -121,12 +132,15 @@ namespace Unity.NetCode
         /// </summary>
         /// <param name="targetTick"></param>
         /// <param name="predictionOwnerOffset"></param>
+        /// <param name="localNetworkId"></param>
         /// <param name="targetTickFraction"></param>
         /// <param name="buffer"></param>
         /// <param name="data"></param>
         /// <param name="MaxExtrapolationTicks"></param>
         /// <returns>True if at least one snapshot has been received and if its tick is less or equal the current target tick.</returns>
-        internal unsafe bool GetDataAtTick(NetworkTick targetTick, int predictionOwnerOffset, float targetTickFraction, in DynamicBuffer<SnapshotDataBuffer> buffer, out DataAtTick data, uint MaxExtrapolationTicks)
+        internal unsafe bool GetDataAtTick(NetworkTick targetTick, int predictionOwnerOffset,
+            int localNetworkId,
+            float targetTickFraction, in DynamicBuffer<SnapshotDataBuffer> buffer, out DataAtTick data, uint MaxExtrapolationTicks)
         {
             data = default;
             if (buffer.Length == 0)
@@ -169,6 +183,12 @@ namespace Unity.NetCode
             data.SnapshotBefore = (System.IntPtr)((byte*)buffer.GetUnsafeReadOnlyPtr() + beforeIdx * SnapshotSize);
             data.Tick = beforeTick;
             data.GhostOwner = predictionOwnerOffset != 0 ? *(int*) (data.SnapshotBefore + predictionOwnerOffset) : 0;
+            if (predictionOwnerOffset == 0)
+                data.RequiredOwnerSendMask = SendToOwnerType.All;
+            else if (localNetworkId == data.GhostOwner)
+                data.RequiredOwnerSendMask = SendToOwnerType.SendToOwner;
+            else
+                data.RequiredOwnerSendMask = SendToOwnerType.SendToNonOwner;
             if (!afterTick.IsValid)
             {
                 data.BeforeIdx = beforeIdx;
@@ -333,7 +353,7 @@ namespace Unity.NetCode
         /// <returns></returns>
         public static int GetDynamicDataChangeMaskSize(int changeMaskBits, int numElements)
         {
-            return GhostComponentSerializer.SnapshotSizeAligned(GhostComponentSerializer.ChangeMaskArraySizeInUInts((numElements * changeMaskBits)*4));
+            return GhostComponentSerializer.SnapshotSizeAligned(GhostComponentSerializer.ChangeMaskArraySizeInUInts(numElements * changeMaskBits)*4);
         }
     }
 }

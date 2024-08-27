@@ -41,10 +41,12 @@ namespace Unity.NetCode.Tests
     /// <summary>The <see cref="GhostPredictionHistorySystem"/> does some additional saving and writing, which needs to be tested.</summary>
     public enum PredictionSetting
     {
-        WithPredictedEntities,
-        WithInterpolatedEntities
+        WithPredictedEntities = 1,
+        WithInterpolatedEntities = 2,
+        // FIXME: Add support for WithPredictedAndOwnedEntities = 3,
     }
 
+    /// <summary>Defines which variant to use during testing (and how that variant is applied), thus testing all user flows.</summary>
     public enum SendForChildrenTestCase
     {
         /// <summary>

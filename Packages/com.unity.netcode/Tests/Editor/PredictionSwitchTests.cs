@@ -70,7 +70,7 @@ namespace Unity.NetCode.Tests
                 Assert.AreNotEqual(Entity.Null, serverEnt);
 
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -143,7 +143,7 @@ namespace Unity.NetCode.Tests
                 Assert.AreNotEqual(Entity.Null, serverEnt);
 
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();

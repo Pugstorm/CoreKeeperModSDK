@@ -311,7 +311,7 @@ namespace Unity.NetCode.Tests
                     testWorld.Tick(1.0f/60.0f);
 
                 //In order to get the collection setup I need to enter in game
-                testWorld.Connect(1.0f / 60f, 16);
+                testWorld.Connect(1.0f / 60f);
                 testWorld.GoInGame();
 
                 for (int i = 0; i < collection.Length; ++i)
@@ -369,7 +369,7 @@ namespace Unity.NetCode.Tests
                     testWorld.Tick(1.0f/60.0f);
 
                 //In order to get the collection setup I need to enter in game
-                testWorld.Connect(1.0f / 60f, 16);
+                testWorld.Connect(1.0f / 60f);
                 testWorld.GoInGame();
 
                 for (int i = 0; i < collection.Length; ++i)
@@ -428,7 +428,7 @@ namespace Unity.NetCode.Tests
                     testWorld.Tick(1.0f/60.0f);
 
                 //In order to get the collection setup I need to enter in game
-                testWorld.Connect(1.0f / 60f, 16);
+                testWorld.Connect(1.0f / 60f);
                 testWorld.GoInGame();
 
                 for (int i = 0; i < collection.Length; ++i)
@@ -548,7 +548,7 @@ namespace Unity.NetCode.Tests
                     testWorld.Tick(1.0f/60.0f);
 
                 //In order to get the collection setup I need to enter in game
-                testWorld.Connect(1.0f / 60f, 16);
+                testWorld.Connect(1.0f / 60f);
                 testWorld.GoInGame();
                 testWorld.SpawnOnServer(ghostGameObject);
 

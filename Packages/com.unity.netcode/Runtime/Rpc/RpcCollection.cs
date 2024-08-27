@@ -17,7 +17,7 @@ namespace Unity.NetCode
         {
             public ulong TypeHash;
             public PortableFunctionPointer<RpcExecutor.ExecuteDelegate> Execute;
-#if ENABLE_UNITY_COLLECTIONS_CHECKS
+#if ENABLE_UNITY_COLLECTIONS_CHECKS || UNITY_DOTS_DEBUG
             public ComponentType RpcType;
 #endif
             public int CompareTo(RpcData other)
@@ -48,6 +48,35 @@ namespace Unity.NetCode
                 m_DynamicAssemblyList.Value = value ? (byte)1u : (byte)0u;
             }
         }
+
+        /// <summary>
+        /// The RPC "common header" format is 9 bytes:
+        /// - Message Type: byte
+        /// - LocalTime: int
+        /// - RemoteTime: int
+        ///
+        /// And then, for each RPC, the header is:
+        /// - RpcHash: [short|long] (based on DynamicAssemblyList)
+        /// - Size: ushort
+        /// - Payload : x bytes
+        ///
+        /// So for a single message we have:
+        /// - 9 (common header) + 4 => 13 bytes (no DynamicAssemblyList)
+        /// - 9 (common header) + 10 => 19 bytes (with DynamicAssemblyList)
+        /// </summary>
+        /// <param name="dynamicAssemblyList">Whether or not your project is using <see cref="DynamicAssemblyList"/>.</param>
+        /// <returns>If <see cref="DynamicAssemblyList"/>, 19 bytes, otherwise 13 bytes.</returns>
+        public static int GetRpcHeaderLength(bool dynamicAssemblyList) => k_RpcCommonHeaderLengthBytes + GetInnerRpcMessageHeaderLength(dynamicAssemblyList);
+
+        /// <inheritdoc cref="GetRpcHeaderLength"/>>
+        internal const int k_RpcCommonHeaderLengthBytes = 9;
+
+        /// <summary>
+        /// If <see cref="DynamicAssemblyList"/>, 10 bytes, otherwise 4 bytes.
+        /// </summary>
+        /// <param name="dynamicAssemblyList">Whether or not your project is using <see cref="DynamicAssemblyList"/>.</param>
+        /// <returns>If <see cref="DynamicAssemblyList"/>, 10 bytes, otherwise 4 bytes.</returns>
+        internal static int GetInnerRpcMessageHeaderLength(bool dynamicAssemblyList) => dynamicAssemblyList ? 10 : 4;
 
         /// <summary>
         /// Register a new RPC type which can be sent over the network. This must be called before
@@ -169,6 +198,14 @@ namespace Unity.NetCode
             for (int i = 0; i < m_RpcData.Length; ++i)
             {
                 m_RpcTypeHashToIndex.Add(m_RpcData[i].TypeHash, i);
+
+#if ENABLE_UNITY_RPC_REGISTRATION_LOGGING
+#if UNITY_DOTS_DEBUG
+                UnityEngine.Debug.Log(String.Format("NetCode RPC Method hash 0x{0:X} index {1} type {2}", m_RpcData[i].TypeHash, i, m_RpcData[i].RpcType));
+#else
+                UnityEngine.Debug.Log(String.Format("NetCode RPC Method hash {0} index {1}", m_RpcData[i].TypeHash, i));
+#endif
+#endif
             }
 
             ulong hash = m_RpcData[0].TypeHash;
@@ -180,7 +217,7 @@ namespace Unity.NetCode
         internal static unsafe void SendProtocolVersion(DynamicBuffer<OutgoingRpcDataStreamBuffer> buffer, NetworkProtocolVersion version)
         {
             bool dynamicAssemblyList = (version.RpcCollectionVersion == 0);
-            int msgHeaderLen = dynamicAssemblyList ? 10 : 4;
+            int msgHeaderLen = GetInnerRpcMessageHeaderLength(dynamicAssemblyList);
             DataStreamWriter writer = new DataStreamWriter(UnsafeUtility.SizeOf<NetworkProtocolVersion>() + msgHeaderLen + 1, Allocator.Temp);
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             if (buffer.Length != 0)
@@ -211,6 +248,7 @@ namespace Unity.NetCode
             ptr += prevLen;
             UnsafeUtility.MemCpy(ptr, writer.AsNativeArray().GetUnsafeReadOnlyPtr(), writer.Length);
         }
+
         internal NativeList<RpcData> Rpcs => m_RpcData;
 
         internal NativeList<RpcData> m_RpcData;

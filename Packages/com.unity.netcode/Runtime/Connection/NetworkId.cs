@@ -26,6 +26,21 @@ namespace Unity.NetCode
         /// The network identifier assigned by the server. A valid identifier it is always greater than 0.
         /// </summary>
         public int Value;
+
+        /// <summary>
+        /// Returns 'NID[value]'.
+        /// </summary>
+        /// <returns>Returns 'NID[value]'.</returns>
+        public FixedString32Bytes ToFixedString()
+        {
+            var s = new FixedString32Bytes((FixedString32Bytes)"NID[");
+            s.Append(Value);
+            s.Append(']');
+            return s;
+        }
+
+        /// <inheritdoc cref="ToFixedString"/>>
+        public override string ToString() => ToFixedString().ToString();
     }
 
     /// <summary>
@@ -40,6 +55,7 @@ namespace Unity.NetCode
         public int netTickRate;
         public int simMaxSteps;
         public int simMaxStepLength;
+        public int fixStepTickRatio;
 
         public void Serialize(ref DataStreamWriter writer, in RpcSerializerState state, in RpcSetNetworkId data)
         {
@@ -48,6 +64,7 @@ namespace Unity.NetCode
             writer.WriteInt(data.netTickRate);
             writer.WriteInt(data.simMaxSteps);
             writer.WriteInt(data.simMaxStepLength);
+            writer.WriteInt(data.fixStepTickRatio);
         }
 
         public void Deserialize(ref DataStreamReader reader, in RpcDeserializerState state, ref RpcSetNetworkId data)
@@ -57,6 +74,7 @@ namespace Unity.NetCode
             data.netTickRate = reader.ReadInt();
             data.simMaxSteps = reader.ReadInt();
             data.simMaxStepLength = reader.ReadInt();
+            data.fixStepTickRatio = reader.ReadInt();
         }
 
         [BurstCompile(DisableDirectCall = true)]
@@ -74,7 +92,8 @@ namespace Unity.NetCode
                 MaxSimulationStepsPerFrame = rpcData.simMaxSteps,
                 NetworkTickRate = rpcData.netTickRate,
                 SimulationTickRate = rpcData.simTickRate,
-                MaxSimulationStepBatchSize = rpcData.simMaxStepLength
+                MaxSimulationStepBatchSize = rpcData.simMaxStepLength,
+                PredictedFixedStepSimulationTickRatio = rpcData.fixStepTickRatio
             });
             parameters.CommandBuffer.SetName(parameters.JobIndex, parameters.Connection, new FixedString64Bytes(FixedString.Format("NetworkConnection ({0})", rpcData.nid)));
         }

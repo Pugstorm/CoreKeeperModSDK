@@ -158,7 +158,7 @@ namespace Unity.NetCode
                             }
                         }
                     	stateEntityManager.SetComponentData(entity, new GhostInstance {ghostId = ghost.GhostID, ghostType = ghost.GhostType, spawnTick = ghost.ServerSpawnTick});
-                        if (PrespawnHelper.IsPrespawGhostId(ghost.GhostID))
+                        if (PrespawnHelper.IsPrespawnGhostId(ghost.GhostID))
                             ConfigurePrespawnGhost(ref stateEntityManager, entity, ghost);
                         var newBuffer = stateEntityManager.GetBuffer<SnapshotDataBuffer>(entity);
                         newBuffer.ResizeUninitialized(snapshotSize * GhostSystemConstants.SnapshotHistorySize);
@@ -255,7 +255,7 @@ namespace Unity.NetCode
             var entity = entityManager.CreateEntity();
             entityManager.AddComponentData(entity, new GhostInstance { ghostId = ghost.GhostID, ghostType = ghost.GhostType, spawnTick = ghost.ServerSpawnTick });
             entityManager.AddComponent<PendingSpawnPlaceholder>(entity);
-            if (PrespawnHelper.IsPrespawGhostId(ghost.GhostID))
+            if (PrespawnHelper.IsPrespawnGhostId(ghost.GhostID))
                 ConfigurePrespawnGhost(ref entityManager, entity, ghost);
 
             var newBuffer = entityManager.AddBuffer<SnapshotDataBuffer>(entity);
@@ -324,7 +324,7 @@ namespace Unity.NetCode
                 }
             }
             entityManager.SetComponentData(entity, entityManager.GetComponentData<SnapshotData>(ghost.oldEntity));
-            if (PrespawnHelper.IsPrespawGhostId(ghost.ghostId))
+            if (PrespawnHelper.IsPrespawnGhostId(ghost.ghostId))
             {
                 entityManager.AddComponentData(entity, entityManager.GetComponentData<PreSpawnedGhostIndex>(ghost.oldEntity));
                 entityManager.AddSharedComponent(entity, entityManager.GetSharedComponent<SceneSection>(ghost.oldEntity));

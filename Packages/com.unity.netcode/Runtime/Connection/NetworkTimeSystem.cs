@@ -182,12 +182,8 @@ namespace Unity.NetCode
     /// </summary>
     [BurstCompile]
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation|WorldSystemFilterFlags.ThinClientSimulation)]
-#if UNITY_DOTSRUNTIME
-    [UpdateInGroup(typeof(InitializationSystemGroup), OrderLast=true)] // FIXME: cannot get access to the dots runtime version of UpdateWorldTimeSystem here, so just put it last
-#else
     [UpdateInGroup(typeof(InitializationSystemGroup))]
     [UpdateAfter(typeof(UpdateWorldTimeSystem))]
-#endif
     public partial struct NetworkTimeSystem : ISystem, ISystemStartStop
     {
         /// <summary>

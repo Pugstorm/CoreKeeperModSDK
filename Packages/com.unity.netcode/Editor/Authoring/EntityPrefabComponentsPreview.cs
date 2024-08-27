@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Unity.Collections;
 using Unity.Collections.NotBurstCompatible;
 using Unity.Entities;
-using Unity.Entities.Conversion;
 using UnityEditor;
 using UnityEngine;
 
@@ -20,113 +18,166 @@ namespace Unity.NetCode.Editor
         struct ComponentNameComparer : IComparer<ComponentType>
         {
             public int Compare(ComponentType x, ComponentType y) =>
-                x.GetManagedType().FullName.CompareTo(y.GetManagedType().FullName);
+                string.Compare(x.GetManagedType().FullName, y.GetManagedType().FullName, StringComparison.Ordinal);
         }
 
         /// <summary>Triggers the baking conversion process on the 'authoringComponent' and appends all resulting baked entities and components to the 'bakedDataMap'.</summary>
-        public void BakeEntireNetcodePrefab(GhostAuthoringComponent authoringComponent, Dictionary<GameObject, BakedGameObjectResult> bakedDataMap)
+        public void BakeEntireNetcodePrefab(GhostAuthoringComponent ghostAuthoring, GhostAuthoringInspectionComponent inspectionComponent, Dictionary<GhostAuthoringInspectionComponent, BakedResult> cachedBakedResults)
         {
+            GhostAuthoringInspectionComponent.forceBake = false;
+            if (ghostAuthoring == null)
+            {
+                Debug.LogError($"Attempting to bake `GhostAuthoringInspectionComponent` '{inspectionComponent.name}', but no root `GhostAuthoringComponent` found!");
+                return;
+            }
+
             try
             {
-                EditorUtility.DisplayProgressBar($"Baking '{authoringComponent}'...", "Baking triggered by the GhostAuthoringInspectionComponent.", .9f);
-                GhostAuthoringInspectionComponent.forceBake = false;
-                GhostAuthoringInspectionComponent.forceSave = true;
+                EditorUtility.DisplayProgressBar($"Baking '{ghostAuthoring}'...", "Baking triggered by the GhostAuthoringInspectionComponent.", .9f);
 
                 // TODO - Handle exceptions due to invalid prefab setup. E.g.
                 // "InvalidOperationException: OwnerPrediction mode can only be used on prefabs which have a GhostOwner"
-                using(var world = new World(nameof(EntityPrefabComponentsPreview)))
+                using var world = new World(nameof(EntityPrefabComponentsPreview));
+                using var blobAssetStore = new BlobAssetStore(128);
+                ghostAuthoring.ForcePrefabConversion = true;
+
+                var bakeResult = new BakedResult
                 {
-                    using var blobAssetStore = new BlobAssetStore(128);
-                    authoringComponent.ForcePrefabConversion = true;
+                    GhostAuthoring = ghostAuthoring,
+                    GameObjectResults = new (32),
+                };
 
-                    var bakingSettings = new BakingSettings(BakingUtility.BakingFlags.AddEntityGUID, blobAssetStore);
-                    BakingUtility.BakeGameObjects(world, new[] {authoringComponent.gameObject}, bakingSettings);
-                    var bakingSystem = world.GetExistingSystemManaged<BakingSystem>();
-                    var primaryEntitiesMap = new HashSet<Entity>(16);
+                var bakingSettings = new BakingSettings(BakingUtility.BakingFlags.AddEntityGUID, blobAssetStore);
+                BakingUtility.BakeGameObjects(world, new[] {ghostAuthoring.gameObject}, bakingSettings);
+                var bakingSystem = world.GetExistingSystemManaged<BakingSystem>();
+                var primaryEntitiesMap = new HashSet<Entity>(16);
 
-                    var primaryEntity = bakingSystem.GetEntity(authoringComponent.gameObject);
-                    var ghostBlobAsset = world.EntityManager.GetComponentData<GhostPrefabMetaData>(primaryEntity).Value;
+                var primaryEntity = bakingSystem.GetEntity(ghostAuthoring.gameObject);
+                var ghostBlobAsset = world.EntityManager.GetComponentData<GhostPrefabMetaData>(primaryEntity).Value;
 
-                    CreatedBakedResultForPrimaryEntities(world, bakedDataMap, authoringComponent, bakingSystem, primaryEntitiesMap, ghostBlobAsset);
-                    CreatedBakedResultForLinkedEntities(world, bakedDataMap, primaryEntitiesMap, ghostBlobAsset);
-                }
+                CreatedBakedResultForPrimaryEntities(bakeResult, world, bakingSystem, primaryEntitiesMap, ghostBlobAsset, cachedBakedResults);
+                CreatedBakedResultForAdditionalEntities(bakeResult, world, primaryEntitiesMap, ghostBlobAsset, bakingSystem);
             }
             finally
             {
                 EditorUtility.ClearProgressBar();
-                authoringComponent.ForcePrefabConversion = false;
+                GhostAuthoringInspectionComponent.forceRebuildInspector = true;
+                ghostAuthoring.ForcePrefabConversion = false;
             }
         }
 
-        void CreatedBakedResultForPrimaryEntities(World world, Dictionary<GameObject, BakedGameObjectResult> bakedDataMap, GhostAuthoringComponent authoringComponent, BakingSystem bakingSystem, HashSet<Entity> primaryEntitiesMap, BlobAssetReference<GhostPrefabBlobMetaData> blobAssetReference)
+
+        internal static int CountComponents(GameObject go)
         {
-            foreach (var t in authoringComponent.GetComponentsInChildren<Transform>())
+            return go.GetComponents<Component>().Length;
+        }
+
+        static void CreatedBakedResultForPrimaryEntities(BakedResult bakedResult, World world, BakingSystem bakingSystem, HashSet<Entity> primaryEntitiesMap, BlobAssetReference<GhostPrefabBlobMetaData> blobAssetReference, Dictionary<GhostAuthoringInspectionComponent, BakedResult> cachedBakedResults)
+        {
+            foreach (var t in bakedResult.GhostAuthoring.GetComponentsInChildren<Transform>())
             {
                 var go = t.gameObject;
 
-                // I'd like to skip children that DONT have an Inspection component, but not possible as they may add one.
-
                 var sourcePrefabPath = AssetDatabase.GetAssetPath(go);
-                var result = new BakedGameObjectResult
+                var goResult = new BakedGameObjectResult
                 {
+                    AuthoringRoot = bakedResult,
                     SourceGameObject = go,
+                    SourceInspection = go.GetComponent<GhostAuthoringInspectionComponent>(),
                     SourcePrefabPath = sourcePrefabPath,
-                    RootAuthoring = authoringComponent,
-                    BakedEntities = new List<BakedEntityResult>(1)
+                    BakedEntities = new List<BakedEntityResult>(2),
+                    NumComponents = CountComponents(go),
                 };
+                var discoveredInspectionComponent = goResult.SourceInspection;
+                if (discoveredInspectionComponent != null)
+                    cachedBakedResults[discoveredInspectionComponent] = bakedResult;
 
                 var primaryEntity = bakingSystem.GetEntity(go);
                 if (bakingSystem.EntityManager.Exists(primaryEntity))
                 {
-                    result.BakedEntities.Add(CreateBakedEntityResult(result, 0, world, primaryEntity, false, blobAssetReference));
+                    goResult.BakedEntities.Add(CreateBakedEntityResult(goResult, 0, world, bakingSystem, primaryEntity, false, blobAssetReference));
                     primaryEntitiesMap.Add(primaryEntity);
                 }
-                bakedDataMap[go] = result;
+                bakedResult.GameObjectResults[go] = goResult;
             }
         }
 
-        void CreatedBakedResultForLinkedEntities(World world, Dictionary<GameObject, BakedGameObjectResult> bakedDataMap, HashSet<Entity> primaryEntitiesMap, BlobAssetReference<GhostPrefabBlobMetaData> blobAssetReference)
+        static void CreatedBakedResultForAdditionalEntities(BakedResult bakedResult, World world, HashSet<Entity> primaryEntitiesMap, BlobAssetReference<GhostPrefabBlobMetaData> blobAssetReference, BakingSystem bakingSystem)
         {
-            foreach (var kvp in bakedDataMap)
+            // Note: We only expect the ROOT entity to have a LinkedEntityGroup,
+            // but checking EVERY baked GameObject as this is not an assumption we control.
+            foreach (var kvp in bakedResult.GameObjectResults)
             {
                 // TODO - Test-case to ensure the root entity does not contain ALL linked entities (even for children + additional).
                 for (int index = 0, max = kvp.Value.BakedEntities.Count; index < max; index++)
                 {
                     var bakedEntityResult = kvp.Value.BakedEntities[index];
                     var primaryEntity = bakedEntityResult.Entity;
-                    if (world.EntityManager.HasComponent<LinkedEntityGroup>(primaryEntity))
-                    {
-                        var linkedEntityGroup = world.EntityManager.GetBuffer<LinkedEntityGroup>(primaryEntity);
-                        for (int i = 1; i < linkedEntityGroup.Length; ++i)
-                        {
-                            var linkedEntity = linkedEntityGroup[i].Value;
+                    if (!world.EntityManager.HasComponent<LinkedEntityGroup>(primaryEntity))
+                        continue;
 
-                            // Only show linked entities if they're not primary entities of child GameObjects.
-                            // I.e. Only possible if, during Baking, users call `CreateAdditionalEntity`.
-                            if (!primaryEntitiesMap.Contains(linkedEntity))
-                            {
-                                kvp.Value.BakedEntities.Add(CreateBakedEntityResult(kvp.Value, i, world, linkedEntity, true, blobAssetReference));
-                            }
+                    var linkedEntityGroup = world.EntityManager.GetBuffer<LinkedEntityGroup>(primaryEntity);
+                    for (int i = 1; i < linkedEntityGroup.Length; ++i)
+                    {
+                        var linkedEntity = linkedEntityGroup[i].Value;
+
+                        // Child entities are considered 'primary' entities. Thus, ignore them.
+                        // I.e. During Baking, if users call `CreateAdditionalEntity`, it won't be 'primary'.
+                        if (primaryEntitiesMap.Contains(linkedEntity))
+                            continue;
+
+                        // Find the actual authoring GameObject for this linked entity. It might be one of our children.
+                        var foundActualAuthoring = TryGetAuthoringForAdditionalEntity(linkedEntity, bakingSystem, bakedResult.GameObjectResults.Values, out var actualAuthoring);
+                        if (!foundActualAuthoring)
+                        {
+                            Debug.LogWarning($"Expected to find the source BakedGameObjectResult for Additional Entity '{linkedEntity.ToFixedString()}' ('{bakingSystem.EntityManager.GetName(linkedEntity)}') (via EntityGuid search), but did not! Assuming the authoring GameObject is '{kvp.Value.SourceGameObject.name}'! Please file a bug report if this assumption is false.", kvp.Value.SourceGameObject);
+
+                            actualAuthoring = kvp.Value;
                         }
+                        var entityResult = CreateBakedEntityResult(actualAuthoring, i, world, bakingSystem, linkedEntity, true, blobAssetReference);
+                        actualAuthoring.BakedEntities.Add(entityResult);
                     }
                 }
             }
         }
 
-        BakedEntityResult CreateBakedEntityResult(BakedGameObjectResult parent, int entityIndex, World world, Entity convertedEntity, bool isLinkedEntity, BlobAssetReference<GhostPrefabBlobMetaData> blobAssetReference)
+        static bool TryGetAuthoringForAdditionalEntity(Entity additionalEntity, BakingSystem bakingSystem, Dictionary<GameObject, BakedGameObjectResult>.ValueCollection results, out BakedGameObjectResult found)
         {
-            var isRoot = parent.SourceGameObject == parent.RootAuthoring.gameObject;
+            found = default;
+            if (!bakingSystem.EntityManager.HasComponent<EntityGuid>(additionalEntity))
+            {
+                Debug.LogError($"Additional entity '{additionalEntity.ToFixedString()}' did not have an EntityGuid! Thus, cannot find Authoring for it!");
+                return false;
+            }
+            var additionalEntitiesEntityGuid = bakingSystem.EntityManager.GetComponentData<EntityGuid>(additionalEntity);
+
+            foreach (var result in results)
+            {
+                foreach (var x in result.BakedEntities)
+                {
+                    if (x.Guid.OriginatingId == additionalEntitiesEntityGuid.OriginatingId)
+                    {
+                        found = result;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        static BakedEntityResult CreateBakedEntityResult(BakedGameObjectResult authoring, int entityIndex, World world, BakingSystem bakingSystem, Entity convertedEntity, bool isLinkedEntity, BlobAssetReference<GhostPrefabBlobMetaData> blobAssetReference)
+        {
             var guid = world.EntityManager.GetComponentData<EntityGuid>(convertedEntity);
             var result = new BakedEntityResult
             {
-                GoParent = parent,
+                GoParent = authoring,
                 Entity = convertedEntity,
                 Guid = guid,
                 EntityName = world.EntityManager.GetName(convertedEntity),
                 EntityIndex = entityIndex,
                 BakedComponents = new List<BakedComponentItem>(16),
                 IsLinkedEntity = isLinkedEntity,
-                IsRoot = isRoot,
             };
 
             using var query = world.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<GhostComponentSerializerCollectionData>());
@@ -144,7 +195,7 @@ namespace Unity.NetCode.Editor
                 {
                     variantTypesList.Add(compItem.availableSerializationStrategies[i]);
                 }
-                compItem.serializationStrategy = collectionData.SelectSerializationStrategyForComponentWithHash(ComponentType.ReadWrite(compItem.managedType), searchHash, variantTypesList, isRoot);
+                compItem.serializationStrategy = collectionData.SelectSerializationStrategyForComponentWithHash(ComponentType.ReadWrite(compItem.managedType), searchHash, variantTypesList, result.IsRoot);
                 compItem.sendToOwnerType = compItem.serializationStrategy.IsSerialized != 0 ? collectionData.Serializers[compItem.serializationStrategy.SerializerIndex].SendToOwner : SendToOwnerType.None;
 
                 if (compItem.anyVariantIsSerialized)

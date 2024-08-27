@@ -100,7 +100,7 @@ namespace Unity.NetCode.Tests
                 //Stream the sub scene in
                 SubSceneHelper.LoadSubSceneInWorlds(testWorld);
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
                 var query = testWorld.ServerWorld.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<PrespawnsSceneInitialized>());
                 Assert.IsTrue(query.IsEmptyIgnoreFilter);
@@ -147,10 +147,10 @@ namespace Unity.NetCode.Tests
                     if (PrespawnHelper.IsRuntimeSpawnedGhost(ghost.ghostId))
                         continue;
                     var serverPrespawnId = testWorld.ServerWorld.EntityManager.GetComponentData<PreSpawnedGhostIndex>(kv.Value);
-                    Assert.AreEqual(PrespawnHelper.MakePrespawGhostId(serverPrespawnId.Value + 1), ghost.ghostId);
+                    Assert.AreEqual(PrespawnHelper.MakePrespawnGhostId(serverPrespawnId.Value + 1), ghost.ghostId);
                     var clientGhost = recvGhostMap.Value[ghost];
                     var clientPrespawnId = testWorld.ClientWorlds[0].EntityManager.GetComponentData<PreSpawnedGhostIndex>(clientGhost);
-                    Assert.AreEqual(PrespawnHelper.MakePrespawGhostId(clientPrespawnId.Value + 1), ghost.ghostId);
+                    Assert.AreEqual(PrespawnHelper.MakePrespawnGhostId(clientPrespawnId.Value + 1), ghost.ghostId);
                     Assert.AreEqual(serverPrespawnId.Value, clientPrespawnId.Value);
                 }
             }
@@ -206,7 +206,7 @@ namespace Unity.NetCode.Tests
                 SubSceneHelper.LoadSubScene(testWorld.ServerWorld, sub0, sub1);
                 SubSceneHelper.LoadSubScene(testWorld.ClientWorlds[0], sub0);
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
                 for (int i = 0; i < 16; ++i)
                 {
@@ -296,7 +296,7 @@ namespace Unity.NetCode.Tests
                 //Just create the scene entities proxies but not load any content
                 SubSceneHelper.LoadSceneSceneProxies(sub0.SceneGUID, testWorld, 1.0f/60.0f, 200);
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
                 //Run some frames, nothing should be synched or sent here
                 for (int i = 0; i < 16; ++i)
@@ -404,7 +404,7 @@ namespace Unity.NetCode.Tests
                 testWorld.CreateWorlds(true, 1);
                 SubSceneHelper.LoadSubSceneInWorlds(testWorld);
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
                 for (int i = 0; i < 16; ++i)
                     testWorld.Tick(frameTime);
@@ -479,7 +479,7 @@ namespace Unity.NetCode.Tests
                 testWorld.CreateWorlds(true, 1);
                 float frameTime = 1.0f / 60.0f;
                 SubSceneHelper.LoadSubScene(testWorld.ServerWorld, subScenes);
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 //Here it is already required to have something that tell the client he need to load the prefabs
                 testWorld.GoInGame();
                 for (int i = 0; i < 16; ++i)
@@ -549,7 +549,7 @@ namespace Unity.NetCode.Tests
                 SubSceneHelper.LoadSubScene(testWorld.ServerWorld, subScenes);
                 SubSceneHelper.LoadSubScene(testWorld.ClientWorlds[0], subScenes[0]);
 
-                testWorld.Connect(1.0f / 60f, 4);
+                testWorld.Connect(1.0f / 60f);
                 testWorld.GoInGame();
 
                 //synch scene 0 but not scene 1
@@ -563,22 +563,22 @@ namespace Unity.NetCode.Tests
                 {
                     new SpawnedGhost
                     {
-                        ghostId = PrespawnHelper.MakePrespawGhostId(1),
+                        ghostId = PrespawnHelper.MakePrespawnGhostId(1),
                         spawnTick = NetworkTick.Invalid
                     },
                     new SpawnedGhost
                     {
-                        ghostId = PrespawnHelper.MakePrespawGhostId(4),
+                        ghostId = PrespawnHelper.MakePrespawnGhostId(4),
                         spawnTick = NetworkTick.Invalid
                     },
                     new SpawnedGhost
                     {
-                        ghostId = PrespawnHelper.MakePrespawGhostId(8),
+                        ghostId = PrespawnHelper.MakePrespawnGhostId(8),
                         spawnTick = NetworkTick.Invalid
                     },
                     new SpawnedGhost
                     {
-                        ghostId = PrespawnHelper.MakePrespawGhostId(9),
+                        ghostId = PrespawnHelper.MakePrespawnGhostId(9),
                         spawnTick = NetworkTick.Invalid
                     },
                 };

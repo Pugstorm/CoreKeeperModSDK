@@ -25,7 +25,7 @@ namespace Unity.NetCode
         public void OnCreate(ref SystemState state)
         {
             var builder = new EntityQueryBuilder(Allocator.Temp)
-                .WithAll<SubSceneWithGhostClenup>()
+                .WithAll<SubSceneWithGhostCleanup>()
                 .WithNone<IsSectionLoaded>();
             m_UnloadedSubscenes = state.GetEntityQuery(builder);
             builder.Reset();
@@ -46,14 +46,14 @@ namespace Unity.NetCode
                 return;
 
             var entityCommandBuffer = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
-            //Only process scenes for wich all prefabs has been already destroyed
+            //Only process scenes for which all prefabs has been already destroyed
             var subsceneCollection = SystemAPI.GetSingletonBuffer<PrespawnSceneLoaded>();
             var allocatedRanges = SystemAPI.GetSingletonBuffer<PrespawnGhostIdRange>();
             var netDebug = SystemAPI.GetSingleton<NetDebug>();
             var unloadedGhostRange = new NativeList<int2>(state.WorldUpdateAllocator);
             for(int i=0;i<unloadedSections.Length;++i)
             {
-                var stateComponent = state.EntityManager.GetComponentData<SubSceneWithGhostClenup>(unloadedSections[i]);
+                var stateComponent = state.EntityManager.GetComponentData<SubSceneWithGhostCleanup>(unloadedSections[i]);
                 m_Prespawns.SetSharedComponentFilter(new SubSceneGhostComponentHash { Value = stateComponent.SubSceneHash });
 
                 //If there are still some ghosts present, don't remove the scene from the scene list yet
@@ -99,7 +99,7 @@ namespace Unity.NetCode
                 }
                 entityCommandBuffer.RemoveComponent<PrespawnsSceneInitialized>(unloadedSections[i]);
                 entityCommandBuffer.RemoveComponent<SubScenePrespawnBaselineResolved>(unloadedSections[i]);
-                entityCommandBuffer.RemoveComponent<SubSceneWithGhostClenup>(unloadedSections[i]);
+                entityCommandBuffer.RemoveComponent<SubSceneWithGhostCleanup>(unloadedSections[i]);
             }
 
             if (unloadedGhostRange.Length == 0)
@@ -131,7 +131,7 @@ namespace Unity.NetCode
                     var firstId = unloadedGhostRange[i].x;
                     for (int idx = 0; idx < unloadedGhostRange[i].y; ++idx)
                     {
-                        var ghostId = PrespawnHelper.MakePrespawGhostId(firstId + idx);
+                        var ghostId = PrespawnHelper.MakePrespawnGhostId(firstId + idx);
                         var found = despawns.IndexOf(ghostId);
                         if (found != -1)
                             despawns.RemoveAtSwapBack(found);

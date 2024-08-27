@@ -8,110 +8,29 @@ using Unity.NetCode.LowLevel.Unsafe;
 using __COMMAND_USING__;
 #endregion
 
+[assembly: RegisterGenericComponentType(typeof(Unity.NetCode.InputBufferData<__COMMAND_COMPONENT_TYPE__>))]
+[assembly: RegisterGenericSystemType(typeof(Unity.NetCode.ApplyCurrentInputBufferElementToInputDataSystem<__COMMAND_COMPONENT_TYPE__, __COMMAND_NAMESPACE__.__COMMAND_NAME__EventHelper>))]
+[assembly: RegisterGenericSystemType(typeof(Unity.NetCode.CopyInputToCommandBufferSystem<__COMMAND_COMPONENT_TYPE__, __COMMAND_NAMESPACE__.__COMMAND_NAME__EventHelper>))]
+[assembly: Unity.Jobs.RegisterGenericJobType(typeof(Unity.NetCode.ApplyInputDataFromBufferJob<__COMMAND_COMPONENT_TYPE__, __COMMAND_NAMESPACE__.__COMMAND_NAME__EventHelper>))]
+[assembly: Unity.Jobs.RegisterGenericJobType(typeof(Unity.NetCode.CopyInputToBufferJob<__COMMAND_COMPONENT_TYPE__, __COMMAND_NAMESPACE__.__COMMAND_NAME__EventHelper>))]
+
 namespace __COMMAND_NAMESPACE__
 {
-    [DontSupportPrefabOverrides]
-    [GhostComponent(SendDataForChildEntity = true)]
     [System.Runtime.CompilerServices.CompilerGenerated]
-    [Unity.Entities.InternalBufferCapacity(0)]
-    public struct __COMMAND_NAME__InputBufferData : IInputBufferData
+    internal struct __COMMAND_NAME__EventHelper : IInputEventHelper<__COMMAND_COMPONENT_TYPE__>
     {
-        [DontSerializeForCommand]
-        public Unity.NetCode.NetworkTick Tick { get; set; }
-        public __COMMAND_COMPONENT_TYPE__ InternalInput;
-
-        public void DecrementEventsAndAssignToInput(IntPtr prevInputBufferDataPtr, IntPtr inputPtr)
+        public void DecrementEvents(ref __COMMAND_COMPONENT_TYPE__ input, in __COMMAND_COMPONENT_TYPE__ prevInput)
         {
-            ref var prevInput = ref GhostComponentSerializer.TypeCast<__COMMAND_NAME__InputBufferData>(prevInputBufferDataPtr);
-            ref var input = ref GhostComponentSerializer.TypeCast<__COMMAND_COMPONENT_TYPE__>(inputPtr);
-            input = InternalInput;
             #region __DECREMENT_INPUTEVENT__
-            input.__EVENTNAME__.Count -= prevInput.InternalInput.__EVENTNAME__.Count;
+            input.__EVENTNAME__.Count -= prevInput.__EVENTNAME__.Count;
             #endregion
         }
 
-        public void IncrementEventsAndSetCurrentInputData(IntPtr prevInputBufferDataPtr, IntPtr inputPtr)
+        public void IncrementEvents(ref __COMMAND_COMPONENT_TYPE__ input, in __COMMAND_COMPONENT_TYPE__ lastInput)
         {
-            ref var input = ref GhostComponentSerializer.TypeCast<__COMMAND_COMPONENT_TYPE__>(inputPtr);
-            ref var lastInput = ref GhostComponentSerializer.TypeCast<__COMMAND_NAME__InputBufferData>(prevInputBufferDataPtr);
-            InternalInput = input;
             #region __INCREMENT_INPUTEVENT__
-            InternalInput.__EVENTNAME__.Count += lastInput.InternalInput.__EVENTNAME__.Count;
+            input.__EVENTNAME__.Count += lastInput.__EVENTNAME__.Count;
             #endregion
-        }
-    }
-
-    [BurstCompile]
-    [System.Runtime.CompilerServices.CompilerGenerated]
-    [UpdateInGroup(typeof(GhostInputSystemGroup), OrderLast = true)]
-    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ThinClientSimulation)]
-    internal partial struct __COMMAND_NAME__CopyInputToCommandBufferSystem : ISystem
-    {
-        private CopyInputToCommandBuffer<__COMMAND_NAME__InputBufferData, __COMMAND_COMPONENT_TYPE__> m_System;
-        private EntityQuery m_EntityQuery;
-
-        [BurstCompile]
-        public struct CopyInputs : IJobChunk
-        {
-            public CopyInputToCommandBuffer<__COMMAND_NAME__InputBufferData, __COMMAND_COMPONENT_TYPE__>.CopyInputToBufferJob Job;
-            [BurstCompile]
-            public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
-            {
-                Job.Execute(chunk, unfilteredChunkIndex);
-            }
-        }
-
-        [BurstCompile]
-        public void OnCreate(ref SystemState state)
-        {
-            m_System = new CopyInputToCommandBuffer<__COMMAND_NAME__InputBufferData, __COMMAND_COMPONENT_TYPE__>();
-            m_EntityQuery = m_System.Create(ref state);
-            state.RequireForUpdate(m_EntityQuery);
-        }
-
-        [BurstCompile]
-        public void OnUpdate(ref SystemState state)
-        {
-            var sendJob = new CopyInputs{Job = m_System.InitJobData(ref state)};
-            state.Dependency = sendJob.Schedule(m_EntityQuery, state.Dependency);
-        }
-    }
-
-    // This needs to run early to ensure the input data has been applied from buffer to input data
-    // struct before the input processing system runs
-    [BurstCompile]
-    [System.Runtime.CompilerServices.CompilerGenerated]
-    [UpdateInGroup(typeof(PredictedSimulationSystemGroup), OrderFirst = true)]
-    [UpdateBefore(typeof(PredictedFixedStepSimulationSystemGroup))]
-    internal partial struct __COMMAND_NAME___ApplyCurrentInputBufferElementToInputDataSystem : ISystem
-    {
-        private ApplyCurrentInputBufferElementToInputData<__COMMAND_NAME__InputBufferData, __COMMAND_COMPONENT_TYPE__> m_System;
-        private EntityQuery m_EntityQuery;
-
-        [BurstCompile]
-        public struct ApplyCurrentInput : IJobChunk
-        {
-            public ApplyCurrentInputBufferElementToInputData<__COMMAND_NAME__InputBufferData, __COMMAND_COMPONENT_TYPE__>.ApplyInputDataFromBufferJob Job;
-            [BurstCompile]
-            public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
-            {
-                Job.Execute(chunk, unfilteredChunkIndex);
-            }
-        }
-
-        [BurstCompile]
-        public void OnCreate(ref SystemState state)
-        {
-            m_System = new ApplyCurrentInputBufferElementToInputData<__COMMAND_NAME__InputBufferData, __COMMAND_COMPONENT_TYPE__>();
-            m_EntityQuery = m_System.Create(ref state);
-            state.RequireForUpdate(m_EntityQuery);
-        }
-
-        [BurstCompile]
-        public void OnUpdate(ref SystemState state)
-        {
-            var applyJob = new ApplyCurrentInput{Job = m_System.InitJobData(ref state)};
-            state.Dependency = applyJob.Schedule(m_EntityQuery, state.Dependency);
         }
     }
 }

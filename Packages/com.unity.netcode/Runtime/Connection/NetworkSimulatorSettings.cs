@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR || NETCODE_DEBUG
+#if UNITY_EDITOR || NETCODE_DEBUG
 using System;
 using System.IO;
 using Unity.Networking.Transport;
@@ -18,21 +18,16 @@ namespace Unity.NetCode
         public static bool Enabled => MultiplayerPlayModePreferences.SimulatorEnabled;
         /// <summary>Values to use in simulation. Set values via 'Multiplayer PlayTools Window'.</summary>
         public static SimulatorUtility.Parameters ClientSimulatorParameters => MultiplayerPlayModePreferences.ClientSimulatorParameters;
-#elif !UNITY_DOTSRUNTIME
+#else
         /// <summary>Are the UTP Network Simulator stages in use? Toggleable in development build.</summary>
         public static bool Enabled { get; private set; }
         /// <summary>Values to use in simulation. Set this to whatever you'd like in a development build.</summary>
         public static SimulatorUtility.Parameters ClientSimulatorParameters { get; private set; }
-#else
-        /// <summary>Are the UTP Network Simulator stages in use? No, as always off for production and DOTSRuntime builds.</summary>
-        public static bool Enabled => false;
-        /// <summary>Ignore as in production build. Off.</summary>
-        public static SimulatorUtility.Parameters ClientSimulatorParameters => default;
 #endif
 
         static NetworkSimulatorSettings()
         {
-#if !UNITY_EDITOR && !UNITY_DOTSRUNTIME
+#if !UNITY_EDITOR
             CheckCommandLineArgs();
 #endif
         }
@@ -44,7 +39,7 @@ namespace Unity.NetCode
                 FuzzFactor = 0, PacketDelayMs = 100, PacketJitterMs = 10, PacketDropPercentage = 1, PacketDuplicationPercentage = 1
             };
 
-#if !UNITY_EDITOR && !UNITY_DOTSRUNTIME
+#if !UNITY_EDITOR
         /// <summary>
         ///     Checks for the existence of `--loadNetworkSimulatorJsonFile`, which, if set, will set <see cref="Enabled"/> to true, and write <see cref="ClientSimulatorParameters"/>.
         ///     If no file is found, logs an error, and defaults to <see cref="DefaultSimulatorParameters"/>. Use `--createNetworkSimulatorJsonFile` to automatically generate the file instead.

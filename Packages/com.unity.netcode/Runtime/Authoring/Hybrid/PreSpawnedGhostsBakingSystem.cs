@@ -17,7 +17,7 @@ namespace Unity.NetCode
     /// <summary>
     /// Postprocess all the game objects present in a subscene which present a GhostAuthoringComponent by adding to the primary
     /// entities the following components:
-    /// - A PrespawnId component: contains a unique identifier (per subscene) that is guaranteed to be determistic
+    /// - A PreSpawnedGhostIndex component: contains a unique identifier (per subscene) that is guaranteed to be deterministic
     /// - A SubSceneGhostComponentHash shared component: used to deterministically group the ghost instances
     /// </summary>
     ///
@@ -27,7 +27,7 @@ namespace Unity.NetCode
     [BakingVersion("cmarastoni", 1)]
     partial class PreSpawnedGhostsBakingSystem : SystemBase
     {
-        private EntityQuery                     m_SceneSectionEntityQuery;
+        private EntityQuery m_SceneSectionEntityQuery;
 
         protected override void OnDestroy()
         {
@@ -91,20 +91,18 @@ namespace Unity.NetCode
                         hashToEntity.Add(combinedComponentHash, entity);
                     else
                         Debug.LogError($"Two ghosts can't be in the same exact position and rotation {EntityManager.GetName(entity)}");
-
-                    hashData.Dispose();
                 }
             }).WithoutBurst().Run();
 
             if (hashToEntity.Count() > 0)
             {
                 //Add the components in batch
-                var values = hashToEntity.GetValueArray(Allocator.TempJob);
+                var values = hashToEntity.GetValueArray(Allocator.Temp);
                 EntityManager.AddComponent(values, typeof(PreSpawnedGhostIndex));
                 EntityManager.AddComponent(values, typeof(PrespawnGhostBaseline));
                 EntityManager.AddComponent(values, typeof(PrespawnedGhostBakedBefore));
 
-                var keys = hashToEntity.GetKeyArray(Allocator.TempJob);
+                var keys = hashToEntity.GetKeyArray(Allocator.Temp);
                 keys.Sort();
 
                 // Assign ghost IDs to the pre-spawned entities sorted by component data hash
@@ -154,8 +152,6 @@ namespace Unity.NetCode
                     EntityManager.AddComponent<PrespawnedGhostBakedBefore>(sectionEntity);
                 }
                 //We can add more here. Ideally the serialization. A way would be to use a sort of offset re-mapping
-                values.Dispose();
-                keys.Dispose();
             }
 
             hashToEntity.Dispose();

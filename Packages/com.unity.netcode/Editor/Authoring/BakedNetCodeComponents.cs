@@ -8,18 +8,36 @@ using UnityEngine.UIElements;
 
 namespace Unity.NetCode.Editor
 {
-    /// <summary>Internal class used by the GhostComponentInspector to store post-conversion (i.e. Baked) data.</summary>
-    struct BakedGameObjectResult
+    /// <summary>Internal structs used by the GhostComponentInspector to store post-conversion (i.e. Baked) data.</summary>
+    class BakedResult
     {
+        public Dictionary<GameObject, BakedGameObjectResult> GameObjectResults;
+        public GhostAuthoringComponent GhostAuthoring;
+
+        public BakedGameObjectResult GetInspectionResult(GhostAuthoringInspectionComponent inspection)
+        {
+            foreach (var kvp in GameObjectResults)
+            {
+                if (kvp.Value.SourceInspection == inspection)
+                    return kvp.Value;
+            }
+            return null;
+        }
+    }
+
+    class BakedGameObjectResult
+    {
+        public BakedResult AuthoringRoot;
         public GameObject SourceGameObject;
-        [CanBeNull] public GhostAuthoringInspectionComponent SourceInspection => SourceGameObject.GetComponent<GhostAuthoringInspectionComponent>();
-        public GhostAuthoringComponent RootAuthoring;
+        [CanBeNull] public GhostAuthoringInspectionComponent SourceInspection;
+        public GhostAuthoringComponent RootAuthoring => AuthoringRoot.GhostAuthoring;
         public string SourcePrefabPath;
         public List<BakedEntityResult> BakedEntities;
+        public int NumComponents;
     }
 
     /// <inheritdoc cref="BakedGameObjectResult"/>
-    struct BakedEntityResult
+    class BakedEntityResult
     {
         public BakedGameObjectResult GoParent;
         public Entity Entity;
@@ -29,7 +47,7 @@ namespace Unity.NetCode.Editor
         public bool IsPrimaryEntity => EntityIndex == 0;
         public List<BakedComponentItem> BakedComponents;
         public bool IsLinkedEntity;
-        public bool IsRoot;
+        public bool IsRoot => !IsLinkedEntity && GoParent.SourceGameObject == GoParent.RootAuthoring.gameObject && IsPrimaryEntity;
     }
 
     /// <inheritdoc cref="BakedGameObjectResult"/>
@@ -100,7 +118,7 @@ namespace Unity.NetCode.Editor
         {
             if (EntityParent.GoParent.SourceInspection.TryFindExistingOverrideIndex(managedType, entityGuid, out var index))
                 return ref EntityParent.GoParent.SourceInspection.ComponentOverrides[index];
-            throw new InvalidOperationException("No override declared.");
+            throw new InvalidOperationException($"No override created for '{fullname}'! '{serializationStrategy.ToFixedString()}', EntityGuid: {entityGuid.ToString()}!");
         }
 
         /// <summary>Returns true if this Inspection Component has a prefab override for this Baked Component Type.</summary>

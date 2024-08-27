@@ -4,7 +4,11 @@ using System;
 namespace Unity.NetCode.Analytics
 {
     [Serializable]
+#if UNITY_2023_2_OR_NEWER
+    struct GhostConfigurationAnalyticsData : UnityEngine.Analytics.IAnalytic.IData
+#else
     struct GhostConfigurationAnalyticsData
+#endif
     {
         public string id;
         public string ghostMode;

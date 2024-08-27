@@ -63,7 +63,7 @@ namespace Unity.NetCode.Editor
                     {
                         // GameObject view.
                         isNetCode = true;
-                        isReplicated = item.PrefabType != Hierarchy.HierarchyPrefabType.None;
+                        isReplicated = item.PrefabType != Unity.Entities.Editor.Hierarchy.HierarchyPrefabType.None;
                     }
                 }
             }

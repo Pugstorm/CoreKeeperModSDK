@@ -110,44 +110,45 @@ There are some restrictions for pre-spawned ghosts:
 - **It must be an instance of a ghost prefab**.
 - **It must be place in a sub-scene**.
 - **Pre-spawned ghosts in the same scene cannot have the exact same position and rotation**.
-- **Pre-spawned ghosts MUST be put always put on the main scene section (section 0).**
+- **Pre-spawned ghosts MUST always be placed on the main scene section (section 0).**
 - The ghost authoring component on the pre-spawned ghost cannot be configured differently than the ghost prefab source (that data is handled on a ghost type basis).
 
 ### How pre-spawned ghosts works
-At baking time, each sub-scene assign a `PrespawnId` to the ghosts it contains in a deterministic manner. The ids are assigned by sorting the ghost by the mean of a deterministic hash that takes in account the `Rotation` and `Translation` of the entity.
 
-For each sub-scene then, a combined hash that contains:
-- the SceneGUID
-- all the ghosts calculated hashes
+At baking time, each sub-scene assigns a `PreSpawnedGhostIndex` to the ghosts it contains which are just unique IDs for the ghosts within the subscene they are in. The IDs are assigned by sorting the ghost by means of a deterministic hash that takes in account the `Rotation` and `Translation` of the entity. As well as the ghost type or prefab ID and the SceneGUID of the scene section. This is done because prespawned ghosts cannot be given unique ghost IDs at bake/build time.
 
-is extracted and used to :
+For each sub-scene then, a combined hash that contains all the ghosts calculated hashes is extracted and used to:
+
 - group the pre-spawned ghost on a per-sub-scene basis by assigning a `SubSceneGhostComponentHash` shared component to all the ghosts in the scene
-- add to the `SceneSection` a `SubSceneWithPrespawnGhosts` component, that will be used by the runtime to handle sub-scene with pre-spawned ghosts.
+- add to the first `SceneSection` in the sub-scene a `SubSceneWithPrespawnGhosts` component, that will be used by the runtime to handle sub-scene with pre-spawned ghosts.
 
-At runtime, when a sub-scene has been loaded, is processed by both client and server:
-- For each pre-spawned ghost, a `Prespawn Baseline` is extracted and used to delta compress the ghost component when it is first sent (bandwidth optimisation) 
-- The server assign to sub-scene a unique `Ghost Id Range` that is used to assign distinct ghost-id to the pre-spawned ghosts based on their `PrespawnId`.
-- The server will replicated to the client by using an internal ghost entity, the assigned id ranges for each sub-scene (identified by the hash assigned to the `SubSceneWithPrespawnGhosts` component)
+At runtime, when a sub-scene has been loaded, it is processed by both client and server:
+
+- For each pre-spawned ghost, a `Prespawn Baseline` is extracted and used to delta compress the ghost component when it is first sent (bandwidth optimization).
+- The server assign to sub-scenes a unique `Ghost Id Range` that is used to assign distinct ghost-id to the pre-spawned ghosts based on their `PreSpawnedGhostIndex`.
+- The server will replicated to the client by using an internal ghost entity, the assigned id ranges for each sub-scene (identified by the hash assigned to the `SubSceneWithPrespawnGhosts` component).
 - Once the client has loaded the sub-scene and received the ghost range, it will then:
-  - Assign to the pre-spawned ghosts the server authoritative ids 
-  - Report to the server it is ready to stream the pre-spawned ghosts (via rpc)
-
-This has to be done after all sub-scene have finished loading and the connection (at least one for the server) has bee set as `in game` (when the `NetworkStreamInGame` component has been added to the network connection).
+  - Assign to the pre-spawned ghosts the server authoritative IDs.
+  - Report to the server it is ready to stream the pre-spawned ghosts (via RPC).
 
 >![NOTE] If prespawned ghosts are moved before going in game or in general before the baseline is calculated properly, data may be not replicated correctly (the snapshot delta compression will fail). 
-> Both server and client calculate a CRC of the baseline and this hash is validated when clients connect. A mismatch will cause a disconnection. This also the reason why the ghost are `Disabled`.
+> Both server and client calculate a CRC of the baseline and this hash is validated when clients connect. A mismatch will cause a disconnection. This is also the reason why the ghost are `Disabled` when the scene is loaded.
 
-For both client and server, when a sub-scene has been processed (ghost id assigned) a [PrespawnsSceneInitialized](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.ClientTrackLoadedPrespawnSections.html)
-component is added to the main `SceneSection`. </br>
-The client automatically track when sub-scene with pre-spawned ghosts are loaded/unloaded and report to the server to stop streaming pre-spawned ghosts associated with them.
+>![NOTE] All the prespawn ghost ID setup described here is done automatically so nothing special needs to be done in order to keep them in sync between client and server.
 
-#### Dynamic loading sub-scene with pre-spawned ghosts.
-It is possible to load at runtime a sub-scene with pre-spawned ghosts while you are already `in-game`. The pre-spawned ghosts will be automatically handled and synchronised. It also possible to unload sub-scenes that
+For both client and server, when a sub-scene has been processed (ghost ID assigned) a `PrespawnsSceneInitialized`
+internal component is added to the main `SceneSection`. </br>
+The client automatically tracks when sub-scene with pre-spawned ghosts are loaded/unloaded and reports to the server to stop streaming pre-spawned ghosts associated with them.
+
+### Dynamic loading sub-scene with pre-spawned ghosts
+
+It is possible to load at runtime a sub-scene with pre-spawned ghosts while you are already `in-game`. The pre-spawned ghosts will be automatically handled and synchronized. It also possible to unload sub-scenes that
 contains pre-spawned ghosts on demand. Netcode for Entities will handle that automatically, and the server will stop reporting the pre-spawned ghosts for sections the client has unloaded.
 
->![NOTE] Pre-spawned ghost when baked become `Disabled` (the `Disable` tag is added to the entity at baking time). The entity is re-enabled after the scene is loaded and the serialisation baseline has been calculated.
+>![NOTE] Pre-spawned ghost when baked become `Disabled` (the `Disable` tag is added to the entity at baking time). The entity is re-enabled after the scene is loaded and the serialization baseline has been calculated.
 
-You can get more information about the pre-spawned ghost synchronization flow, by checkin the:
+You can get more information about the pre-spawned ghost synchronization flow, by checking the API documentation:
 - [ClientPopulatePrespawnedGhostsSystem](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.ClientPopulatePrespawnedGhostsSystem.html)
-- [ServerPopulatePrespawnedGhostsSystem](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.ClientPopulatePrespawnedGhostsSystem.html)
 - [ClientTrackLoadedPrespawnSections](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.ClientTrackLoadedPrespawnSections.html)
+- [ServerPopulatePrespawnedGhostsSystem](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.ServerPopulatePrespawnedGhostsSystem.html)
+- [ServerTrackLoadedPrespawnSections](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.ServerTrackLoadedPrespawnSections.html)

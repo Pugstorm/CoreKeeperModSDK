@@ -55,7 +55,7 @@ namespace Unity.NetCode.Tests
     {
         [DisableAutoCreation]
         [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
-        [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
+        [UpdateInGroup(typeof(GhostSpawnClassificationSystemGroup))]
         [UpdateAfter(typeof(GhostSpawnClassificationSystem))]
         public partial class TestSpawnClassificationSystem : SystemBase
         {
@@ -150,7 +150,7 @@ namespace Unity.NetCode.Tests
                 testWorld.CreateWorlds(true, 1);
 
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
 
                 for (int i = 0; i < 16; ++i)
@@ -273,7 +273,7 @@ namespace Unity.NetCode.Tests
                 testWorld.CreateWorlds(true, 1);
 
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
 
                 for (int i = 0; i < 16; ++i)

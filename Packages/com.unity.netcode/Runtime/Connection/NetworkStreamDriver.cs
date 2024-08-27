@@ -20,7 +20,7 @@ namespace Unity.NetCode
             public NetworkDriverStore DriverStore;
             public ConcurrentDriverStore ConcurrentDriverStore;
         }
-        internal NetworkStreamDriver(void* driverStore, NativeReference<int> numIds, NativeQueue<int> freeIds, NetworkEndpoint endPoint)
+        internal NetworkStreamDriver(void* driverStore, NativeReference<int> numIds, NativeQueue<int> freeIds, NetworkEndpoint endPoint, NativeList<NetCodeConnectionEvent> connectionEventsList, NativeArray<NetCodeConnectionEvent>.ReadOnly connectionEventsForTick)
         {
             m_DriverPointer = driverStore;
             //DriverStore = driverStore;
@@ -29,6 +29,8 @@ namespace Unity.NetCode
             DriverState = (int) NetworkStreamReceiveSystem.DriverState.Default;
             m_NumNetworkIds = numIds;
             m_FreeNetworkIds = freeIds;
+            ConnectionEventsList = connectionEventsList;
+            ConnectionEventsForTick = connectionEventsForTick;
         }
 
         private void* m_DriverPointer;
@@ -41,6 +43,22 @@ namespace Unity.NetCode
 
         private NativeReference<int> m_NumNetworkIds;
         private NativeQueue<int> m_FreeNetworkIds;
+
+        /// <summary>
+        ///     Stores all <see cref="NetCodeConnectionEvent"/>'s raised by Netcode for this <see cref="SimulationSystemGroup"/> tick.
+        ///     Allows user-code to subscribe to connection and disconnection events.
+        ///     Self-cleaning list, thus no consume API.
+        /// </summary>
+        /// <remarks>
+        ///     Because events are only valid for a single tick, any code that reads from (i.e. consumes) these events must
+        ///     update in the <see cref="SimulationSystemGroup"/>.
+        /// </remarks>
+        public NativeArray<NetCodeConnectionEvent>.ReadOnly ConnectionEventsForTick { get; internal set; }
+
+        /// <summary>
+        ///     The raw list of <see cref="NetCodeConnectionEvent"/>'s. <see cref="ConnectionEventsForTick"/>.
+        /// </summary>
+        internal NativeList<NetCodeConnectionEvent> ConnectionEventsList { get; }
 
         /// <summary>
         /// Check if the endpoint can be used for listening for the given driver type. At the moment,
@@ -147,7 +165,8 @@ namespace Unity.NetCode
         /// <exception cref="InvalidOperationException">Throw an exception if the driver is not created or if multiple drivers are register</exception>
         public Entity Connect(EntityManager entityManager, NetworkEndpoint endpoint, Entity ent = default)
         {
-            if (!endpoint.IsValid || endpoint.Port == 0)
+            var isIpEndpoint = endpoint.Family == NetworkFamily.Ipv4 || endpoint.Family == NetworkFamily.Ipv6;
+            if (!endpoint.IsValid || (isIpEndpoint && endpoint.Port == 0))
             {
                 //Can't connect to a any port. This must be a valid address
                 UnityEngine.Debug.LogError($"Trying to connect to the address {endpoint.ToFixedString()} that has port == 0. For connection, a port !=0 is required");
@@ -174,7 +193,7 @@ namespace Unity.NetCode
             endpoint = SanitizeConnectAddress(endpoint, DriverStore.FirstDriver);
 #endif
             var connection = DriverStore.GetNetworkDriver(NetworkDriverStore.FirstDriverId).Connect(endpoint);
-            entityManager.AddComponentData(ent, new NetworkStreamConnection{Value = connection, DriverId = 1});
+            entityManager.AddComponentData(ent, new NetworkStreamConnection{Value = connection, DriverId = 1, CurrentState = ConnectionState.State.Unknown});
             entityManager.AddComponentData(ent, new NetworkSnapshotAck());
             entityManager.AddComponentData(ent, new CommandTarget());
             entityManager.AddBuffer<IncomingRpcDataStreamBuffer>(ent);

@@ -204,7 +204,7 @@ namespace Unity.NetCode
     internal struct AssignPrespawnGhostIdJob : IJobChunk
     {
         [ReadOnly] public EntityTypeHandle entityType;
-        [ReadOnly] public ComponentTypeHandle<PreSpawnedGhostIndex> prespawnIdType;
+        [ReadOnly] public ComponentTypeHandle<PreSpawnedGhostIndex> prespawnIndexType;
         [NativeDisableParallelForRestriction]
         public ComponentTypeHandle<GhostInstance> ghostComponentType;
         [NativeDisableParallelForRestriction]
@@ -220,7 +220,7 @@ namespace Unity.NetCode
             Assert.IsFalse(useEnabledMask);
 
             var entities = chunk.GetNativeArray(entityType);
-            var preSpawnedIds = chunk.GetNativeArray(ref prespawnIdType);
+            var preSpawnedIndices = chunk.GetNativeArray(ref prespawnIndexType);
             var ghostComponents = chunk.GetNativeArray(ref ghostComponentType);
             var ghostStates = chunk.GetNativeArray(ref ghostStateTypeHandle);
 
@@ -232,11 +232,11 @@ namespace Unity.NetCode
                 // Check if this entity has already been handled
                 if (ghostComponents[index].ghostId != 0)
                 {
-                    netDebug.LogWarning($"{entity} already has ghostId={ghostComponents[index].ghostId} prespawn= {preSpawnedIds[index].Value}");
+                    netDebug.LogWarning($"{entity} already has ghostId={ghostComponents[index].ghostId} PreSpawnedGhostIndex={preSpawnedIndices[index].Value}");
                     continue;
                 }
-                //Special encoding for prespawnId (sort of "namespace").
-                var ghostId = PrespawnHelper.MakePrespawGhostId(preSpawnedIds[index].Value + startGhostId);
+                //Special encoding for prespawn index (sort of "namespace").
+                var ghostId = PrespawnHelper.MakePrespawnGhostId(preSpawnedIndices[index].Value + startGhostId);
                 if (ghostStates.IsCreated && ghostStates.Length > 0)
                     ghostStates[index] = new GhostCleanup {ghostId = ghostId, despawnTick = NetworkTick.Invalid, spawnTick = NetworkTick.Invalid};
 

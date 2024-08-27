@@ -55,8 +55,11 @@ namespace Unity.NetCode.Hybrid
         /// <inheritdoc/>
         void IEntitiesPlayerSettings.RegisterCustomDependency()
         {
-            var hash = GetHash();
-            AssetDatabase.RegisterCustomDependency(CustomDependency, hash);
+            if (!AssetDatabase.IsAssetImportWorkerProcess())
+            {
+                var hash = GetHash();
+                AssetDatabase.RegisterCustomDependency(CustomDependency, hash);
+            }
         }
         /// <inheritdoc/>
         public UnityEngine.Hash128 GetHash()
@@ -89,10 +92,41 @@ namespace Unity.NetCode.Hybrid
         {
             if (AssetDatabase.IsAssetImportWorkerProcess())
                 return;
+
+            if (!EditorApplication.isUpdating)
+            {
+                ((IEntitiesPlayerSettings) this).RegisterCustomDependency();
+            }
+
             Save(true);
-            ((IEntitiesPlayerSettings)this).RegisterCustomDependency();
+            AssetDatabase.Refresh();
         }
-        private void OnDisable() { Save(); }
+#if UNITY_2023_2_OR_NEWER
+        private void OnEnable()
+        {
+            if (!AssetDatabase.IsAssetImportWorkerProcess())
+            {
+                ((IEntitiesPlayerSettings)this).RegisterCustomDependency();
+            }
+        }
+#endif
+        private void OnDisable()
+        {
+#if !UNITY_2023_2_OR_NEWER
+            Save();
+#else
+            //But the depedency is going to be update when the scriptable is re-enabled.
+            if (AssetDatabase.IsAssetImportWorkerProcess())
+                return;
+            //This safeguard is necessary because the RegisterCustomDependency throw exceptions
+            //if this is called when the editor is refreshing the database.
+            if(!EditorApplication.isUpdating)
+            {
+                ((IEntitiesPlayerSettings)this).RegisterCustomDependency();
+                AssetDatabase.Refresh();
+            }
+#endif
+        }
     }
 
     internal class ClientSettings : DotsPlayerSettingsProvider

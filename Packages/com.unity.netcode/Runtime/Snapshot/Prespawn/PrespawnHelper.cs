@@ -12,12 +12,12 @@ namespace Unity.NetCode
         public const uint PrespawnGhostIdBase = 0x80000000;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static public int MakePrespawGhostId(int ghostId)
+        static public int MakePrespawnGhostId(int ghostId)
         {
             return (int) (PrespawnGhostIdBase | ghostId);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static public bool IsPrespawGhostId(int ghostId)
+        static public bool IsPrespawnGhostId(int ghostId)
         {
             return (ghostId & PrespawnGhostIdBase) != 0;
         }
@@ -129,8 +129,8 @@ namespace Unity.NetCode
                     if(present == 1)
                     {
                         newLoadedRanges.Add(new GhostIdInterval(
-                            PrespawnHelper.MakePrespawGhostId(prespawnSceneLoaded[i].FirstGhostId),
-                            PrespawnHelper.MakePrespawGhostId(prespawnSceneLoaded[i].FirstGhostId + prespawnSceneLoaded[i].PrespawnCount - 1)));
+                            PrespawnHelper.MakePrespawnGhostId(prespawnSceneLoaded[i].FirstGhostId),
+                            PrespawnHelper.MakePrespawnGhostId(prespawnSceneLoaded[i].FirstGhostId + prespawnSceneLoaded[i].PrespawnCount - 1)));
                     }
                 }
             }

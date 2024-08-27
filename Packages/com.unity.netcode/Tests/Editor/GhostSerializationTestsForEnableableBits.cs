@@ -232,10 +232,10 @@ namespace Unity.NetCode.Tests
             }
         }
 
-        private void VerifyGhostGroupValues<T>(bool expectValueReplicated, bool expectEnabledReplicated)
+        private void VerifyGhostGroupValues<T>()
             where T : unmanaged, IComponentData, IEnableableComponent, IComponentValue
         {
-            VerifyGhostGroupEnabledBits<T>(expectValueReplicated, expectEnabledReplicated);
+            VerifyGhostGroupEnabledBits<T>();
 
             var rootType = ComponentType.ReadOnly<GhostGroupRoot>();
             var childType = ComponentType.ReadOnly<GhostChildEntity>();
@@ -253,7 +253,7 @@ namespace Unity.NetCode.Tests
 
                     var clientGroupRootValue = m_TestWorld.ClientWorlds[0].EntityManager.GetComponentData<T>(clientGroupRootEntity).GetValue();
                     var clientGroupMemberValue = m_TestWorld.ClientWorlds[0].EntityManager.GetComponentData<T>(clientMemberEntity).GetValue();
-                    if (expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true)) // Ghost groups are root entities, by definition.
+                    if (IsExpectedToReplicateValue<T>(true)) // Ghost groups are root entities, by definition.
                     {
                         Assert.AreEqual(m_ExpectedValueIfReplicated, clientGroupRootValue, $"[{typeof(T)}] Expect \"group root\" entity value IS replicated when `{m_SendForChildrenTestCase}`!");
                         Assert.AreEqual(m_ExpectedValueIfReplicated, clientGroupMemberValue, $"[{typeof(T)}] Expect \"group member\" entity value when `{m_SendForChildrenTestCase}`!");
@@ -266,10 +266,10 @@ namespace Unity.NetCode.Tests
                 }
             }
 
-            ValidateChangeMaskForComponent<T>(expectEnabledReplicated | expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true), true);
+            ValidateChangeMaskForComponent<T>(true);
         }
 
-        private void VerifyGhostGroupEnabledBits<T>(bool expectValueReplicated, bool expectEnabledReplicated)
+        private void VerifyGhostGroupEnabledBits<T>()
             where T : unmanaged, IComponentData, IEnableableComponent
         {
             var rootType = ComponentType.ReadOnly<GhostGroupRoot>();
@@ -289,7 +289,7 @@ namespace Unity.NetCode.Tests
 
                 var rootEnabled = m_TestWorld.ClientWorlds[0].EntityManager.IsComponentEnabled<T>(clientGroupRootEntity);
                 var memberEnabled = m_TestWorld.ClientWorlds[0].EntityManager.IsComponentEnabled<T>(clientGroupMemberEntity);
-                if (expectEnabledReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true)) // Ghost groups are root entities, by definition.
+                if (IsExpectedToReplicateEnabledBit<T>(true)) // Ghost groups are root entities, by definition.
                 {
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, rootEnabled, $"[{typeof(T)}] Expect \"group root\" entity enabled IS replicated when `{m_SendForChildrenTestCase}`!");
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, memberEnabled, $"[{typeof(T)}] Expect \"group member\" entity enabled IS replicated when `{m_SendForChildrenTestCase}`!");
@@ -301,10 +301,10 @@ namespace Unity.NetCode.Tests
                 }
             }
 
-            ValidateChangeMaskForComponent<T>(expectEnabledReplicated | expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true), true);
+            ValidateChangeMaskForComponent<T>(true);
         }
 
-        private void VerifyLinkedBufferValues<T>(bool expectValuesReplicated, bool expectEnabledReplicated)
+        private void VerifyLinkedBufferValues<T>()
             where T : unmanaged, IBufferElementData, IEnableableComponent, IComponentValue
         {
             var type = ComponentType.ReadOnly<TopLevelGhostEntity>();
@@ -328,7 +328,7 @@ namespace Unity.NetCode.Tests
                 var clientParentEntityComponentEnabled = m_TestWorld.ClientWorlds[0].EntityManager.IsComponentEnabled<T>(clientEntityGroup[0].Value);
                 var clientChildEntityComponentEnabled = m_TestWorld.ClientWorlds[0].EntityManager.IsComponentEnabled<T>(clientEntityGroup[1].Value);
 
-                if (expectEnabledReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                if (IsExpectedToReplicateEnabledBit<T>(true))
                 {
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, clientParentEntityComponentEnabled, $"[{typeof(T)}] Expect client parent entity component enabled bit IS replicated when `{m_SendForChildrenTestCase}`!");
                 }
@@ -346,7 +346,7 @@ namespace Unity.NetCode.Tests
                 Assert.AreEqual(m_ExpectedServerBufferSize, serverChildBuffer.Length, $"[{typeof(T)}] Expect server child buffer length!");
 
                 // Root:
-                if (expectValuesReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                if (IsExpectedToReplicateValue<T>(true))
                 {
                     Assert.AreEqual(m_ExpectedServerBufferSize, clientParentBuffer.Length, $"[{typeof(T)}] Expect client parent buffer length IS replicated when `{m_SendForChildrenTestCase}`!");
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, clientParentEntityComponentEnabled, $"[{typeof(T)}] Expect client parent buffer enable bit IS replicated when `{m_SendForChildrenTestCase}`!");
@@ -364,7 +364,7 @@ namespace Unity.NetCode.Tests
 
                     var expectedBufferValue = m_IsValidatingBakedValues ? kDefaultValueIfNotReplicated : ((j + 1) * 1000 + m_ExpectedValueIfReplicated);
                     Assert.AreEqual(expectedBufferValue, serverValue.GetValue(), $"[{typeof(T)}] Expect server parent value is written [{i}]");
-                    if (expectValuesReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                    if (IsExpectedToReplicateValue<T>(true))
                     {
                         Assert.AreEqual(expectedBufferValue, clientValue.GetValue(), $"[{typeof(T)}] Expect client parent value [{i}] IS replicated when `{m_SendForChildrenTestCase}`!");
                     }
@@ -375,7 +375,7 @@ namespace Unity.NetCode.Tests
                 }
 
                 // Children:
-                if (IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, false))
+                if (IsExpectedToReplicateEnabledBit<T>(false)) // FIXME - Determine if we need to do this for GhostEnableBit buffer with no GhostField value. Is that even supported?
                 {
                     Assert.AreEqual(m_ExpectedServerBufferSize, clientChildBuffer.Length, $"[{typeof(T)}] Expect client child buffer length IS replicated when `{m_SendForChildrenTestCase}`!");
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, clientChildEntityComponentEnabled, $"[{typeof(T)}] Expect client child buffer enable bit IS replicated when `{m_SendForChildrenTestCase}`!");
@@ -393,7 +393,7 @@ namespace Unity.NetCode.Tests
                     var expectedBufferValue = m_IsValidatingBakedValues ? kDefaultValueIfNotReplicated : ((j + 1) * 1000 + m_ExpectedValueIfReplicated);
                     Assert.AreEqual(expectedBufferValue, serverValue.GetValue(), $"[{typeof(T)}] Expect client child value is written [{i}]!");
 
-                    if (IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, false))
+                    if (IsExpectedToReplicateValue<T>(false))
                     {
                         Assert.AreEqual(expectedBufferValue, clientValue.GetValue(), $"[{typeof(T)}] Expect client child entity buffer value [{i}] IS replicated when `{m_SendForChildrenTestCase}`!");
                     }
@@ -405,10 +405,10 @@ namespace Unity.NetCode.Tests
             }
         }
 
-        private void VerifyLinkedComponentValues<T>(bool expectValueReplicated, bool expectEnabledReplicated, bool? forceChildReplication = default)
+        private void VerifyLinkedComponentValues<T>()
             where T : unmanaged, IComponentData, IEnableableComponent, IComponentValue
         {
-            VerifyLinkedComponentEnabled<T>(expectValueReplicated, expectEnabledReplicated, forceChildReplication);
+            VerifyLinkedComponentEnabled<T>();
 
             var type = ComponentType.ReadOnly<TopLevelGhostEntity>();
             using var query = m_TestWorld.ClientWorlds[0].EntityManager.CreateEntityQuery(type);
@@ -426,7 +426,7 @@ namespace Unity.NetCode.Tests
 
                 var clientRootValue = m_TestWorld.ClientWorlds[0].EntityManager.GetComponentData<T>(clientEntityGroup[0].Value).GetValue();
                 var clientChildValue = m_TestWorld.ClientWorlds[0].EntityManager.GetComponentData<T>(clientEntityGroup[1].Value).GetValue();
-                if (expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                if (IsExpectedToReplicateValue<T>(true))
                 {
                     Assert.AreEqual(m_ExpectedValueIfReplicated, clientRootValue, $"[{typeof(T)}] Expected that value on component on root entity [{i}] IS replicated correctly when using this `{m_SendForChildrenTestCase}`!");
                 }
@@ -435,7 +435,7 @@ namespace Unity.NetCode.Tests
                     Assert.AreEqual(kDefaultValueIfNotReplicated, clientRootValue, $"[{typeof(T)}] Expected that value on component on root entity [{i}] is NOT replicated by default (via this `{m_SendForChildrenTestCase}`)!");
                 }
 
-                if (forceChildReplication ?? expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, false))
+                if (IsExpectedToReplicateValue<T>(false))
                 {
                     Assert.AreEqual(m_ExpectedValueIfReplicated, clientChildValue, $"[{typeof(T)}] Expected that value on component on child entity [{i}] IS replicated when using this `{m_SendForChildrenTestCase}`!");
                 }
@@ -445,13 +445,13 @@ namespace Unity.NetCode.Tests
                 }
             }
 
-            ValidateChangeMaskForComponent<T>(forceChildReplication ?? expectValueReplicated | expectEnabledReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, false), false);
+            ValidateChangeMaskForComponent<T>(false);
         }
 
-        void VerifyLinkedComponentValueOnChild<T>(bool expectValueReplicated, bool expectEnabledReplicated)
+        void VerifyLinkedComponentValueOnChild<T>()
             where T : unmanaged, IComponentData, IEnableableComponent, IComponentValue
         {
-            VerifyLinkedComponentEnabledOnChild<T>(expectValueReplicated, expectEnabledReplicated);
+            VerifyLinkedComponentEnabledOnChild<T>();
 
             var type = ComponentType.ReadOnly<TopLevelGhostEntity>();
             using var query = m_TestWorld.ClientWorlds[0].EntityManager.CreateEntityQuery(type);
@@ -470,7 +470,7 @@ namespace Unity.NetCode.Tests
                 // This method is exclusively to test behaviour of children.
 
                 var value = m_TestWorld.ClientWorlds[0].EntityManager.GetComponentData<T>(clientEntityGroup[1].Value).GetValue();
-                if (expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, false))
+                if (IsExpectedToReplicateValue<T>(false))
                 {
                     Assert.AreEqual(m_ExpectedValueIfReplicated, value, $"[{typeof(T)}] Expected that value on component on child entity [{i}] IS replicated when using this `{m_SendForChildrenTestCase}`!");
                 }
@@ -481,7 +481,7 @@ namespace Unity.NetCode.Tests
             }
         }
 
-        private void VerifyLinkedComponentEnabled<T>(bool expectValueReplicated, bool expectEnabledReplicated, bool? forceChildReplication = default)
+        private void VerifyLinkedComponentEnabled<T>()
             where T : unmanaged, IComponentData, IEnableableComponent
         {
             var type = ComponentType.ReadOnly<TopLevelGhostEntity>();
@@ -499,7 +499,7 @@ namespace Unity.NetCode.Tests
                 Assert.AreEqual(2, clientEntityGroup.Length, $"[{typeof(T)}] Entities in the LinkedEntityGroup!");
 
                 var rootEntityEnabled = m_TestWorld.ClientWorlds[0].EntityManager.IsComponentEnabled<T>(clientEntityGroup[0].Value);
-                if (expectEnabledReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                if (IsExpectedToReplicateEnabledBit<T>(true))
                 {
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, rootEntityEnabled, $"[{typeof(T)}] Expected that the enable-bit on component on root entity [{i}] is replicated when using `{m_SendForChildrenTestCase}`!");
                 }
@@ -509,7 +509,7 @@ namespace Unity.NetCode.Tests
                 }
 
                 var childEntityEnabled = m_TestWorld.ClientWorlds[0].EntityManager.IsComponentEnabled<T>(clientEntityGroup[1].Value);
-                if (forceChildReplication ?? expectEnabledReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, false))
+                if (IsExpectedToReplicateEnabledBit<T>(false))
                 {
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, childEntityEnabled, $"[{typeof(T)}] Expected that the enable-bit on component on child entity [{i}] is replicated when using `{m_SendForChildrenTestCase}`!");
                 }
@@ -519,10 +519,10 @@ namespace Unity.NetCode.Tests
                 }
             }
 
-            ValidateChangeMaskForComponent<T>(forceChildReplication ?? expectValueReplicated|expectEnabledReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, false), false);
+            ValidateChangeMaskForComponent<T>(false);
         }
 
-        private void VerifyLinkedComponentEnabledOnChild<T>(bool expectValueReplicated, bool expectEnabledReplicated)
+        private void VerifyLinkedComponentEnabledOnChild<T>()
             where T : unmanaged, IComponentData, IEnableableComponent
         {
             var type = ComponentType.ReadOnly<TopLevelGhostEntity>();
@@ -542,7 +542,7 @@ namespace Unity.NetCode.Tests
                 // This method is exclusively to test behaviour of children.
 
                 var childEntityEnabled = m_TestWorld.ClientWorlds[0].EntityManager.IsComponentEnabled<T>(clientEntityGroup[1].Value);
-                if (expectEnabledReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, false))
+                if (IsExpectedToReplicateEnabledBit<T>(false))
                 {
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, childEntityEnabled, $"[{typeof(T)}] Expected that the enable-bit on component ONLY on child entity [{i}] is replicated when using `{m_SendForChildrenTestCase}`!");
                 }
@@ -552,12 +552,12 @@ namespace Unity.NetCode.Tests
                 }
             }
 
-            ValidateChangeMaskForComponent<T>(expectValueReplicated | expectEnabledReplicated  && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, false), false);
+            ValidateChangeMaskForComponent<T>(false);
         }
 
-        private void VerifyComponentValues<T>(bool expectValueReplicated, bool expectEnabledReplicated) where T: unmanaged, IComponentData, IEnableableComponent, IComponentValue
+        private void VerifyComponentValues<T>() where T: unmanaged, IComponentData, IEnableableComponent, IComponentValue
         {
-            VerifyFlagComponentEnabledBit<T>(expectValueReplicated, expectEnabledReplicated);
+            VerifyFlagComponentEnabledBit<T>();
 
             var builder = new EntityQueryBuilder(Allocator.Temp)
                 .WithAll<T>().WithOptions(EntityQueryOptions.IgnoreComponentEnabledState);
@@ -577,7 +577,7 @@ namespace Unity.NetCode.Tests
                 Assert.AreEqual(m_ExpectedEnabledIfReplicated, isServerEnabled, $"[{typeof(T)}] Test expects server enable bit [{i}] to still be same!");
                 Assert.AreEqual(m_ExpectedValueIfReplicated, serverValue, $"[{typeof(T)}] Test expects server value [{i}] to still be same!");
 
-                if (expectEnabledReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                if (IsExpectedToReplicateEnabledBit<T>(true))
                 {
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, isClientEnabled, $"[{typeof(T)}] Test expects client enable bit [{i}] IS replicated when using `{m_SendForChildrenTestCase}`!");
                 }
@@ -585,7 +585,7 @@ namespace Unity.NetCode.Tests
                 {
                     Assert.AreEqual(m_ExpectedEnabledIfNotReplicated, isClientEnabled, $"[{typeof(T)}] Test expects client enable bit [{i}] NOT replicated when using `{m_SendForChildrenTestCase}`!");
                 }
-                if (expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                if (IsExpectedToReplicateValue<T>(true))
                 {
                     // Note that values are replicated even if the component is disabled!
                     Assert.AreEqual(m_ExpectedValueIfReplicated, clientValue, $"[{typeof(T)}] Test expects client value [{i}] IS replicated when using `{m_SendForChildrenTestCase}`!");
@@ -597,21 +597,22 @@ namespace Unity.NetCode.Tests
             }
         }
 
-        private void ValidateChangeMaskForComponent<T>(bool isExpectedToBeReplicated, bool isRoot)
+        private void ValidateChangeMaskForComponent<T>(bool isRoot)
             where T : unmanaged, IComponentData
         {
             var componentType = ComponentType.ReadOnly<T>();
-            ValidateChangeMask(isExpectedToBeReplicated, componentType, isRoot);
+            ValidateChangeMask<T>(componentType, isRoot);
         }
-        private void ValidateChangeMaskForBuffer<T>(bool isExpectedToBeReplicated, bool isRoot)
+
+        private void ValidateChangeMaskForBuffer<T>(bool isRoot)
             where T : unmanaged, IBufferElementData
         {
             var componentType = ComponentType.ReadOnly<T>();
-            ValidateChangeMask(isExpectedToBeReplicated, componentType, isRoot);
+            ValidateChangeMask<T>(componentType, isRoot);
         }
 
         /// <summary> Tests how Change Filtering works in the <see cref="GhostUpdateSystem"/>.</summary>
-        private void ValidateChangeMask(bool isExpectedToBeReplicated, ComponentType componentType, bool isRoot)
+        private void ValidateChangeMask<T>(ComponentType componentType, bool isRoot)
         {
             if (m_IsFirstRun) // On the first run, there will be inconsistencies. Not worth trying to handle.
                 return;
@@ -632,7 +633,9 @@ namespace Unity.NetCode.Tests
                 var componentChangeVersionInChunk = chunk.GetChangeVersion(ref dynamicComponentTypeHandle);
                 var didChangeSinceLastVerifyCall = ChangeVersionUtility.DidChange(componentChangeVersionInChunk, m_LastGlobalSystemVersion);
 
-                if (m_ExpectChangeFilterToChange && isExpectedToBeReplicated)
+                var isReplicatingAnything = IsExpectedToReplicateValue<T>(isRoot) || IsExpectedToReplicateEnabledBit<T>(isRoot);
+
+                if (m_ExpectChangeFilterToChange && isReplicatingAnything)
                     Assert.IsTrue(didChangeSinceLastVerifyCall, $"[{componentType}] [Chunk:{chunkIdx}] Expected this component's change version to be updated, but it was not! {componentChangeVersionInChunk} vs {m_LastGlobalSystemVersion}. Implies a bug in GhostUpdateSystem Change Filtering.");
                 else if (m_ExpectChangeFilterToChange)
                     Assert.IsFalse(didChangeSinceLastVerifyCall, $"[{componentType}] [Chunk:{chunkIdx}] We'd expected this component's change version to be updated, but it's not replicated, so it SHOULDN'T be changed! {componentChangeVersionInChunk} vs {m_LastGlobalSystemVersion}. Implies a bug in GhostUpdateSystem Change Filtering.");
@@ -641,7 +644,7 @@ namespace Unity.NetCode.Tests
             }
         }
 
-        private void VerifyFlagComponentEnabledBit<T>(bool expectValueReplicated, bool expectEnabledReplicated) where T : unmanaged, IComponentData, IEnableableComponent
+        private void VerifyFlagComponentEnabledBit<T>() where T : unmanaged, IComponentData, IEnableableComponent
         {
             var type = ComponentType.ReadOnly<T>();
             using var query = m_TestWorld.ClientWorlds[0].EntityManager.CreateEntityQuery(type);
@@ -658,7 +661,7 @@ namespace Unity.NetCode.Tests
                 var isClientEnabled = m_TestWorld.ClientWorlds[0].EntityManager.IsComponentEnabled<T>(clientEntity);
                 Assert.AreEqual(m_ExpectedEnabledIfReplicated, isServerEnabled, $"[{typeof(T)}] Expect flag component server enabled bit is correct.");
 
-                if (expectEnabledReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                if (IsExpectedToReplicateEnabledBit<T>(true))
                 {
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, isClientEnabled, $"{typeof(T)} Expected client enabled bit IS replicated.");
                 }
@@ -668,12 +671,12 @@ namespace Unity.NetCode.Tests
                 }
             }
 
-            ValidateChangeMaskForComponent<T>(expectEnabledReplicated | expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true), true);
+            ValidateChangeMaskForComponent<T>(true);
         }
 
         NativeArray<ArchetypeChunk> chunkArray;
 
-        private void VerifyBufferValues<T>(bool expectValueReplicated, bool expectEnabledReplicated) where T: unmanaged, IBufferElementData, IEnableableComponent, IComponentValue
+        private void VerifyBufferValues<T>() where T: unmanaged, IBufferElementData, IEnableableComponent, IComponentValue
         {
             var builder = new EntityQueryBuilder(Allocator.Temp).WithAll<T>().WithOptions(EntityQueryOptions.IgnoreComponentEnabledState);
             using var query = m_TestWorld.ClientWorlds[0].EntityManager.CreateEntityQuery(builder);
@@ -694,7 +697,7 @@ namespace Unity.NetCode.Tests
                 Assert.AreEqual(m_ExpectedServerBufferSize, serverBuffer.Length, $"[{typeof(T)}] server buffer length");
                 Assert.AreEqual(m_ExpectedEnabledIfReplicated, isServerEnabled, $"[{typeof(T)}] server enable bit");
 
-                if (expectEnabledReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                if (IsExpectedToReplicateEnabledBit<T>(true))
                 {
                     Assert.AreEqual(m_ExpectedEnabledIfReplicated, isClientEnabled, $"[{typeof(T)}] Client enable bit IS replicated when `{m_SendForChildrenTestCase}`!");
                 }
@@ -702,7 +705,7 @@ namespace Unity.NetCode.Tests
                 {
                     Assert.AreEqual(m_ExpectedEnabledIfNotReplicated, isClientEnabled, $"[{typeof(T)}] Client enable bit is NOT replicated when `{m_SendForChildrenTestCase}`!");
                 }
-                if (expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                if (IsExpectedToReplicateBuffer<T>(m_SendForChildrenTestCase, true) && IsExpectedToReplicateValue<T>(true))
                 {
                     Assert.AreEqual(m_ExpectedServerBufferSize, clientBuffer.Length, $"[{typeof(T)}] Expect client buffer length IS replicated when `{m_SendForChildrenTestCase}`!");
                 }
@@ -719,7 +722,7 @@ namespace Unity.NetCode.Tests
                     var expectedBufferValue = m_IsValidatingBakedValues ? kDefaultValueIfNotReplicated : ((j + 1) * 1000 + m_ExpectedValueIfReplicated);
                     Assert.AreEqual(expectedBufferValue, serverValue.GetValue(), $"[{typeof(T)}] Expect server buffer value [{i}]");
 
-                    if (expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true))
+                    if (IsExpectedToReplicateValue<T>(true))
                     {
                         Assert.AreEqual(expectedBufferValue, clientValue.GetValue(), $"[{typeof(T)}] Expect client buffer value [{i}] IS replicated when `{m_SendForChildrenTestCase}`!");
                     }
@@ -730,7 +733,7 @@ namespace Unity.NetCode.Tests
                 }
             }
 
-            ValidateChangeMaskForBuffer<T>(expectEnabledReplicated | expectValueReplicated && IsExpectedToBeReplicated<T>(m_SendForChildrenTestCase, true), true);
+            ValidateChangeMaskForBuffer<T>(true);
         }
 
         void SetGhostValues(int value, bool enabled = false)
@@ -751,6 +754,15 @@ namespace Unity.NetCode.Tests
                     SetComponentValues<ComponentWithDontSendChildrenVariant>(value, enabled);
                     SetComponentValues<ComponentWithNonReplicatedVariant>(value, enabled);
                     SetComponentEnabled<NeverReplicatedEnableableFlagComponent>(enabled);
+
+                    SetComponentValues<SendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetComponentValues<SendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetComponentValues<SendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
+                    SetComponentValues<SendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
+                    SetComponentValues<DontSendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetComponentValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetComponentValues<DontSendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
+                    SetComponentValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
                     break;
                 case GhostTypeConverter.GhostTypes.MultipleEnableableComponent:
                     SetComponentValues<EnableableComponent_0>(value, enabled);
@@ -835,6 +847,16 @@ namespace Unity.NetCode.Tests
                     SetLinkedComponentValues<ComponentWithDontSendChildrenVariant>(value, enabled);
                     SetLinkedComponentValues<ComponentWithNonReplicatedVariant>(value, enabled);
                     SetLinkedComponentEnabled<NeverReplicatedEnableableFlagComponent>(enabled);
+
+                    SetLinkedComponentValues<SendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetLinkedComponentValues<SendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetLinkedComponentValues<SendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
+                    SetLinkedComponentValues<SendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
+                    SetLinkedComponentValues<DontSendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetLinkedComponentValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetLinkedComponentValues<DontSendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
+                    SetLinkedComponentValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
+
                     SetLinkedComponentEnabledOnlyOnChildren<ChildOnlyComponent_1>(enabled);
                     SetLinkedComponentEnabledOnlyOnChildren<ChildOnlyComponent_2>(enabled);
                     SetLinkedComponentValueOnlyOnChildren<ChildOnlyComponent_3>(value, enabled);
@@ -853,6 +875,15 @@ namespace Unity.NetCode.Tests
                     SetGhostGroupValues<ComponentWithDontSendChildrenVariant>(value, enabled);
                     SetGhostGroupValues<ComponentWithNonReplicatedVariant>(value, enabled);
                     SetGhostGroupEnabled<NeverReplicatedEnableableFlagComponent>(enabled);
+
+                    SetGhostGroupValues<SendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetGhostGroupValues<SendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetGhostGroupValues<SendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
+                    SetGhostGroupValues<SendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
+                    SetGhostGroupValues<DontSendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetGhostGroupValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>(value, enabled);
+                    SetGhostGroupValues<DontSendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
+                    SetGhostGroupValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>(value, enabled);
                     break;
                 default:
                     Assert.True(true);
@@ -860,131 +891,158 @@ namespace Unity.NetCode.Tests
             }
         }
 
-        void VerifyGhostValues(int value, bool enabled, SendForChildrenTestCase sendForChildrenTestCase, EnabledBitBakedValue enabledBitBakedValue)
+        void VerifyGhostValues(int value, bool enabled)
         {
             Assert.IsTrue(m_ServerEntities.IsCreated);
             m_ExpectedValueIfReplicated = value;
             m_ExpectedEnabledIfReplicated = enabled;
-            m_ExpectedEnabledIfNotReplicated = GhostTypeConverter.BakedEnabledBitValue(enabledBitBakedValue);
-            m_SendForChildrenTestCase = sendForChildrenTestCase;
+
             switch (m_Type)
             {
                 case GhostTypeConverter.GhostTypes.EnableableComponent:
-                    VerifyComponentValues<EnableableComponent>(true, true);
-                    VerifyComponentValues<EnableableComponentWithNonGhostField>(true, true);
-                    VerifyFlagComponentEnabledBit<EnableableFlagComponent>(false, true);
-                    VerifyComponentValues<ReplicatedFieldWithNonReplicatedEnableableComponent>(true, false);
-                    VerifyComponentValues<ReplicatedEnableableComponentWithNonReplicatedField>(false, true);
-                    VerifyComponentValues<ComponentWithReplicatedVariant>(true, true);
-                    VerifyComponentValues<ComponentWithDontSendChildrenVariant>(true, true);
-                    VerifyComponentValues<ComponentWithNonReplicatedVariant>(false, false);
-                    VerifyFlagComponentEnabledBit<NeverReplicatedEnableableFlagComponent>(false, false);
+                    VerifyComponentValues<EnableableComponent>();
+                    VerifyComponentValues<EnableableComponentWithNonGhostField>();
+                    VerifyFlagComponentEnabledBit<EnableableFlagComponent>();
+                    VerifyComponentValues<ReplicatedFieldWithNonReplicatedEnableableComponent>();
+                    VerifyComponentValues<ReplicatedEnableableComponentWithNonReplicatedField>();
+                    VerifyComponentValues<ComponentWithReplicatedVariant>();
+                    VerifyComponentValues<ComponentWithDontSendChildrenVariant>();
+                    VerifyComponentValues<ComponentWithNonReplicatedVariant>();
+                    VerifyFlagComponentEnabledBit<NeverReplicatedEnableableFlagComponent>();
+
+                    VerifyComponentValues<SendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyComponentValues<SendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyComponentValues<SendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>();
+                    VerifyComponentValues<SendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>();
+                    VerifyComponentValues<DontSendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyComponentValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyComponentValues<DontSendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>();
+                    VerifyComponentValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>();
                     break;
                 case GhostTypeConverter.GhostTypes.MultipleEnableableComponent:
-                    VerifyComponentValues<EnableableComponent_1>(true, true);
-                    VerifyComponentValues<EnableableComponent_2>(true, true);
-                    VerifyComponentValues<EnableableComponent_3>(true, true);
-                    VerifyComponentValues<EnableableComponent_4>(true, true);
-                    VerifyComponentValues<EnableableComponent_5>(true, true);
-                    VerifyComponentValues<EnableableComponent_6>(true, true);
-                    VerifyComponentValues<EnableableComponent_7>(true, true);
-                    VerifyComponentValues<EnableableComponent_8>(true, true);
-                    VerifyComponentValues<EnableableComponent_9>(true, true);
-                    VerifyComponentValues<EnableableComponent_10>(true, true);
-                    VerifyComponentValues<EnableableComponent_11>(true, true);
-                    VerifyComponentValues<EnableableComponent_12>(true, true);
-                    VerifyComponentValues<EnableableComponent_13>(true, true);
-                    VerifyComponentValues<EnableableComponent_14>(true, true);
-                    VerifyComponentValues<EnableableComponent_15>(true, true);
-                    VerifyComponentValues<EnableableComponent_16>(true, true);
-                    VerifyComponentValues<EnableableComponent_17>(true, true);
-                    VerifyComponentValues<EnableableComponent_18>(true, true);
-                    VerifyComponentValues<EnableableComponent_19>(true, true);
-                    VerifyComponentValues<EnableableComponent_20>(true, true);
-                    VerifyComponentValues<EnableableComponent_21>(true, true);
-                    VerifyComponentValues<EnableableComponent_22>(true, true);
-                    VerifyComponentValues<EnableableComponent_23>(true, true);
-                    VerifyComponentValues<EnableableComponent_24>(true, true);
-                    VerifyComponentValues<EnableableComponent_25>(true, true);
-                    VerifyComponentValues<EnableableComponent_26>(true, true);
-                    VerifyComponentValues<EnableableComponent_27>(true, true);
-                    VerifyComponentValues<EnableableComponent_28>(true, true);
-                    VerifyComponentValues<EnableableComponent_29>(true, true);
-                    VerifyComponentValues<EnableableComponent_30>(true, true);
-                    VerifyComponentValues<EnableableComponent_31>(true, true);
-                    VerifyComponentValues<EnableableComponent_32>(true, true);
+                    VerifyComponentValues<EnableableComponent_1>();
+                    VerifyComponentValues<EnableableComponent_2>();
+                    VerifyComponentValues<EnableableComponent_3>();
+                    VerifyComponentValues<EnableableComponent_4>();
+                    VerifyComponentValues<EnableableComponent_5>();
+                    VerifyComponentValues<EnableableComponent_6>();
+                    VerifyComponentValues<EnableableComponent_7>();
+                    VerifyComponentValues<EnableableComponent_8>();
+                    VerifyComponentValues<EnableableComponent_9>();
+                    VerifyComponentValues<EnableableComponent_10>();
+                    VerifyComponentValues<EnableableComponent_11>();
+                    VerifyComponentValues<EnableableComponent_12>();
+                    VerifyComponentValues<EnableableComponent_13>();
+                    VerifyComponentValues<EnableableComponent_14>();
+                    VerifyComponentValues<EnableableComponent_15>();
+                    VerifyComponentValues<EnableableComponent_16>();
+                    VerifyComponentValues<EnableableComponent_17>();
+                    VerifyComponentValues<EnableableComponent_18>();
+                    VerifyComponentValues<EnableableComponent_19>();
+                    VerifyComponentValues<EnableableComponent_20>();
+                    VerifyComponentValues<EnableableComponent_21>();
+                    VerifyComponentValues<EnableableComponent_22>();
+                    VerifyComponentValues<EnableableComponent_23>();
+                    VerifyComponentValues<EnableableComponent_24>();
+                    VerifyComponentValues<EnableableComponent_25>();
+                    VerifyComponentValues<EnableableComponent_26>();
+                    VerifyComponentValues<EnableableComponent_27>();
+                    VerifyComponentValues<EnableableComponent_28>();
+                    VerifyComponentValues<EnableableComponent_29>();
+                    VerifyComponentValues<EnableableComponent_30>();
+                    VerifyComponentValues<EnableableComponent_31>();
+                    VerifyComponentValues<EnableableComponent_32>();
                     break;
                 case GhostTypeConverter.GhostTypes.EnableableBuffer:
-                    VerifyBufferValues<EnableableBuffer>(true, true);
+                    VerifyBufferValues<EnableableBuffer>();
                     break;
                 case GhostTypeConverter.GhostTypes.MultipleEnableableBuffer:
-                    VerifyBufferValues<EnableableBuffer_0>(true, true);
-                    VerifyBufferValues<EnableableBuffer_1>(true, true);
-                    VerifyBufferValues<EnableableBuffer_2>(true, true);
-                    VerifyBufferValues<EnableableBuffer_3>(true, true);
-                    VerifyBufferValues<EnableableBuffer_4>(true, true);
-                    VerifyBufferValues<EnableableBuffer_5>(true, true);
-                    VerifyBufferValues<EnableableBuffer_6>(true, true);
-                    VerifyBufferValues<EnableableBuffer_7>(true, true);
-                    VerifyBufferValues<EnableableBuffer_8>(true, true);
-                    VerifyBufferValues<EnableableBuffer_9>(true, true);
-                    VerifyBufferValues<EnableableBuffer_10>(true, true);
-                    VerifyBufferValues<EnableableBuffer_11>(true, true);
-                    VerifyBufferValues<EnableableBuffer_12>(true, true);
-                    VerifyBufferValues<EnableableBuffer_13>(true, true);
-                    VerifyBufferValues<EnableableBuffer_14>(true, true);
-                    VerifyBufferValues<EnableableBuffer_15>(true, true);
-                    VerifyBufferValues<EnableableBuffer_16>(true, true);
-                    VerifyBufferValues<EnableableBuffer_17>(true, true);
-                    VerifyBufferValues<EnableableBuffer_18>(true, true);
-                    VerifyBufferValues<EnableableBuffer_19>(true, true);
-                    VerifyBufferValues<EnableableBuffer_20>(true, true);
-                    VerifyBufferValues<EnableableBuffer_21>(true, true);
-                    VerifyBufferValues<EnableableBuffer_22>(true, true);
-                    VerifyBufferValues<EnableableBuffer_23>(true, true);
-                    VerifyBufferValues<EnableableBuffer_24>(true, true);
-                    VerifyBufferValues<EnableableBuffer_25>(true, true);
-                    VerifyBufferValues<EnableableBuffer_26>(true, true);
-                    VerifyBufferValues<EnableableBuffer_27>(true, true);
-                    VerifyBufferValues<EnableableBuffer_28>(true, true);
-                    VerifyBufferValues<EnableableBuffer_29>(true, true);
-                    VerifyBufferValues<EnableableBuffer_30>(true, true);
-                    VerifyBufferValues<EnableableBuffer_31>(true, true);
-                    VerifyBufferValues<EnableableBuffer_32>(true, true);
+                    VerifyBufferValues<EnableableBuffer_0>();
+                    VerifyBufferValues<EnableableBuffer_1>();
+                    VerifyBufferValues<EnableableBuffer_2>();
+                    VerifyBufferValues<EnableableBuffer_3>();
+                    VerifyBufferValues<EnableableBuffer_4>();
+                    VerifyBufferValues<EnableableBuffer_5>();
+                    VerifyBufferValues<EnableableBuffer_6>();
+                    VerifyBufferValues<EnableableBuffer_7>();
+                    VerifyBufferValues<EnableableBuffer_8>();
+                    VerifyBufferValues<EnableableBuffer_9>();
+                    VerifyBufferValues<EnableableBuffer_10>();
+                    VerifyBufferValues<EnableableBuffer_11>();
+                    VerifyBufferValues<EnableableBuffer_12>();
+                    VerifyBufferValues<EnableableBuffer_13>();
+                    VerifyBufferValues<EnableableBuffer_14>();
+                    VerifyBufferValues<EnableableBuffer_15>();
+                    VerifyBufferValues<EnableableBuffer_16>();
+                    VerifyBufferValues<EnableableBuffer_17>();
+                    VerifyBufferValues<EnableableBuffer_18>();
+                    VerifyBufferValues<EnableableBuffer_19>();
+                    VerifyBufferValues<EnableableBuffer_20>();
+                    VerifyBufferValues<EnableableBuffer_21>();
+                    VerifyBufferValues<EnableableBuffer_22>();
+                    VerifyBufferValues<EnableableBuffer_23>();
+                    VerifyBufferValues<EnableableBuffer_24>();
+                    VerifyBufferValues<EnableableBuffer_25>();
+                    VerifyBufferValues<EnableableBuffer_26>();
+                    VerifyBufferValues<EnableableBuffer_27>();
+                    VerifyBufferValues<EnableableBuffer_28>();
+                    VerifyBufferValues<EnableableBuffer_29>();
+                    VerifyBufferValues<EnableableBuffer_30>();
+                    VerifyBufferValues<EnableableBuffer_31>();
+                    VerifyBufferValues<EnableableBuffer_32>();
                     break;
                 case GhostTypeConverter.GhostTypes.ChildComponent:
-                    VerifyLinkedComponentValues<EnableableComponent>(true, true);
-                    VerifyLinkedComponentValues<EnableableComponentWithNonGhostField>(true, true);
-                    VerifyLinkedComponentEnabled<EnableableFlagComponent>(false, true);
-                    VerifyLinkedComponentValues<ReplicatedFieldWithNonReplicatedEnableableComponent>(true, false);
-                    VerifyLinkedComponentValues<ReplicatedEnableableComponentWithNonReplicatedField>(false, true);
+                    VerifyLinkedComponentValues<EnableableComponent>();
+                    VerifyLinkedComponentValues<EnableableComponentWithNonGhostField>();
+                    VerifyLinkedComponentEnabled<EnableableFlagComponent>();
+                    VerifyLinkedComponentValues<ReplicatedFieldWithNonReplicatedEnableableComponent>();
+                    VerifyLinkedComponentValues<ReplicatedEnableableComponentWithNonReplicatedField>();
                     // We override variants for these two, so cannot test their "default variants" without massive complications.
-                    VerifyLinkedComponentValues<ComponentWithReplicatedVariant>(true, true, ComponentWithReplicatedVariant.ExpectChildReplicated(m_SendForChildrenTestCase));
-                    VerifyLinkedComponentEnabled<ComponentWithNonReplicatedVariant>(false, ComponentWithNonReplicatedVariant.ExpectReplicate(m_SendForChildrenTestCase));
+                    VerifyLinkedComponentValues<ComponentWithReplicatedVariant>();
+                    VerifyLinkedComponentEnabled<ComponentWithNonReplicatedVariant>();
                     // Note: We don't test the component on the root here.
-                    VerifyLinkedComponentValues<ComponentWithDontSendChildrenVariant>(ComponentWithDontSendChildrenVariant.ExpectReplicate(m_SendForChildrenTestCase), ComponentWithDontSendChildrenVariant.ExpectReplicate(m_SendForChildrenTestCase), ComponentWithDontSendChildrenVariant.ExpectChildReplicate(m_SendForChildrenTestCase));
-                    VerifyLinkedComponentEnabled<NeverReplicatedEnableableFlagComponent>(false, false);
+                    VerifyLinkedComponentValues<ComponentWithDontSendChildrenVariant>();
+                    VerifyLinkedComponentEnabled<NeverReplicatedEnableableFlagComponent>();
 
-                    VerifyLinkedComponentEnabledOnChild<ChildOnlyComponent_1>(false, true);
-                    VerifyLinkedComponentEnabledOnChild<ChildOnlyComponent_2>(false, false);
-                    VerifyLinkedComponentValueOnChild<ChildOnlyComponent_3>(true, true);
-                    VerifyLinkedComponentValueOnChild<ChildOnlyComponent_4>(true, false);
+                    VerifyLinkedComponentValues<SendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyLinkedComponentValues<SendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyLinkedComponentValues<SendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>();
+                    VerifyLinkedComponentValues<SendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>();
+                    VerifyLinkedComponentValues<DontSendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyLinkedComponentValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyLinkedComponentValues<DontSendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>();
+                    VerifyLinkedComponentValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>();
+
+                    VerifyLinkedComponentEnabledOnChild<ChildOnlyComponent_1>();
+                    VerifyLinkedComponentEnabledOnChild<ChildOnlyComponent_2>();
+                    VerifyLinkedComponentValueOnChild<ChildOnlyComponent_3>();
+                    VerifyLinkedComponentValueOnChild<ChildOnlyComponent_4>();
                     break;
                 case GhostTypeConverter.GhostTypes.ChildBufferComponent:
-                    VerifyLinkedBufferValues<EnableableBuffer>(true, true);
+                    VerifyLinkedBufferValues<EnableableBuffer>();
                     break;
                 case GhostTypeConverter.GhostTypes.GhostGroup:
                     // GhostGroup implies all of these are root entities! I.e. No children to worry about, so `_sendForChildrenTestCase` is ignored.
-                    VerifyGhostGroupValues<EnableableComponent>(true, true);
-                    VerifyGhostGroupValues<EnableableComponentWithNonGhostField>(true, true);
-                    VerifyGhostGroupEnabledBits<EnableableFlagComponent>(false, true);
-                    VerifyGhostGroupValues<ReplicatedFieldWithNonReplicatedEnableableComponent>(true, false);
-                    VerifyGhostGroupValues<ReplicatedEnableableComponentWithNonReplicatedField>(false, true);
-                    VerifyGhostGroupValues<ComponentWithReplicatedVariant>(true, true);
-                    VerifyGhostGroupValues<ComponentWithDontSendChildrenVariant>(ComponentWithDontSendChildrenVariant.ExpectReplicate(m_SendForChildrenTestCase), ComponentWithDontSendChildrenVariant.ExpectReplicate(m_SendForChildrenTestCase));
-                    VerifyGhostGroupValues<ComponentWithNonReplicatedVariant>(ComponentWithNonReplicatedVariant.ExpectReplicate(m_SendForChildrenTestCase), ComponentWithNonReplicatedVariant.ExpectReplicate(m_SendForChildrenTestCase));
-                    VerifyGhostGroupEnabledBits<NeverReplicatedEnableableFlagComponent>(false, false);
-                    // TODO - Ghost groups cannot have children, right?
+                    VerifyGhostGroupValues<EnableableComponent>();
+                    VerifyGhostGroupValues<EnableableComponentWithNonGhostField>();
+                    VerifyGhostGroupEnabledBits<EnableableFlagComponent>();
+                    VerifyGhostGroupValues<ReplicatedFieldWithNonReplicatedEnableableComponent>();
+                    VerifyGhostGroupValues<ReplicatedEnableableComponentWithNonReplicatedField>();
+                    VerifyGhostGroupValues<ComponentWithReplicatedVariant>();
+                    VerifyGhostGroupValues<ComponentWithDontSendChildrenVariant>();
+                    VerifyGhostGroupValues<ComponentWithNonReplicatedVariant>();
+                    VerifyGhostGroupEnabledBits<NeverReplicatedEnableableFlagComponent>();
+
+                    VerifyGhostGroupValues<SendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyGhostGroupValues<SendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyGhostGroupValues<SendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>();
+                    VerifyGhostGroupValues<SendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>();
+                    VerifyGhostGroupValues<DontSendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyGhostGroupValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>();
+                    VerifyGhostGroupValues<DontSendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>();
+                    VerifyGhostGroupValues<DontSendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>();
+
+                    // Ghost groups cannot have children.
                     break;
                 default:
                     Assert.Fail();
@@ -1007,10 +1065,12 @@ namespace Unity.NetCode.Tests
         bool m_ExpectedEnabledIfReplicated;
         bool m_ExpectedEnabledIfNotReplicated;
         SendForChildrenTestCase m_SendForChildrenTestCase;
+        PredictionSetting m_PredictionSetting;
         bool m_IsValidatingBakedValues;
         bool m_ExpectChangeFilterToChange;
         uint m_LastGlobalSystemVersion;
         private bool m_IsFirstRun;
+        private (Type, Type)[] m_Variants;
 
         enum GhostFlags : int
         {
@@ -1021,6 +1081,11 @@ namespace Unity.NetCode.Tests
 
         void RunTest(int numClients, GhostTypeConverter.GhostTypes type, int entityCount, GhostFlags flags, SendForChildrenTestCase sendForChildrenTestCase, PredictionSetting predictionSetting, EnabledBitBakedValue enabledBitBakedValue)
         {
+            // Save test vars:
+            m_ExpectedEnabledIfNotReplicated = GhostTypeConverter.BakedEnabledBitValue(enabledBitBakedValue);
+            m_SendForChildrenTestCase = sendForChildrenTestCase;
+            m_PredictionSetting = predictionSetting;
+
             // Create worlds:
             switch (sendForChildrenTestCase)
             {
@@ -1098,6 +1163,14 @@ namespace Unity.NetCode.Tests
             var ghostConfig = objects[0].AddComponent<GhostAuthoringComponent>();
             ghostConfig.DefaultGhostMode = predictionSetting == PredictionSetting.WithPredictedEntities ? GhostMode.Predicted : GhostMode.Interpolated;
             ghostConfig.SupportedGhostModes = GhostModeMask.All;
+            if (type == GhostTypeConverter.GhostTypes.GhostGroup)
+            {
+                //do we want to have the child the same as the root or different? This depend on what we want to test.
+                //for now let's make them identical, tests logic right now are designed to work that way, but should be a little more flexible.
+                ghostConfig = objects[1].AddComponent<GhostAuthoringComponent>();
+                ghostConfig.DefaultGhostMode = predictionSetting == PredictionSetting.WithPredictedEntities ? GhostMode.Predicted : GhostMode.Interpolated;
+                ghostConfig.SupportedGhostModes = GhostModeMask.All;
+            }
 
             if ((flags & GhostFlags.StaticOptimization) == GhostFlags.StaticOptimization)
             {
@@ -1140,10 +1213,7 @@ namespace Unity.NetCode.Tests
                 }
             }
 
-            // Connect and make sure the connection could be established
-            Assert.IsTrue(m_TestWorld.Connect(frameTime, 4));
-
-            // Go in-game
+            m_TestWorld.Connect(frameTime);
             m_TestWorld.GoInGame();
 
             // Perform test:
@@ -1151,14 +1221,14 @@ namespace Unity.NetCode.Tests
                 m_IsFirstRun = true;
                 m_ExpectChangeFilterToChange = true;
 
-                ValidateBakedValues(enabledBitBakedValue, sendForChildrenTestCase, type);
+                ValidateBakedValues(enabledBitBakedValue, sendForChildrenTestCase, type, predictionSetting);
 
                 void SingleTest(int value, bool enabled)
                 {
                     SetGhostValues(value, enabled);
                     m_LastGlobalSystemVersion = m_TestWorld.ClientWorlds[0].EntityManager.GlobalSystemVersion;
                     TickMultipleFrames(GetNumTicksToReplicateGhostTypes(type));
-                    VerifyGhostValues(value, enabled, sendForChildrenTestCase, enabledBitBakedValue);
+                    VerifyGhostValues(value, enabled);
                 }
 
                 SingleTest(-999, false);
@@ -1170,7 +1240,7 @@ namespace Unity.NetCode.Tests
             m_ExpectChangeFilterToChange = false;
             m_LastGlobalSystemVersion = m_TestWorld.ClientWorlds[0].EntityManager.GlobalSystemVersion;
             TickMultipleFrames(15);
-            VerifyGhostValues(999, true, sendForChildrenTestCase, enabledBitBakedValue);
+            VerifyGhostValues(999, true);
         }
 
         /// <summary>
@@ -1179,7 +1249,7 @@ namespace Unity.NetCode.Tests
         /// 2. WAIT for them to be spawned on the client.
         /// 3. VERIFY that the baked value and enabled-bit matches the baked values on the prefab.
         /// </summary>
-        private void ValidateBakedValues(EnabledBitBakedValue enabledBitBakedValue, SendForChildrenTestCase sendForChildrenTestCase, GhostTypeConverter.GhostTypes type)
+        private void ValidateBakedValues(EnabledBitBakedValue enabledBitBakedValue, SendForChildrenTestCase sendForChildrenTestCase, GhostTypeConverter.GhostTypes type, PredictionSetting predictionSetting)
         {
             if (GhostTypeConverter.WaitForClientEntitiesToSpawn(enabledBitBakedValue))
             {
@@ -1187,7 +1257,7 @@ namespace Unity.NetCode.Tests
                 m_LastGlobalSystemVersion = m_TestWorld.ClientWorlds[0].EntityManager.GlobalSystemVersion;
                 m_ExpectedServerBufferSize = kBakedBufferSize; // We haven't written to the server buffers yet.
                 TickMultipleFrames(GetNumTicksToReplicateGhostTypes(type));
-                VerifyGhostValues(kDefaultValueIfNotReplicated, GhostTypeConverter.BakedEnabledBitValue(enabledBitBakedValue), sendForChildrenTestCase, enabledBitBakedValue);
+                VerifyGhostValues(kDefaultValueIfNotReplicated, GhostTypeConverter.BakedEnabledBitValue(enabledBitBakedValue));
             }
         }
 
@@ -1195,6 +1265,7 @@ namespace Unity.NetCode.Tests
         public void SetupTestsForEnableableBits()
         {
             m_TestWorld = new NetCodeTestWorld();
+            m_Variants = GhostTypeConverter.FetchAllTestComponentTypesRequiringSendRuleOverride();
         }
 
         [TearDown]
@@ -1292,8 +1363,16 @@ namespace Unity.NetCode.Tests
             RunTest(1, type, count, GhostFlags.StaticOptimization, sendForChildrenTestCase, PredictionSetting.WithInterpolatedEntities, enabledBitBakedValue);
         }
 
-        internal static bool IsExpectedToBeReplicated<T>(SendForChildrenTestCase sendForChildrenTestCase, bool isRoot)
+        /// <summary>
+        /// Checks attributes on component <see cref="T"/> to determine if this buffer's enable bit SHOULD be replicated.
+        /// NOTE & FIXME: DOES NOT CHECK GhostComponentAttribute CONFIGURATION!
+        /// </summary>
+        internal static bool IsExpectedToReplicateBuffer<T>(SendForChildrenTestCase sendForChildrenTestCase, bool isRoot)
+            where T : IBufferElementData
         {
+            // Note that we should really be fetching the GhostComponentAttribute on the VARIANT.
+            var ghostComponentAttribute = GetGhostComponentAttribute(typeof(T));
+
             switch (sendForChildrenTestCase)
             {
                 case SendForChildrenTestCase.YesViaExplicitVariantRule:
@@ -1302,18 +1381,157 @@ namespace Unity.NetCode.Tests
                 case SendForChildrenTestCase.NoViaExplicitDontSerializeVariantRule:
                     return false;
                 case SendForChildrenTestCase.Default:
-                    return isRoot || HasSendForChildrenFlagOnAttribute<T>();
+                    return isRoot || HasSendForChildrenFlagOnAttribute(ghostComponentAttribute);
                 case SendForChildrenTestCase.YesViaExplicitVariantOnlyAllowChildrenToReplicateRule:
                     return !isRoot;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(sendForChildrenTestCase), sendForChildrenTestCase, nameof(IsExpectedToBeReplicated));
+                    throw new ArgumentOutOfRangeException(nameof(sendForChildrenTestCase), sendForChildrenTestCase, nameof(IsExpectedToReplicateEnabledBit));
             }
         }
 
-        private static bool HasSendForChildrenFlagOnAttribute<T>()
+        private bool IsExpectedToReplicateEnabledBit<T>(bool isRoot)
         {
-            var attribute = typeof(T).GetCustomAttribute(typeof(GhostComponentAttribute)) as GhostComponentAttribute;
-            return attribute != null && attribute.SendDataForChildEntity;
+            if (!IsEnableableComponent(typeof(T)))
+                return false;
+
+            var variantType = FindTestVariantForType<T>();
+            var ghostComponent = GetGhostComponentAttribute(variantType);
+            if (!IsExpectedToReplicateGivenOwnerSendTypeAttribute(ghostComponent))
+                return false;
+            //this is a little wonky, and need a better handling. When we override per prefab,
+            //the correct value is not the setup of the GhostComponent but the overrides of the
+            //authoring that take precedence.
+            //As such, technically speaking we would need to get not the ghostComponent value for
+            //SendOptimisation but the value of the override for the prefab if present.
+            //The assumptions in many tests are anyway that everything is enabled in case of this override
+            //so we can simplify by only testing the SendOptimisation if there aren't ComponentOverride.
+            if (m_SendForChildrenTestCase != SendForChildrenTestCase.YesViaInspectionComponentOverride
+                && !IsExpectedToReplicateGivenSendTypeOptimizationAttribute(ghostComponent))
+                return false;
+            if (!HasGhostEnabledBitAttribute(variantType))
+                return false;
+
+            switch (m_SendForChildrenTestCase)
+            {
+                case SendForChildrenTestCase.YesViaExplicitVariantRule:
+                case SendForChildrenTestCase.YesViaInspectionComponentOverride:
+                    return true;
+                case SendForChildrenTestCase.Default:
+                    return isRoot || HasSendForChildrenFlagOnAttribute(ghostComponent);
+                case SendForChildrenTestCase.YesViaExplicitVariantOnlyAllowChildrenToReplicateRule:
+                    return !isRoot;
+                case SendForChildrenTestCase.NoViaExplicitDontSerializeVariantRule:
+                    return false;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(m_SendForChildrenTestCase), m_SendForChildrenTestCase, nameof(IsExpectedToReplicateEnabledBit));
+            }
+        }
+
+        private static bool IsEnableableComponent(Type type) => typeof(IEnableableComponent).IsAssignableFrom(type);
+        private static bool HasGhostEnabledBitAttribute(Type type) => type.GetCustomAttribute<GhostEnabledBitAttribute>() != null;
+
+        private Type FindTestVariantForType<T>()
+        {
+            var foundPair = m_Variants.FirstOrDefault(x => x.Item1 == typeof(T));
+            if (foundPair.Item1 == null)
+                return typeof(T);
+            var variantType = foundPair.Item2 ?? foundPair.Item1;
+            return variantType;
+        }
+
+        /// <summary>Checks attributes on component <see cref="T"/> to determine if this components <see cref="IComponentValue.GetValue"/> backing field should be replicated.</summary>
+        private bool IsExpectedToReplicateValue<T>(bool isRoot)
+        {
+            var variantType = FindTestVariantForType<T>();
+            var ghostComponent = GetGhostComponentAttribute(variantType);
+
+            if (!IsExpectedToReplicateGivenOwnerSendTypeAttribute(ghostComponent))
+                 return false;
+            //this is a little wonky, and need a better handling. When we override per prefab,
+            //the correct value is not the setup of the GhostComponent but the overrides of the
+            //authoring that take precedence.
+            //As such, technically speaking we would need to get not the ghostComponent value for
+            //SendOptimisation but the value of the override for the prefab if present.
+            //The assumptions in many tests are anyway that everything is enabled in case of this override
+            //so we can simplify by only testing the SendOptimisation if there aren't ComponentOverride.
+            if (m_SendForChildrenTestCase != SendForChildrenTestCase.YesViaInspectionComponentOverride &&
+                !IsExpectedToReplicateGivenSendTypeOptimizationAttribute(ghostComponent))
+                return false;
+            if (!HasGhostFieldMainValue(variantType))
+                return false;
+
+            switch (m_SendForChildrenTestCase)
+            {
+                case SendForChildrenTestCase.YesViaExplicitVariantRule:
+                case SendForChildrenTestCase.YesViaInspectionComponentOverride:
+                    return true;
+                case SendForChildrenTestCase.Default:
+                    return isRoot || HasSendForChildrenFlagOnAttribute(ghostComponent);
+                case SendForChildrenTestCase.YesViaExplicitVariantOnlyAllowChildrenToReplicateRule:
+                    return !isRoot;
+                case SendForChildrenTestCase.NoViaExplicitDontSerializeVariantRule:
+                    return false;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(m_SendForChildrenTestCase), m_SendForChildrenTestCase, nameof(IsExpectedToReplicateValue));
+            }
+        }
+
+        private static GhostComponentAttribute GetGhostComponentAttribute(Type variantType)
+        {
+            return variantType.GetCustomAttribute(typeof(GhostComponentAttribute)) as GhostComponentAttribute ?? new GhostComponentAttribute();
+        }
+
+        private static bool HasSendForChildrenFlagOnAttribute(GhostComponentAttribute attribute) => attribute != null && attribute.SendDataForChildEntity;
+
+        private bool IsExpectedToReplicateGivenOwnerSendTypeAttribute(GhostComponentAttribute attribute)
+        {
+            // FIXME: owner is never set so checking for the m_PredictionSetting is useless.
+            // Also, the owner check don't depend on the prediction/interpolation but only
+            // on the presence of the GhostOwner and its value.
+            // The logic would make sense if the interpolated ghosts don't have owners. But they have owner,
+            // as suche the conditions need to be slighly changed.
+            switch (attribute.OwnerSendType)
+            {
+                case SendToOwnerType.None:
+                    return false;
+                case SendToOwnerType.SendToOwner:
+                    // Note: This will return true for interpolated entities.
+                    //return m_PredictionSetting != PredictionSetting.WithPredictedEntities;
+                    return false;
+                case SendToOwnerType.SendToNonOwner:
+                    // Note: This will return true for interpolated entities.
+                    // return m_PredictionSetting == PredictionSetting.WithPredictedEntities;
+                    return true;
+                    // FIXME: Once we test ownership, this should be:
+                    // return m_PredictionSetting != PredictionSetting.WithPredictedAndOwnedEntities;
+                case SendToOwnerType.All:
+                    return true;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(attribute.OwnerSendType), attribute.OwnerSendType, nameof(IsExpectedToReplicateGivenOwnerSendTypeAttribute));
+            }
+        }
+
+        private bool IsExpectedToReplicateGivenSendTypeOptimizationAttribute(GhostComponentAttribute attribute)
+        {
+            switch (attribute.SendTypeOptimization)
+            {
+                case GhostSendType.DontSend:
+                    return false;
+                case GhostSendType.OnlyInterpolatedClients:
+                    return m_PredictionSetting == PredictionSetting.WithInterpolatedEntities;
+                case GhostSendType.OnlyPredictedClients:
+                    return m_PredictionSetting == PredictionSetting.WithPredictedEntities;
+                case GhostSendType.AllClients:
+                    return true;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(attribute.SendTypeOptimization), attribute.SendTypeOptimization, nameof(IsExpectedToReplicateGivenSendTypeOptimizationAttribute));
+            }
+        }
+
+        static bool HasGhostFieldMainValue(Type type)
+        {
+            var ghostFieldAttribute = type.GetField("value", BindingFlags.Instance | BindingFlags.Public)?.GetCustomAttribute<GhostFieldAttribute>();
+            return ghostFieldAttribute != null && ghostFieldAttribute.SendData;
         }
 
         /// <summary>Ensure the GhostUpdateSystem doesn't corrupt fields without the <see cref="GhostFieldAttribute"/>.</summary>

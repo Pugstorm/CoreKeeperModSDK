@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Networking.Transport;
-using Unity.Scenes;
+using Unity.Transforms;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Unity.NetCode
 {
@@ -19,19 +20,58 @@ namespace Unity.NetCode
     /// For the server, it allow binding the server transport to a specific listening port and address (especially useful
     /// when running the server on some cloud provider) via <see cref="DefaultListenAddress"/>.
     /// </summary>
+    /// <remarks>
+    /// We strongly recommend setting `Application.runInBackground = true;` (or project-wide via Project Settings) once you intend to connect to the server (or accept connections on said server).
+    /// If you don't, your multiplayer will stall (and likely disconnect) if and when the application loses focus (e.g. by the player tabbing out), as netcode will be unable to tick (due to the application pausing).
+    /// In fact, a Dedicated Server Build should probably always have `Run in Background` enabled.
+    /// We provide suppressible error warnings for this case via `WarnAboutApplicationRunInBackground`.
+    /// </remarks>
     [UnityEngine.Scripting.Preserve]
     public class ClientServerBootstrap : ICustomBootstrap
     {
         /// <summary>
         /// The maximum number of thin clients that can be created in the editor.
+        /// Created to avoid self-inflicted long editor hangs,
+        /// although removed as users should be able to test large player counts (e.g. for UTP reasons).
         /// </summary>
-        public const int k_MaxNumThinClients = 32;
+        public const int k_MaxNumThinClients = 1000;
+
+        /// <summary>
+        /// A reference to the server world, assigned during the default server world creation. If there
+        /// were multiple worlds created this will be the first one.
+        /// </summary>
+        public static World ServerWorld => ServerWorlds != null && ServerWorlds.Count > 0 && ServerWorlds[0].IsCreated ? ServerWorlds[0] : null;
+
+        /// <summary>
+        /// A reference to the client world, assigned during the default client world creation. If there
+        /// were multiple worlds created this will be the first one.
+        /// </summary>
+        public static World ClientWorld => ClientWorlds != null && ClientWorlds.Count > 0 && ClientWorlds[0].IsCreated ? ClientWorlds[0] : null;
+
+        /// <summary>
+        /// A list of all server worlds created during the default creation flow. If this type of world
+        /// is created manually and not via the bootstrap APIs this list needs to be manually populated.
+        /// </summary>
+        public static List<World> ServerWorlds => ClientServerTracker.ServerWorlds;
+
+        /// <summary>
+        /// A list of all client worlds created during the default creation flow. If this type of world
+        /// is created manually and not via the bootstrap APIs this list needs to be manually populated.
+        /// </summary>
+        public static List<World> ClientWorlds => ClientServerTracker.ClientWorlds;
+
+        /// <summary>
+        /// A list of all thin client worlds created during the default creation flow. If this type of world
+        /// is created manually and not via the bootstrap APIs this list needs to be manually populated.
+        /// </summary>
+        public static List<World> ThinClientWorlds => ClientServerTracker.ThinClientWorlds;
 
 #if UNITY_EDITOR || !UNITY_SERVER
         private static int NextThinClientId;
         /// <summary>
         /// Initialize the bootstrap class and reset the static data everytime a new instance is created.
         /// </summary>
+
         public ClientServerBootstrap()
         {
             NextThinClientId = 1;
@@ -62,88 +102,100 @@ namespace Unity.NetCode
 
             var systems = DefaultWorldInitialization.GetAllSystems(WorldSystemFilterFlags.Default);
             DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(world, systems);
-#if !UNITY_DOTSRUNTIME
             ScriptBehaviourUpdateOrder.AppendWorldToCurrentPlayerLoop(world);
-#endif
             return world;
         }
-#if UNITY_DOTSRUNTIME
-        private static void CreateTickWorld()
-        {
-            if (World.DefaultGameObjectInjectionWorld == null)
-            {
-                World.DefaultGameObjectInjectionWorld = new World("NetcodeTickWorld", WorldFlags.Game);
-
-                var systems = new Type[]{
-#if !UNITY_SERVER
-                    typeof(TickClientInitializationSystem), typeof(TickClientSimulationSystem), typeof(TickClientPresentationSystem),
-#endif
-#if !UNITY_CLIENT
-                    typeof(TickServerInitializationSystem), typeof(TickServerSimulationSystem),
-#endif
-                    typeof(WorldUpdateAllocatorResetSystem)
-                };
-                DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(World.DefaultGameObjectInjectionWorld, systems);
-            }
-        }
-#if !UNITY_CLIENT
-        private static void AppendWorldToServerTickWorld(World childWorld)
-        {
-            CreateTickWorld();
-            var initializationTickSystem = World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<TickServerInitializationSystem>();
-            var simulationTickSystem = World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<TickServerSimulationSystem>();
-
-            //Bind main world group to tick systems (DefaultWorld tick the client world)
-            if (initializationTickSystem == null || simulationTickSystem == null)
-                throw new InvalidOperationException("Tying to add a world to the tick systems of the default world, but the default world does not have the tick systems");
-
-            var initializationGroup = childWorld.GetExistingSystemManaged<InitializationSystemGroup>();
-            var simulationGroup = childWorld.GetExistingSystemManaged<SimulationSystemGroup>();
-
-            if (initializationGroup != null)
-                initializationTickSystem.AddSystemGroupToTickList(initializationGroup);
-            if (simulationGroup != null)
-                simulationTickSystem.AddSystemGroupToTickList(simulationGroup);
-        }
-#endif
-#if !UNITY_SERVER
-        private static void AppendWorldToClientTickWorld(World childWorld)
-        {
-            CreateTickWorld();
-            var initializationTickSystem = World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<TickClientInitializationSystem>();
-            var simulationTickSystem = World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<TickClientSimulationSystem>();
-            var presentationTickSystem = World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<TickClientPresentationSystem>();
-
-            //Bind main world group to tick systems (DefaultWorld tick the client world)
-            if (initializationTickSystem == null || simulationTickSystem == null || presentationTickSystem == null)
-                throw new InvalidOperationException("Tying to add a world to the tick systems of the default world, but the default world does not have the tick systems");
-
-            var initializationGroup = childWorld.GetExistingSystemManaged<InitializationSystemGroup>();
-            var simulationGroup = childWorld.GetExistingSystemManaged<SimulationSystemGroup>();
-            var presentationGroup = childWorld.GetExistingSystemManaged<PresentationSystemGroup>();
-
-            if (initializationGroup != null)
-                initializationTickSystem.AddSystemGroupToTickList(initializationGroup);
-            if (simulationGroup != null)
-                simulationTickSystem.AddSystemGroupToTickList(simulationGroup);
-            if (presentationGroup != null)
-                presentationTickSystem.AddSystemGroupToTickList(presentationGroup);
-        }
-#endif
-#endif
 
         /// <summary>
-        /// Implement the ICustomBootstrap interface. Create the default client and serer worlds by
+        /// Implement the ICustomBootstrap interface. Create the default client and server worlds
         /// based on the <see cref="RequestedPlayType"/>.
-        /// In the editor, it also create thin clients worlds, if <see cref="RequestedNumThinClients"/> is not 0.
-        /// As part of the initialization process, if the
+        /// In the editor, it also creates thin client worlds, if <see cref="RequestedNumThinClients"/> is not 0.
         /// </summary>
         /// <param name="defaultWorldName">The name to use for the default world. Unused, can be null or empty</param>
         /// <returns></returns>
         public virtual bool Initialize(string defaultWorldName)
         {
+            // If the user added an OverrideDefaultNetcodeBootstrap MonoBehaviour to their active scene,
+            // or disabled Bootstrapping project-wide, we should respect that here.
+            if (!DetermineIfBootstrappingEnabled())
+                return false;
+
             CreateDefaultClientServerWorlds();
             return true;
+        }
+
+        /// <summary>
+        /// Returns the first Override in the Active scene. Overrides in the non-active scene will report as errors.
+        /// </summary>
+        /// <remarks>Unfortunately, this code includes a FindObjectsOfType call, for validation purposes.</remarks>
+        /// <param name="logNonErrors">If true, we'll log more details, enabling debugging of flows.</param>
+        /// <returns>The first Override in the Active scene.</returns>
+        public static OverrideAutomaticNetcodeBootstrap DiscoverAutomaticNetcodeBootstrap(bool logNonErrors = false)
+        {
+            var activeScene = SceneManager.GetActiveScene();
+            // We must includeInactive here, otherwise we'll get zero results.
+            var sceneConfigurations = UnityEngine.Object.FindObjectsByType<OverrideAutomaticNetcodeBootstrap>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID);
+            if (sceneConfigurations.Length <= 0) return null;
+            OverrideAutomaticNetcodeBootstrap selectedConfig = null;
+            for (int i = 0; i < sceneConfigurations.Length; i++)
+            {
+                var config = sceneConfigurations[i];
+                // Root-level only:
+                if (config.transform.root != config.transform)
+                {
+                    Debug.LogError($"[DiscoverAutomaticNetcodeBootstrap] Ignoring OverrideAutomaticNetcodeBootstrap on GameObject '{config.name}' with value `{config.ForceAutomaticBootstrapInScene}` (in scene '{config.gameObject.scene.path}') as it's not at the root of the Hierarchy!", config);
+                    continue;
+                }
+
+                // A scene comparison here DOES NOT WORK in builds, as - in a build - the GameObject has not yet been attached to its scene.
+                // Thus, Active Scene Validation is only performed in editor.
+                // Note: Double click on a scene to set it as the Active scene.
+                var isConfigInActiveScene = !UnityEngine.Application.isEditor || config.gameObject.scene == activeScene;
+                if (selectedConfig != null)
+                {
+                    var msg = $"[DiscoverAutomaticNetcodeBootstrap] Cannot select OverrideAutomaticNetcodeBootstrap on GameObject '{config.name}' with value `{config.ForceAutomaticBootstrapInScene}` (in scene '{config.gameObject.scene.path}') as we've already selected another ('{selectedConfig.name}' with value `{selectedConfig.ForceAutomaticBootstrapInScene}` in scene '{selectedConfig.gameObject.scene.path}')!";
+                    if (isConfigInActiveScene)
+                    {
+                        msg += " It's erroneous to have multiple in the same scene!";
+                        UnityEngine.Debug.LogError(msg, config);
+                    }
+                    else
+                    {
+                        if (logNonErrors)
+                        {
+                            msg += $" AND this config ('{config.name}') is not in the Active scene!";
+                            UnityEngine.Debug.Log(msg, config);
+                        }
+                    }
+                    continue;
+                }
+
+                if (isConfigInActiveScene)
+                {
+                    selectedConfig = config;
+                    if(logNonErrors)
+                        UnityEngine.Debug.Log($"[DiscoverAutomaticNetcodeBootstrap] Using discovered OverrideAutomaticNetcodeBootstrap on GameObject '{selectedConfig.name}' with value `{selectedConfig.ForceAutomaticBootstrapInScene}` (in Active scene '{selectedConfig.gameObject.scene.path}')!");
+                    continue;
+                }
+                if(logNonErrors)
+                    UnityEngine.Debug.Log($"[DiscoverAutomaticNetcodeBootstrap] Ignoring OverrideAutomaticNetcodeBootstrap on GameObject '{config.name}' with value `{config.ForceAutomaticBootstrapInScene}` (in scene '{config.gameObject.scene.path}') as this scene is not the Active scene!");
+            }
+            return selectedConfig;
+        }
+
+        /// <summary>
+        ///     Automatically discovers whether or not there is an <see cref="OverrideAutomaticNetcodeBootstrap" /> present
+        ///     in the active scene, and if there is, uses its value to clobber the default.
+        /// </summary>
+        /// <param name="logNonErrors">If true, we'll log more details, enabling debugging of flows.</param>
+        /// <returns></returns>
+        public static bool DetermineIfBootstrappingEnabled(bool logNonErrors = false)
+        {
+            var automaticNetcodeBootstrap = DiscoverAutomaticNetcodeBootstrap(logNonErrors);
+            var automaticBootstrapSettingValue = automaticNetcodeBootstrap
+                ? automaticNetcodeBootstrap.ForceAutomaticBootstrapInScene
+                : (NetCodeConfig.Global ? NetCodeConfig.Global.EnableClientServerBootstrap : NetCodeConfig.AutomaticBootstrapSetting.EnableAutomaticBootstrap);
+            return automaticBootstrapSettingValue == NetCodeConfig.AutomaticBootstrapSetting.EnableAutomaticBootstrap;
         }
 
         /// <summary>
@@ -182,18 +234,15 @@ namespace Unity.NetCode
         public static World CreateThinClientWorld()
         {
 #if UNITY_SERVER && !UNITY_EDITOR
-            throw new NotImplementedException();
+            throw new PlatformNotSupportedException("This executable was built using a 'server-only' build target (likely DGS). Thus, cannot create thin client worlds.");
 #else
             var world = new World("ThinClientWorld" + NextThinClientId++, WorldFlags.GameThinClient);
 
             var systems = DefaultWorldInitialization.GetAllSystems(WorldSystemFilterFlags.ThinClientSimulation);
             DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(world, systems);
 
-#if UNITY_DOTSRUNTIME
-            AppendWorldToClientTickWorld(world);
-#else
             ScriptBehaviourUpdateOrder.AppendWorldToCurrentPlayerLoop(world);
-#endif
+            ThinClientWorlds.Add(world);
 
             return world;
 #endif
@@ -208,23 +257,19 @@ namespace Unity.NetCode
         public static World CreateClientWorld(string name)
         {
 #if UNITY_SERVER && !UNITY_EDITOR
-            throw new NotImplementedException();
+            throw new PlatformNotSupportedException("This executable was built using a 'server-only' build target (likely DGS). Thus, cannot create client worlds.");
 #else
             var world = new World(name, WorldFlags.GameClient);
 
             var systems = DefaultWorldInitialization.GetAllSystems(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.Presentation);
             DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(world, systems);
-
-#if UNITY_DOTSRUNTIME
-            AppendWorldToClientTickWorld(world);
-#else
             ScriptBehaviourUpdateOrder.AppendWorldToCurrentPlayerLoop(world);
-#endif
 
             if (World.DefaultGameObjectInjectionWorld == null)
                 World.DefaultGameObjectInjectionWorld = world;
 
-            return world;
+            ClientWorlds.Add(world);
+            return  world;
 #endif
         }
 
@@ -300,23 +345,19 @@ namespace Unity.NetCode
         public static World CreateServerWorld(string name)
         {
 #if UNITY_CLIENT && !UNITY_SERVER && !UNITY_EDITOR
-            throw new NotImplementedException();
+            throw new PlatformNotSupportedException("This executable was built using a 'client-only' build target. Thus, cannot create a server world. In your ProjectSettings, change your 'Client Build Target' to `ClientAndServer` to support creating client-hosted servers.");
 #else
 
             var world = new World(name, WorldFlags.GameServer);
 
             var systems = DefaultWorldInitialization.GetAllSystems(WorldSystemFilterFlags.ServerSimulation);
             DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(world, systems);
-
-#if UNITY_DOTSRUNTIME
-            AppendWorldToServerTickWorld(world);
-#else
             ScriptBehaviourUpdateOrder.AppendWorldToCurrentPlayerLoop(world);
-#endif
 
             if (World.DefaultGameObjectInjectionWorld == null)
                 World.DefaultGameObjectInjectionWorld = world;
 
+            ServerWorlds.Add(world);
             return world;
 #endif
         }
@@ -333,7 +374,7 @@ namespace Unity.NetCode
         /// <para>The default address to connect to when using auto connect (`AutoConnectPort` is not zero).
         /// If this value is `NetworkEndPoint.AnyIpv4` auto connect will not be used, even if the port is specified.
         /// This is to allow auto listen without auto connect.</para>
-        /// <para>The address specified in the `Multiplayer PlayMode Tools` window takes precedence over this when running in the editor (in `PlayType.Client`).
+        /// <para>The address specified in the `PlayMode Tools` window takes precedence over this when running in the editor (in `PlayType.Client`).
         /// If that address is not valid or you are running in a player, then `DefaultConnectAddress` will be used instead.</para>
         /// </summary>
         /// <remarks>Note that the `DefaultConnectAddress.Port` will be clobbered by the `AutoConnectPort` if it's set.</remarks>
@@ -416,6 +457,19 @@ namespace Unity.NetCode
         /// <returns>If at least one world with <see cref="WorldFlags.GameClient"/> flags has been created.</returns>
         /// </summary>
         public static bool HasClientWorlds => WorldCounts.Data.clientWorlds > 0;
+
+        static class ClientServerTracker
+        {
+            internal static List<World> ServerWorlds;
+            internal static List<World> ClientWorlds;
+            internal static List<World> ThinClientWorlds;
+            static ClientServerTracker()
+            {
+                ServerWorlds = new List<World>();
+                ClientWorlds = new List<World>();
+                ThinClientWorlds = new List<World>();
+            }
+        }
     }
 
     /// <summary>
@@ -498,12 +552,33 @@ namespace Unity.NetCode
             {
                 SystemAPI.GetSingletonRW<NetworkStreamDriver>().ValueRW.Listen(ClientServerBootstrap.DefaultListenAddress.WithPort(ClientServerBootstrap.AutoConnectPort));
             }
-            state.Enabled = false;
+            ApplyGlobalNetCodeConfigIfPresent(ref state);
+        }
+
+#if UNITY_EDITOR
+        public void OnUpdate(ref SystemState state)
+        {
+            ApplyGlobalNetCodeConfigIfPresent(ref state);
+        }
+#endif
+
+        private void ApplyGlobalNetCodeConfigIfPresent(ref SystemState state)
+        {
+            var serverConfig = NetCodeConfig.Global;
+            if (serverConfig)
+            {
+                if (SystemAPI.TryGetSingletonRW<ClientServerTickRate>(out var clientServerTickRate))
+                    clientServerTickRate.ValueRW = serverConfig.ClientServerTickRate;
+                else
+                    state.EntityManager.CreateSingleton(serverConfig.ClientServerTickRate);
+                SystemAPI.GetSingletonRW<GhostSendSystemData>().ValueRW = serverConfig.GhostSendSystemData;
+            }
         }
 
         public void OnDestroy(ref SystemState state)
         {
             --ClientServerBootstrap.WorldCounts.Data.serverWorlds;
+            ClientServerBootstrap.ServerWorlds.Remove(state.World);
         }
     }
 
@@ -526,12 +601,33 @@ namespace Unity.NetCode
             {
                 SystemAPI.GetSingletonRW<NetworkStreamDriver>().ValueRW.Connect(state.EntityManager, autoConnectEp);
             }
-            state.Enabled = false;
+
+            ApplyGlobalNetCodeConfigIfPresent(ref state);
+        }
+
+#if UNITY_EDITOR
+        public void OnUpdate(ref SystemState state)
+        {
+            ApplyGlobalNetCodeConfigIfPresent(ref state);
+        }
+#endif
+
+        private void ApplyGlobalNetCodeConfigIfPresent(ref SystemState state)
+        {
+            var clientConfig = NetCodeConfig.Global;
+            if (clientConfig)
+            {
+                if (SystemAPI.TryGetSingletonRW<ClientTickRate>(out var clientTickRate))
+                    clientTickRate.ValueRW = clientConfig.ClientTickRate;
+                else
+                    state.EntityManager.CreateSingleton(clientConfig.ClientTickRate);
+            }
         }
 
         public void OnDestroy(ref SystemState state)
         {
             --ClientServerBootstrap.WorldCounts.Data.clientWorlds;
+            ClientServerBootstrap.ClientWorlds.Remove(state.World);
         }
     }
 
@@ -547,28 +643,20 @@ namespace Unity.NetCode
             simulationGroup.RateManager = new NetcodeClientRateManager(simulationGroup);
 
             ++ClientServerBootstrap.WorldCounts.Data.clientWorlds;
-            if(ClientServerBootstrap.TryFindAutoConnectEndPoint(out var autoConnectEp))
+            if (ClientServerBootstrap.TryFindAutoConnectEndPoint(out var autoConnectEp))
             {
                 SystemAPI.GetSingletonRW<NetworkStreamDriver>().ValueRW.Connect(state.EntityManager, autoConnectEp);
             }
-            else
+            // Thin client has no auto connect endpoint configured to connect to. Check if the client has connected to
+            // something already (so it has manually connected), if so then connect to the same address
+            else if (ClientServerBootstrap.ClientWorld != null && ClientServerBootstrap.ClientWorld.IsCreated)
             {
-                // Thin client has no auto connect endpoint configured to connect to. Check if the client has connected to
-                // something already (so it has manually connected), if so then connect to the same address
-                for (int i = 0; i < World.All.Count; ++i)
-                {
-                    var world = World.All[i];
-                    if (world.IsClient())
-                    {
-                        using var driver = world.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<NetworkStreamDriver>());
-                        UnityEngine.Assertions.Assert.IsFalse(driver.IsEmpty);
-                        var driverData = driver.ToComponentDataArray<NetworkStreamDriver>(Allocator.Temp);
-                        UnityEngine.Assertions.Assert.IsTrue(driverData.Length == 1);
-                        if (driverData[0].LastEndPoint.IsValid)
-                            SystemAPI.GetSingletonRW<NetworkStreamDriver>().ValueRW.Connect(state.EntityManager, driverData[0].LastEndPoint);
-                        break;
-                    }
-                }
+                using var driver = ClientServerBootstrap.ClientWorld.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<NetworkStreamDriver>());
+                UnityEngine.Assertions.Assert.IsFalse(driver.IsEmpty);
+                var driverData = driver.ToComponentDataArray<NetworkStreamDriver>(Allocator.Temp);
+                UnityEngine.Assertions.Assert.IsTrue(driverData.Length == 1);
+                if (driverData[0].LastEndPoint.IsValid)
+                    SystemAPI.GetSingletonRW<NetworkStreamDriver>().ValueRW.Connect(state.EntityManager, driverData[0].LastEndPoint);
             }
 
             state.Enabled = false;
@@ -577,6 +665,7 @@ namespace Unity.NetCode
         public void OnDestroy(ref SystemState state)
         {
             --ClientServerBootstrap.WorldCounts.Data.clientWorlds;
+            ClientServerBootstrap.ThinClientWorlds.Remove(state.World);
         }
     }
 }

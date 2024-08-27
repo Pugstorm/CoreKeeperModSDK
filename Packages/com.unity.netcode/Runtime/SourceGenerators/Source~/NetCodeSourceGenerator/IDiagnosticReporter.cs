@@ -8,6 +8,13 @@ namespace Unity.NetCode.Generators
     /// </summary>
     internal interface IDiagnosticReporter
     {
+        void LogDebug(string message, Location location);
+        void LogDebug(string message,
+            [System.Runtime.CompilerServices.CallerFilePath]
+            string sourceFilePath = "",
+            [System.Runtime.CompilerServices.CallerLineNumber]
+            int sourceLineNumber = 0);
+
         void LogInfo(string message, Location location);
         void LogInfo(string message,
             [System.Runtime.CompilerServices.CallerFilePath]

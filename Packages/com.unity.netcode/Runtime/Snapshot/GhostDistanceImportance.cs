@@ -1,6 +1,6 @@
 using System;
-using AOT;
 using Unity.Burst;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.NetCode.LowLevel.Unsafe;
@@ -58,13 +58,19 @@ namespace Unity.NetCode
     public struct GhostDistanceImportance
     {
         /// <summary>
-        /// Function pointer to <see cref="Scale"/> function implementation.
+        /// Pointer to the <see cref="BatchScale"/> static method.
+        /// </summary>
+        public static readonly PortableFunctionPointer<GhostImportance.BatchScaleImportanceDelegate> BatchScaleFunctionPointer =
+            new PortableFunctionPointer<GhostImportance.BatchScaleImportanceDelegate>(BatchScale);
+
+        /// <summary>
+        /// Pointer to the <see cref="Scale"/> static method.
         /// </summary>
         public static readonly PortableFunctionPointer<GhostImportance.ScaleImportanceDelegate> ScaleFunctionPointer =
             new PortableFunctionPointer<GhostImportance.ScaleImportanceDelegate>(Scale);
 
         [BurstCompile(DisableDirectCall = true)]
-        [MonoPInvokeCallback(typeof(GhostImportance.ScaleImportanceDelegate))]
+        [AOT.MonoPInvokeCallback(typeof(GhostImportance.ScaleImportanceDelegate))]
         private static int Scale(IntPtr connectionDataPtr, IntPtr distanceDataPtr, IntPtr chunkTilePtr, int basePriority)
         {
             var distanceData = GhostComponentSerializer.TypeCast<GhostDistanceData>(distanceDataPtr);
@@ -77,6 +83,32 @@ namespace Unity.NetCode
             if (distSq > 3)
                 basePriority /= distSq;
             return basePriority;
+        }
+
+        [BurstCompile(DisableDirectCall = true)]
+        [AOT.MonoPInvokeCallback(typeof(GhostImportance.BatchScaleImportanceDelegate))]
+        private unsafe static void BatchScale(IntPtr connectionDataPtr, IntPtr distanceDataPtr, IntPtr sharedComponentTypeHandlePtr,
+            ref UnsafeList<PrioChunk> chunks)
+        {
+            var distanceData = GhostComponentSerializer.TypeCast<GhostDistanceData>(distanceDataPtr);
+            var centerTile = (int3)((GhostComponentSerializer.TypeCast<GhostConnectionPosition>(connectionDataPtr).Position - distanceData.TileCenter) / distanceData.TileSize);
+            var sharedType = GhostComponentSerializer.TypeCast<DynamicSharedComponentTypeHandle>(sharedComponentTypeHandlePtr);
+            for (int i = 0; i < chunks.Length ; ++i)
+            {
+                ref var data = ref chunks.ElementAt(i);
+                var basePriority = data.priority;
+                if (data.chunk.Has(ref sharedType))
+                {
+                    var chunkTile = (GhostDistancePartitionShared*)data.chunk.GetDynamicSharedComponentDataAddress(ref sharedType);
+                    var delta = chunkTile->Index - centerTile;
+                    var distSq = math.dot(delta, delta);
+                    basePriority *= 1000;
+                    // 3 makes sure all adjacent tiles are considered the same as the tile the connection is in - required since it might be close to the edge
+                    if (distSq > 3)
+                        basePriority /= distSq;
+                    data.priority = basePriority;
+                }
+            }
         }
     }
 }

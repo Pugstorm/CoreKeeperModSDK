@@ -21,6 +21,7 @@ namespace Unity.NetCode
         private EntityQuery m_ClientSeverTickRateQuery;
         private EntityQuery m_NetworkStreamInGameQuery;
         private EntityQuery m_NetworkTimeSystemDataQuery;
+        private readonly PredictedFixedStepSimulationSystemGroup m_PredictedFixedStepSimulationSystemGroup;
 
         private bool m_DidPushTime;
         internal NetcodeClientRateManager(ComponentSystemGroup group)
@@ -32,6 +33,7 @@ namespace Unity.NetCode
             m_ClientSeverTickRateQuery = group.World.EntityManager.CreateEntityQuery(ComponentType.ReadWrite<ClientServerTickRate>());
             m_NetworkStreamInGameQuery = group.World.EntityManager.CreateEntityQuery(ComponentType.ReadWrite<NetworkStreamInGame>());
             m_NetworkTimeSystemDataQuery = group.World.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<NetworkTimeSystemData>());
+            m_PredictedFixedStepSimulationSystemGroup = group.World.GetExistingSystemManaged<PredictedFixedStepSimulationSystemGroup>();
 
             var netTimeEntity = group.World.EntityManager.CreateEntity(
                 ComponentType.ReadWrite<NetworkTime>(),
@@ -56,10 +58,10 @@ namespace Unity.NetCode
 
             m_ClientSeverTickRateQuery.TryGetSingleton<ClientServerTickRate>(out var tickRate);
             tickRate.ResolveDefaults();
+            if (m_PredictedFixedStepSimulationSystemGroup != null)
+                m_PredictedFixedStepSimulationSystemGroup.ConfigureTimeStep(tickRate);
 
             var networkTimeSystemData = m_NetworkTimeSystemDataQuery.GetSingleton<NetworkTimeSystemData>();
-
-            float fixedTimeStep = tickRate.SimulationFixedTimeStep;
             // Calculate update time based on values received from the network time system
             var curServerTick = networkTimeSystemData.predictTargetTick;
             var curInterpoationTick = networkTimeSystemData.interpolateTargetTick;
@@ -71,20 +73,22 @@ namespace Unity.NetCode
             ref var previousServerTick = ref m_PreviousServerTickQuery.GetSingletonRW<PreviousServerTick>().ValueRW;
 			var currentTime = group.World.Time;
 
-            // If the tick is within +/- 5% of a frame from matching a tick - just use the actual tick instead
-            if (curServerTick.IsValid)
+            // If the tick is within ±5% of a frame from matching a tick - just use the actual tick instead
+            if (curServerTick.IsValid && tickRate.ClampPartialTicksThreshold > 0)
             {
-                if (serverTickFraction < 0.05f)
+                var fClamp = tickRate.ClampPartialTicksThreshold * 0.01f;
+                var oneOverFClamp = 1 - fClamp;
+                if (serverTickFraction < fClamp)
                     serverTickFraction = 1;
                 else
                     curServerTick.Increment();
-                if (serverTickFraction > 0.95f)
+                if (serverTickFraction > oneOverFClamp)
                     serverTickFraction = 1;
-                if (interpolationTickFraction < 0.05f)
+                if (interpolationTickFraction < fClamp)
                     interpolationTickFraction = 1;
                 else
                     curInterpoationTick.Increment();
-                if (interpolationTickFraction > 0.95f)
+                if (interpolationTickFraction > oneOverFClamp)
                     interpolationTickFraction = 1;
             }
 
@@ -93,7 +97,7 @@ namespace Unity.NetCode
             if (curServerTick.IsValid && previousServerTick.Value.IsValid)
             {
                 var deltaTicks = curServerTick.TicksSince(previousServerTick.Value);
-                networkDeltaTime = (deltaTicks + serverTickFraction - previousServerTick.Fraction) * fixedTimeStep;
+                networkDeltaTime = (deltaTicks + serverTickFraction - previousServerTick.Fraction) * tickRate.SimulationFixedTimeStep;
                 networkTime.SimulationStepBatchSize = (int)deltaTicks;
                 // If last tick was fractional - consider this as re-doing that tick since it will be re-predicted
                 if (previousServerTick.Fraction < 1)
@@ -193,9 +197,7 @@ namespace Unity.NetCode
 #if !UNITY_CLIENT || UNITY_SERVER || UNITY_EDITOR
     [UpdateAfter(typeof(TickServerSimulationSystem))]
 #endif
-#if !UNITY_DOTSRUNTIME
     [DisableAutoCreation]
-#endif
     [WorldSystemFilter(WorldSystemFilterFlags.LocalSimulation)]
     internal partial class TickClientSimulationSystem : TickComponentSystemGroup
     {

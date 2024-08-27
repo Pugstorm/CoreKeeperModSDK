@@ -7,8 +7,9 @@ namespace Unity.NetCode.Tests
     [DisableAutoCreation]
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
     [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
+    [UpdateAfter(typeof(GhostReceiveSystem))]
+    [UpdateBefore(typeof(GhostSpawnClassificationSystemGroup))]
     [UpdateBefore(typeof(GhostInputSystemGroup))]
-    [UpdateBefore(typeof(GhostUpdateSystem))]
     public partial class GhostUpdateSystemProxy : ComponentSystemGroup
     {
         static readonly ProfilerMarker k_Update = new ProfilerMarker("GhostUpdateSystem_OnUpdate");

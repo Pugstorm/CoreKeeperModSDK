@@ -96,6 +96,7 @@ namespace Unity.NetCode
         {
             GhostRelevancySet = set;
             GhostRelevancyMode = GhostRelevancyMode.Disabled;
+            DefaultRelevancyQuery = default;
         }
         /// <summary>
         /// Specify if the ghosts present in the <see cref="GhostRelevancySet"/> should be replicated (relevant) or not replicated
@@ -106,7 +107,23 @@ namespace Unity.NetCode
         /// A sorted collection of (connection, ghost) pairs, that should be used to specify which ghosts, for a given
         /// connection, should be replicated (or not replicated, based on the <see cref="GhostRelevancyMode"/>) for the current
         /// simulated tick.
+        /// For per-component type rules, see <see cref="DefaultRelevancyQuery"/>.
         /// </summary>
         public readonly NativeParallelHashMap<RelevantGhostForConnection, int> GhostRelevancySet;
+
+        /// <summary>
+        /// Use this query to specify the default per-component type rules about which ghosts should be relevant.
+        /// Note, however, that this filter is overridden by <see cref="GhostRelevancySet"/>.
+        /// For example
+        /// Mode = SetIsRelevant, DefaultRelevancyQuery = Any&lt;MyComponentA&gt;, GhostRelevancySet = ghostWithComponentB
+        /// - All ghosts with MyComponentA + the single ghostWithComponentB will be relevant
+        /// Mode = SetIsIrrelevant, DefaultRelevancyQuery = Any&lt;MyComponentA&gt;, GhostRelevancySet = ghostWithComponentA
+        /// - All ghosts with MyComponentA will be relevant, except the single ghostWithComponentA
+        /// </summary>
+        /// <remarks>
+        /// Since this is translating to a <see cref="EntityQueryMask"/> internally, the same restrictions apply for filtering.
+        /// Ensure your query uses the Any filter if you have multiple ghost types which should all be considered always relevant by default.
+        /// </remarks>
+        public EntityQuery DefaultRelevancyQuery;
     }
 }

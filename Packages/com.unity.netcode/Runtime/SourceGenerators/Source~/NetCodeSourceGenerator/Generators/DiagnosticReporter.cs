@@ -13,6 +13,22 @@ namespace Unity.NetCode.Generators
             context = ctx;
         }
 
+        public void LogDebug(string message,
+            [System.Runtime.CompilerServices.CallerFilePath]
+            string sourceFilePath = "",
+            [System.Runtime.CompilerServices.CallerLineNumber]
+            int sourceLineNumber = 0)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticHelper.CreateInfoDescriptor(message),
+                DiagnosticHelper.GenerateExtenalLocation(sourceFilePath, sourceLineNumber)));
+            Debug.LogDebug(message);
+        }
+        public void LogDebug(string message, Location location)
+        {
+            Debug.LogDebug(message);
+        }
+
         public void LogInfo(string message,
             [System.Runtime.CompilerServices.CallerFilePath]
             string sourceFilePath = "",

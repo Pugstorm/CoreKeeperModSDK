@@ -41,8 +41,11 @@ namespace Unity.NetCode.Hybrid
         /// <inheritdoc/>
         void IEntitiesPlayerSettings.RegisterCustomDependency()
         {
-            var hash = GetHash();
-            AssetDatabase.RegisterCustomDependency(CustomDependency, hash);
+            if (!AssetDatabase.IsAssetImportWorkerProcess())
+            {
+                var hash = GetHash();
+                AssetDatabase.RegisterCustomDependency(CustomDependency, hash);
+            }
         }
         /// <inheritdoc/>
         public UnityEngine.Hash128 GetHash()
@@ -75,13 +78,45 @@ namespace Unity.NetCode.Hybrid
         }
         internal void Save()
         {
-            //The asset importer should never save the data
+            if (AssetDatabase.IsAssetImportWorkerProcess())
+                return;
+
+            if (!EditorApplication.isUpdating)
+            {
+                ((IEntitiesPlayerSettings) this).RegisterCustomDependency();
+            }
+
+            Save(true);
+            AssetDatabase.Refresh();
+        }
+
+#if UNITY_2023_2_OR_NEWER
+        private void OnEnable()
+        {
+            if (!AssetDatabase.IsAssetImportWorkerProcess())
+            {
+                ((IEntitiesPlayerSettings)this).RegisterCustomDependency();
+            }
+        }
+#endif
+        private void OnDisable()
+        {
+#if !UNITY_2023_2_OR_NEWER
+            Save();
+#else
+            //But the depedency is going to be update when the scriptable is re-enabled.
             if (AssetDatabase.IsAssetImportWorkerProcess())
                 return;
             Save(true);
-            ((IEntitiesPlayerSettings)this).RegisterCustomDependency();
+            //This safeguard is necessary because the RegisterCustomDependency throw exceptions
+            //if this is called when the editor is refreshing the database.
+            if(!EditorApplication.isUpdating)
+            {
+                ((IEntitiesPlayerSettings)this).RegisterCustomDependency();
+                AssetDatabase.Refresh();
+            }
+#endif
         }
-        private void OnDisable() { Save(); }
     }
 
     internal class ServerSettings : DotsPlayerSettingsProvider

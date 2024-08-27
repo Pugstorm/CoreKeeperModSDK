@@ -57,7 +57,7 @@ namespace Unity.NetCode
         {
             var serializer = default(TActionSerializer);
             var serializerState = new RpcSerializerState {GhostFromEntity = ghostFromEntity};
-            var msgHeaderLen = dynamicAssemblyList.Value == 1 ? 10 : 4;
+            var msgHeaderLen = RpcCollection.GetInnerRpcMessageHeaderLength(dynamicAssemblyList.Value == 1);
             int maxSize = UnsafeUtility.SizeOf<TActionRequest>() + msgHeaderLen + 1;
             int rpcIndex = 0;
             if (!(dynamicAssemblyList.Value == 1) && !rpcTypeHashToIndex.TryGetValue(rpcType, out rpcIndex))
@@ -71,6 +71,11 @@ namespace Unity.NetCode
                     writer.WriteUShort((ushort)rpcIndex);
                 var lenWriter = writer;
                 writer.WriteUShort((ushort)0);
+
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+                UnityEngine.Debug.Assert(writer.Length == RpcCollection.GetInnerRpcMessageHeaderLength(dynamicAssemblyList.Value == 1));
+#endif
+
                 serializer.Serialize(ref writer, serializerState, data);
                 if (!writer.HasFailedWrites)
                 {

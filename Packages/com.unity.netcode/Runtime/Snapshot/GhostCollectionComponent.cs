@@ -1,4 +1,8 @@
+using System;
 using System.Runtime.InteropServices;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.NetCode.LowLevel.Unsafe;
 
@@ -93,21 +97,21 @@ namespace Unity.NetCode
     public struct GhostCollection : IComponentData
     {
         /// <summary>
-        /// The number prefab that has been loaded into the <see cref="GhostCollectionPrefab"/> collection.
+        /// The number of prefabs that have been loaded into the <see cref="GhostCollectionPrefab"/> collection.
         /// Use to determine which ghosts types the server can stream to the clients.
         /// <para>
-        /// The server report to the client the list of loaded prefabs (with their see <see cref="GhostType"/> guid)
+        /// The server reports (to the client) the list of loaded prefabs (with their see <see cref="GhostTypeComponent"/> guid)
         /// as part of the snapshot protocol.
-        /// The list is dynamic; new prefabs can be added/loaded at runtime on the server, and the ones will be reported to the client.
+        /// The list is dynamic; new prefabs can be added/loaded at runtime (on the server), and the new ones will be reported to the client.
         /// </para>
         /// <para>
-        /// Clients reports to the server the number of loaded prefab as part of the command protocol.
-        /// When the client receive a ghost snapshot, the ghost prefab list is processed and the <see cref="GhostCollectionPrefab"/> collection
-        /// is updated with any new ghost types not present in the collection.
+        /// Clients report (to the server) the number of loaded prefabs, as part of the command protocol.
+        /// When the client receives a ghost snapshot, the ghost prefab list is processed, and the <see cref="GhostCollectionPrefab"/> collection
+        /// is updated with any new ghost types not already present in the collection.
         /// <para>
-        /// The client is not required to have all prefab type in the <see cref="GhostCollectionPrefab"/> to be loaded into the world. They can
-        /// be loaded/added dynamically to the world (i.e when streaming a sub-scene), and the <see cref="GhostCollectionPrefab.Loading"/> state
-        /// should be used in that case to inform the <see cref="GhostCollection"/> that the specified prefabs are getting loaded into the world.
+        /// The client does not need to have loaded ALL prefab types in the <see cref="GhostCollectionPrefab"/> to initialize the world. I.e. They can
+        /// be loaded/added dynamically into the world (i.e when streaming a sub-scene), and the <see cref="GhostCollectionPrefab.Loading"/> state
+        /// should be used in that case (to inform the <see cref="GhostCollection"/> that the specified prefabs are currently being loaded into the world).
         /// </para>
         /// </para>
         /// </summary>
@@ -185,10 +189,11 @@ namespace Unity.NetCode
     /// Added to the GhostCollection singleton entity.
     /// </summary>
     [InternalBufferCapacity(0)]
-    internal struct GhostCollectionPrefabSerializer : IBufferElementData
+    public struct GhostCollectionPrefabSerializer : IBufferElementData
     {
         /// <summary>
-        /// The stable type hash of the component buffer. Used to retrieve the component type from the <see cref="Entities.TypeManager"/>.
+        /// The stable type hash of the prefab. Used to retrieve GhostCollectionPrefabSerializer instance. The hash is composed by
+        /// the name and the hash of all the component serializers.
         /// </summary>
         public ulong TypeHash;
         /// <summary>
@@ -204,11 +209,11 @@ namespace Unity.NetCode
         /// </summary>
         public int NumChildComponents;
         /// <summary>
-        /// The total size in bytes of the serialized component data.
+        /// The total size in bytes of the entire ghost type, including space for enable bits and change masks.
         /// </summary>
         public int SnapshotSize;
         /// <summary>
-        /// The number of bits used by change mask bitarray.
+        /// The number of bits used by change mask bitarray for this entire ghost type.
         /// </summary>
         public int ChangeMaskBits;
         /// <summary>
@@ -240,7 +245,7 @@ namespace Unity.NetCode
         /// True if the <see cref="GhostOptimizationMode"/> is set to <see cref="GhostOptimizationMode.Static"/> in the
         /// <see cref="GhostAuthoringComponent"/>.
         /// </summary>
-        public bool StaticOptimization;
+        public byte StaticOptimization;
         /// <summary>
         /// Reflect the importance value set in the <see cref="GhostAuthoringComponent"/>. Is used as the base value for the
         /// scaled importance calculated at runtime.
@@ -273,6 +278,14 @@ namespace Unity.NetCode
         /// A profile marker used to track serialization performance.
         /// </summary>
         public Profiling.ProfilerMarker profilerMarker;
+        /// <summary>
+        /// A custom serializer function to serializer the chunk (only for server).
+        /// </summary>
+        public PortableFunctionPointer<GhostPrefabCustomSerializer.ChunkSerializerDelegate> CustomSerializer;
+        /// <summary>
+        /// The function pointer to invoke for pre-serializing the chunk (only for server).
+        /// </summary>
+        public PortableFunctionPointer<GhostPrefabCustomSerializer.ChunkPreserializeDelegate> CustomPreSerializer;
     }
 
     /// <summary>
@@ -304,19 +317,211 @@ namespace Unity.NetCode
     /// Added to the GhostCollection singleton entity.
     /// </summary>
     [InternalBufferCapacity(0)]
-    internal struct GhostCollectionComponentIndex : IBufferElementData
+    public struct GhostCollectionComponentIndex : IBufferElementData
     {
         /// <summary>Index of ghost entity the rule applies to.</summary>
         public int EntityIndex;
-        /// <summary>Index in the GhostComponentCollection, used to retrieve the component type from the DynamicTypeHandle.</summary>
+        /// <summary>Index in the <see cref="GhostCollectionComponentIndex"/>, used to retrieve the component type from the DynamicTypeHandle.</summary>
         public int ComponentIndex;
-        /// <summary>Index in the GhostComponentSerializer.State collection, used to get the type of serializer to use.</summary>
+        /// <summary>Index in the <see cref="GhostComponentSerializer.State"/> collection, used to get the type of serializer to use.</summary>
         public int SerializerIndex;
+        /// <summary>The <see cref="TypeIndex"/> the component.</summary>
+        public int TypeIndex;
+        /// <summary>Size of the component.</summary>
+        public int ComponentSize;
+        /// <summary>Size of the component in the snapshot buffer.</summary>
+        public int SnapshotSize;
         /// <summary>Current send mask for that component, used to not send/receive components in some configuration.</summary>
-        public GhostComponentSerializer.SendMask SendMask;
+        public GhostSendType SendMask;
+        /// <summary>Current owner mask for that component, used to not send/receive components in some configuration.</summary>
+        public SendToOwnerType SendToOwner;
 #if UNITY_EDITOR || NETCODE_DEBUG
-        public int PredictionErrorBaseIndex;
+        internal int PredictionErrorBaseIndex;
         #endif
     }
 
+    /// <summary>
+    /// Allow to associate for a given ghost prefab a custom made (hand written) serialization function.
+    /// The method allow to serialize on per "archetype", allowing for better vectorization and optimisation in general.
+    /// However, writing the serialization code is not trivial and require deep knowledge of the underlying
+    /// <see cref="GhostChunkSerializer"/> implementation, data and wire format.
+    /// </summary>
+    public struct GhostPrefabCustomSerializer
+    {
+        /// <summary>
+        /// Contains all the necessary data to perform the chunk serialization.
+        /// </summary>
+        public struct Context
+        {
+            /// <summary>
+            /// The pointer to the buffer that contains the snapshot data. The size of the buffer is fixed
+            /// by archetype, being the component set immutable after the prefab has been registered and pre-processed
+            /// by the <see cref="GhostCollectionSystem"/>.
+            /// </summary>
+            [NoAlias]public IntPtr snapshotDataPtr;
+            /// <summary>
+            /// The pointer to the buffer that contains the dynamic buffer snapshot data. This is a
+            /// variable size buffer.
+            /// </summary>
+            [NoAlias]public IntPtr snapshotDynamicDataPtr;
+            /// <summary>
+            /// The index inside the <see cref="GhostCollectionPrefabSerializer"/> buffer.
+            /// </summary>
+            public int ghostType;
+            /// <summary>
+            /// The offset from the start of the <see cref="snapshotDataPtr"/> from which the component data
+            /// are stored. The offset depends on the number of component, their change masks and the presence or
+            /// not of enable bits to replicate.
+            /// </summary>
+            public int snapshotOffset;
+            /// <summary>
+            /// The offsets in bytes from the beginning of the <see cref="snapshotDataPtr"/> buffer where the
+            /// component change mask bits bits are stored.
+            /// </summary>
+            public int changeMaskOffset;
+            /// <summary>
+            /// The offsets in bytes from the beginning of the <see cref="snapshotDataPtr"/> buffer where the
+            /// state of the component enable bits are stored.
+            /// </summary>
+            public int enablebBitsOffset;
+            /// <summary>
+            /// The offset from the beginning of the <see cref="snapshotDynamicDataPtr"/> from which the dynamic buffer
+            /// data are going to be stored.
+            /// </summary>
+            public int dynamicDataOffset;
+            /// <summary>
+            /// The size (in bytes) of the snasphot data. Entitiy component data are stored strided by the snapshotSize
+            /// and the snapshot buffer format is something like:
+            /// |ent1       | ... |ent n|
+            /// |c1, c2.. cn| ... |c1, c2.. cn|
+            /// </summary>
+            public int snapshotStride;
+            /// <summary>
+            /// The capacity (in bytes) of the dynamic snasphot data. This is pre-computed and it is used mostly for
+            /// boundary checks.
+            /// </summary>
+            public int dynamicDataCapacity;
+            /// <summary>
+            /// The dynamic type handle of all the registered serializable component types currently in use.
+            /// </summary>
+            [NoAlias][ReadOnly] public IntPtr ghostChunkComponentTypesPtr;
+            /// <summary>
+            /// The <see cref="ghostChunkComponentTypesPtr"/> list length.
+            /// </summary>
+            public int ghostChunkComponentTypesPtrLen;
+            /// <summary>
+            /// A lookup used to retrieve the chunk information (chunk and indices) when serializing
+            /// child components.
+            /// </summary>
+            [ReadOnly] public EntityStorageInfoLookup childEntityLookup;
+            /// <summary>
+            /// Type handled used to retrieve the <see cref="LinkedEntityGroup"/> buffer from the chunk.
+            /// </summary>
+            [ReadOnly] public BufferTypeHandle<LinkedEntityGroup> linkedEntityGroupTypeHandle;
+            /// <summary>
+            /// The <see cref="GhostSerializerState"/> data used to convert component data to snapshot data.
+            /// </summary>
+            public GhostSerializerState serializerState;
+            /// <summary>
+            /// The index of the first relevant entity in the chunk.
+            /// </summary>
+            public int startIndex;
+            /// <summary>
+            /// The index of the last relevant entity in the chunk. This should be used to iterate over
+            /// the chunk entities. Don't use chunk.Count.
+            /// </summary>
+            public int endIndex;
+            /// <summary>
+            /// The connection <see cref="NetworkId"/>
+            /// </summary>
+            public int networkId;
+            /// <summary>
+            /// instruct the custom serializer to not copy the data to the snapsnot, because has been already
+            /// pre-serialized
+            /// </summary>
+            public int hasPreserializedData;
+            /// <summary>
+            /// [Output] the buffer where to store the ghost data compressed size and start bit inside the
+            /// temporary data stream.
+            /// Stores 2 ints per component, per entity.
+            /// [1st] Writer bit offset to the start of this components writes.
+            /// [2nd] Num bits written for this component.
+            /// </summary>
+            [NoAlias]public IntPtr entityStartBit;
+            /// <summary>
+            /// The list of readonly <see cref="DynamicComponentTypeHandle"/> that must be used to retrieve the component
+            /// data from the chunk
+            /// </summary>
+            [NoAlias]public IntPtr ghostChunkComponentTypes;
+            /// <summary>
+            /// The baselines to use to serialize the entities. It contains 4 baselines per entity:
+            /// Index 0-2 the snapshot baseline, Index 3 the dynamic buffer baseline.
+            /// </summary>
+            [NoAlias]public IntPtr baselinePerEntityPtr;
+            /// <summary>
+            /// Contains a run-length encoded baseline indices to use for each entities runs. Can be used
+            /// to determine if an entity is irrelevant.
+            /// </summary>
+            [NoAlias]public IntPtr sameBaselinePerEntityPtr;
+            /// <summary>
+            /// [Output] a buffer that store the total size of the dynamic buffer data for each entity in the chunk.
+            /// </summary>
+            [NoAlias]public IntPtr dynamicDataSizePerEntityPtr;
+            /// <summary>
+            /// a readonly buffer that contains all zero bytes  (up to 8kb)
+            /// </summary>
+            [NoAlias]public IntPtr zeroBaseline;
+            /// <summary>
+            /// the pointer of the <see cref="GhostInstance"/> data in the chunk.
+            /// </summary>
+            [NoAlias]public IntPtr ghostInstances;
+        }
+
+        /// <summary>
+        /// The function pointer to invoke for serializing the chunk.
+        /// </summary>
+        public PortableFunctionPointer<ChunkSerializerDelegate> SerializeChunk;
+        /// <summary>
+        /// A custom serializer function to serializer the chunk (only for server)
+        /// </summary>
+        public PortableFunctionPointer<ChunkPreserializeDelegate> PreSerializeChunk;
+        ///<summary>
+        /// Delegate to specify a custom order for the serialised components.
+        /// </summary>
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void CollectComponentDelegate(IntPtr componentTypes, IntPtr componentCount);
+        ///<summary>
+        /// Delegate for the custom chunk serializer.
+        /// </summary>
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void ChunkSerializerDelegate(
+            ref ArchetypeChunk chunk,
+            in GhostCollectionPrefabSerializer typeData,
+            in DynamicBuffer<GhostCollectionComponentIndex> componentIndices,
+            ref Context context,
+            ref DataStreamWriter tempWriter,
+            in StreamCompressionModel compressionModel,
+            ref int lastSerializedEntity);
+        ///<summary>
+        /// Delegate for the custom chunk pre-serialization function.
+        /// </summary>
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void ChunkPreserializeDelegate(
+            in ArchetypeChunk chunk,
+            in GhostCollectionPrefabSerializer typeData,
+            in DynamicBuffer<GhostCollectionComponentIndex> componentIndices,
+            ref Context context);
+    }
+
+    /// <summary>
+    /// Singleton component that holds the list of custom chunk serializers.
+    /// </summary>
+    public struct GhostCollectionCustomSerializers : IComponentData
+    {
+        /// <summary>
+        /// Associate a <see cref="GhostPrefabCustomSerializer"/> for a specific prefab guid (or <see cref="GhostType"/>)
+        /// The Hash128 can be derived from the <see cref="GhostType"/> via the explicit cast operator.
+        /// </summary>
+        public NativeHashMap<Hash128, GhostPrefabCustomSerializer> Serializers;
+    }
 }

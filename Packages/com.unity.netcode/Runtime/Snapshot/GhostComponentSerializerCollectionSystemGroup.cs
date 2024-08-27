@@ -113,7 +113,7 @@ namespace Unity.NetCode
             if (IsSerialized != other.IsSerialized)
                 return IsSerialized - other.IsSerialized;
             if (DefaultRule != other.DefaultRule)
-                return DefaultRule - other.DefaultRule;
+                return (int)DefaultRule - (int)other.DefaultRule;
             if (Hash != other.Hash)
                 return Hash < other.Hash ? -1 : 1;
             return 0;
@@ -234,7 +234,7 @@ namespace Unity.NetCode
         /// </summary>
         internal NativeParallelMultiHashMap<ComponentType, short> SerializationStrategiesComponentTypeMap;
         /// <summary>
-        /// Map to look up the buffer type to use for an IInputComponentData type.
+        /// Map to look up the buffer type to use for an IInputComponentData type. Only used for baking purpose.
         /// </summary>
         internal NativeHashMap<ComponentType, ComponentType> InputComponentBufferMap;
         /// <summary>
@@ -357,6 +357,20 @@ namespace Unity.NetCode
        }
 
         /// <summary>
+        /// Lookup a component type to use as a buffer for a given IInputComponentData.
+        /// </summary>
+        /// <param name="inputType"></param>
+        /// <param name="bufferType"></param>
+        /// <returns>True if the component has an assosiated buffer to use, false if it does not.</returns>
+        [Obsolete("TryGetBufferForInputComponent has been deprecated. In order to find the buffer associated with an IInputComponentData please just use" +
+                  "IInputBuffer<T> where T is the IInputComponentData type you are looking for.", false)]
+        public bool TryGetBufferForInputComponent(ComponentType inputType, out ComponentType bufferType)
+        {
+            bufferType = default;
+            return false;
+        }
+
+        /// <summary>
         /// Used by code-generated systems and meant for internal use only.
         /// Adds a mapping from an IInputComponentData to the buffer it should use.
         /// </summary>
@@ -366,18 +380,6 @@ namespace Unity.NetCode
         {
             InputComponentBufferMap.TryAdd(inputType, bufferType);
         }
-
-        /// <summary>
-        /// Lookup a component type to use as a buffer for a given IInputComponentData.
-        /// </summary>
-        /// <param name="inputType"></param>
-        /// <param name="bufferType"></param>
-        /// <returns>True if the component has an assosiated buffer to use, false if it does not.</returns>
-        public bool TryGetBufferForInputComponent(ComponentType inputType, out ComponentType bufferType)
-        {
-            return InputComponentBufferMap.TryGetValue(inputType, out bufferType);
-        }
-
         internal void MapSerializerToStrategy(ref GhostComponentSerializer.State state, short serializerIndex)
         {
             foreach (var ssIndex in SerializationStrategiesComponentTypeMap.GetValuesForKey(state.ComponentType))
@@ -502,7 +504,7 @@ namespace Unity.NetCode
         /// <para><b>Finds all available variants for a given type, applying all variant rules at once.</b></para>
         /// <para>Since multiple variants can be present for any given component there are some important use cases that need to be
         /// handled.</para>
-        /// <para> Note that, for <see cref="IInputBufferData"/>s, they'll return the variants available to their <see cref="IInputComponentData"/> authoring struct.</para>
+        /// <para> Note that, for <see cref="InputBufferData{T}"/>s, they'll return the variants available to their <see cref="IInputComponentData"/> authoring struct.</para>
         /// <para> Note that the number of default variants returned may not be 1 (it could be more or less).</para>
         /// </summary>
         /// <param name="componentType">Type to find the variant for.</param>

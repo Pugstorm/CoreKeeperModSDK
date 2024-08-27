@@ -100,13 +100,14 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
 
-
-                for (int i = 0; i < 8; ++i)
+                // Takes longer to replicate a ghost because we only replicate snapshots every other frame
+                // (due to NetworkTickRate = 30 + GhostSendSystem.m_ConnectionsToProcess == 0).
+                for (int i = 0; i < 9; ++i)
                     testWorld.Tick(frameTime);
 
                 var clientEnt = testWorld.TryGetSingletonEntity<TestExtrapolated>(testWorld.ClientWorlds[0]);
@@ -149,7 +150,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();

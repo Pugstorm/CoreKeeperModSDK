@@ -63,7 +63,7 @@ namespace Unity.NetCode.Tests
                     typeof(SerializedRpcCommandRequestSystem));
                 testWorld.CreateWorlds(true, 1);
 
-                Assert.IsTrue(testWorld.Connect(frameTime, 7));
+                testWorld.Connect(frameTime);
 
                 PrepareSend(1);
                 StepTicks(testWorld, 15, frameTime);
@@ -100,7 +100,7 @@ namespace Unity.NetCode.Tests
                     typeof(SerializedRpcCommandRequestSystem));
                 testWorld.CreateWorlds(true, 1);
 
-                Assert.IsTrue(testWorld.Connect(frameTime, 7));
+                testWorld.Connect(frameTime);
 
                 PrepareSend(1);
                 StepTicks(testWorld, 15, frameTime);
@@ -145,7 +145,7 @@ namespace Unity.NetCode.Tests
                     typeof(SerializedRpcCommandRequestSystem));
                 testWorld.CreateWorlds(true, 10);
 
-                Assert.IsTrue(testWorld.Connect(frameTime, 10));
+                testWorld.Connect(frameTime);
                 Unity.Mathematics.Random random = new Unity.Mathematics.Random(42);
                 var rndClient = random.NextInt(0, 10);
 

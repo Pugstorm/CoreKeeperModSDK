@@ -57,8 +57,12 @@ _Note that applying this setting will cause **all** ghosts to default to **not b
 * **SetIsIrrelevant** - Ghosts added to relevancy set (`GhostRelevancySet`, below) are considered "not-relevant to that client", and thus will be not serialized for the specified connection. In other words: Set this mode if you want to specifically ignore specific entities for a given client.
 
 `GhostRelevancySet` is the map that stores a these (connection, ghost) pairs. The behaviour (of adding a (connection, ghost) item) is determined according to the above rule.
-
-> [!NOTE]
+`DefaultRelevancyQuery` is a global rule denoting that all ghost chunks matching this query are always considered relevant to all connections (unless you've added the ghosts in said chunk to the `GhostRelevancySet`). This is useful for creating general relevancy rules (e.g. "the entities in charge of tracking player scores are always relevant"). `GhostRelevancySet` takes precedence over this rule. See the [example](https://github.com/Unity-Technologies/EntityComponentSystemSamples/tree/master/NetcodeSamples/Assets/Samples/Asteroids/Authoring/Server/SetAlwaysRelevantSystem.cs) in Asteroids.
+```c#
+var relevancy = SystemAPI.GetSingletonRW<GhostRelevancy>();
+relevancy.ValueRW.DefaultRelevancyQuery = GetEntityQuery(typeof(AsteroidScore));
+```
+> [!NOTE]~~~~
 > If a ghost has been replicated to a client, then is set to **not be** relevant to said client, that client will be notified that this entity has been **destroyed**, and will do so. This misnomer can be confusing, as the entity being despawned does not imply the server entity was destroyed.
 > Example: Despawning an enemy monster in a MOBA because it became hidden in the Fog of War should not trigger a death animation (nor S/VFX). Thus, use some other data to notify what kind of entity-destruction state your entity has entered (e.g. enabling an `IsDead`/`IsCorpse` component).
 
@@ -147,7 +151,7 @@ How? Via another user-definable component: `GhostConnectionPosition` can store t
 In Asteroids, this component is added to the connection entity when the (steroids-specific) `RpcLevelLoaded` RPC is invoked:
 ```c#
     [BurstCompile(DisableDirectCall = true)]
-    [MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
+    [AOT.MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
     private static void InvokeExecute(ref RpcExecutor.Parameters parameters)
     {
         var rpcData = default(RpcLevelLoaded);

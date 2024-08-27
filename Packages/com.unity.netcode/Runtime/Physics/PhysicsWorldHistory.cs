@@ -303,6 +303,7 @@ namespace Unity.NetCode
     /// This system creates a PhysicsWorldHistorySingleton and from that you can
     /// get a physics collision world for a previous tick.
     /// </summary>
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ServerSimulation)]
     [UpdateInGroup(typeof(PredictedSimulationSystemGroup), OrderFirst = true)]
     [UpdateBefore(typeof(PredictedFixedStepSimulationSystemGroup))]
     [BurstCompile]

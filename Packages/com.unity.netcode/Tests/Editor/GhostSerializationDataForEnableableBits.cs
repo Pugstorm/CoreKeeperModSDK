@@ -113,6 +113,17 @@ namespace Unity.NetCode.Tests
                 (typeof(ComponentWithDontSendChildrenVariant), typeof(ComponentWithDontSendChildrenVariantVariation)),
                 (typeof(ComponentWithNonReplicatedVariant), typeof(ComponentWithNonReplicatedVariantVariation)),
                 // Skipped as never replicated. (typeof(NeverReplicatedEnableableFlagComponent), null),
+
+                // GhostComponent:
+                (typeof(SendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent), null),
+                (typeof(SendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent), null),
+                (typeof(SendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent), null),
+                (typeof(SendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent), null),
+                (typeof(DontSendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent), null),
+                (typeof(DontSendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent), null),
+                (typeof(DontSendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent), null),
+                (typeof(DontSendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent), null),
+
                 (typeof(ChildOnlyComponent_1), null),
                 (typeof(ChildOnlyComponent_2), null),
                 (typeof(ChildOnlyComponent_3), null),
@@ -232,6 +243,16 @@ namespace Unity.NetCode.Tests
             AddComponentWithDefaultValue<ComponentWithReplicatedVariant>(baker);
             AddComponentWithDefaultValue<ComponentWithDontSendChildrenVariant>(baker);
             AddComponentWithDefaultValue<ComponentWithNonReplicatedVariant>(baker);
+
+            // FIXME: GhostComponentAttribute coverage.
+            AddComponentWithDefaultValue<SendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>(baker);
+            AddComponentWithDefaultValue<SendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>(baker);
+            AddComponentWithDefaultValue<SendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>(baker);
+            AddComponentWithDefaultValue<SendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>(baker);
+            AddComponentWithDefaultValue<DontSendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent>(baker);
+            AddComponentWithDefaultValue<DontSendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent>(baker);
+            AddComponentWithDefaultValue<DontSendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent>(baker);
+            AddComponentWithDefaultValue<DontSendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent>(baker);
         }
 
         void SetupMultipleEnableableComponents(IBaker baker)
@@ -446,23 +467,6 @@ namespace Unity.NetCode.Tests
         public void SetValue(int value) => this.value = value;
 
         public int GetValue() => value;
-
-        public static bool ExpectChildReplicated(SendForChildrenTestCase sendForChildrenTestCase)
-        {
-            switch (sendForChildrenTestCase)
-            {
-                // Note that the variant has:  [GhostComponent(SendDataForChildEntity = true)], thus yes.
-                case SendForChildrenTestCase.YesViaExplicitVariantRule:
-                case SendForChildrenTestCase.YesViaInspectionComponentOverride:
-                case SendForChildrenTestCase.YesViaExplicitVariantOnlyAllowChildrenToReplicateRule:
-                case SendForChildrenTestCase.Default: // This is also yes, because a type having only 1 variant implies it should be used.
-                    return true;
-                case SendForChildrenTestCase.NoViaExplicitDontSerializeVariantRule:
-                    return false;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
     }
 
     // As this is the only variant, it becomes the default variant.
@@ -483,42 +487,6 @@ namespace Unity.NetCode.Tests
         public void SetValue(int value) => this.value = value;
 
         public int GetValue() => value;
-
-        public static bool ExpectReplicate(SendForChildrenTestCase sendForChildrenTestCase)
-        {
-            switch (sendForChildrenTestCase)
-            {
-                case SendForChildrenTestCase.YesViaExplicitVariantRule:
-                case SendForChildrenTestCase.YesViaInspectionComponentOverride:
-                    return true; // We explicitly use the variant that has [GhostEnabledBit].
-                case SendForChildrenTestCase.Default:
-                    return true; // We only have one variant, so we should default to it (and it has [GhostEnabledBit]).
-                case SendForChildrenTestCase.NoViaExplicitDontSerializeVariantRule:
-                case SendForChildrenTestCase.YesViaExplicitVariantOnlyAllowChildrenToReplicateRule:
-                    return false;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        public static bool ExpectChildReplicate(SendForChildrenTestCase sendForChildrenTestCase)
-        {
-            switch (sendForChildrenTestCase)
-            {
-                // Weird case: The variant doesn't NORMALLY allow children to be replicated,
-                // but in this case it WILL replicate on a child because the variant is specifically set for children.
-                case SendForChildrenTestCase.YesViaExplicitVariantOnlyAllowChildrenToReplicateRule:
-                case SendForChildrenTestCase.YesViaExplicitVariantRule:
-                case SendForChildrenTestCase.YesViaInspectionComponentOverride:
-                    return true;
-                case SendForChildrenTestCase.Default:
-                    return false; // The variant we use "by default" doesn't replicate children.
-                case SendForChildrenTestCase.NoViaExplicitDontSerializeVariantRule:
-                    return false; // Nothing will serialize.
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
     }
 
     // As this is the only variant, it becomes the default variant.
@@ -540,22 +508,6 @@ namespace Unity.NetCode.Tests
         public void SetValue(int value) => this.value = value;
 
         public int GetValue() => value;
-
-        public static bool ExpectReplicate(SendForChildrenTestCase sendForChildrenTestCase)
-        {
-            switch (sendForChildrenTestCase)
-            {
-                case SendForChildrenTestCase.YesViaExplicitVariantRule:
-                case SendForChildrenTestCase.NoViaExplicitDontSerializeVariantRule:
-                case SendForChildrenTestCase.YesViaInspectionComponentOverride:
-                    return false; // Opting into a non-serialized variant.
-                case SendForChildrenTestCase.Default:
-                case SendForChildrenTestCase.YesViaExplicitVariantOnlyAllowChildrenToReplicateRule:
-                    return false; // Default variant never replicated, so false.
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
     }
 
     // As this is the only variant, it becomes the default variant.
@@ -599,6 +551,84 @@ namespace Unity.NetCode.Tests
     }
     [GhostComponent(SendDataForChildEntity = false)]
     public struct ChildOnlyComponent_4 : IComponentData, IComponentValue, IEnableableComponent
+    {
+        [GhostField]
+        public int value;
+        public void SetValue(int value) => this.value = value;
+        public int GetValue() => value;
+    }
+
+    // FIXME: GhostComponentAttribute coverage, test children equivalents of this.
+    // FIXME: GhostComponentAttribute coverage, test SendData = false too.
+
+    // Test components with lots of GhostComponentAttribute modifications (note: PrefabType stripping is tested elsewhere):
+    [GhostComponent(SendDataForChildEntity = true, SendTypeOptimization = GhostSendType.OnlyPredictedClients, OwnerSendType = SendToOwnerType.SendToOwner)]
+    [GhostEnabledBit]
+    public struct SendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent : IComponentData, IComponentValue, IEnableableComponent
+    {
+        [GhostField]
+        public int value;
+        public void SetValue(int value) => this.value = value;
+        public int GetValue() => value;
+    }
+    [GhostComponent(SendDataForChildEntity = true, SendTypeOptimization = GhostSendType.OnlyInterpolatedClients, OwnerSendType = SendToOwnerType.SendToOwner)]
+    [GhostEnabledBit]
+    public struct SendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent : IComponentData, IComponentValue, IEnableableComponent
+    {
+        [GhostField]
+        public int value;
+        public void SetValue(int value) => this.value = value;
+        public int GetValue() => value;
+    }
+    [GhostComponent(SendDataForChildEntity = true, SendTypeOptimization = GhostSendType.OnlyPredictedClients, OwnerSendType = SendToOwnerType.SendToNonOwner)]
+    [GhostEnabledBit]
+    public struct SendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent : IComponentData, IComponentValue, IEnableableComponent
+    {
+        [GhostField]
+        public int value;
+        public void SetValue(int value) => this.value = value;
+        public int GetValue() => value;
+    }
+    [GhostComponent(SendDataForChildEntity = true, SendTypeOptimization = GhostSendType.OnlyInterpolatedClients, OwnerSendType = SendToOwnerType.SendToNonOwner)]
+    [GhostEnabledBit]
+    public struct SendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent : IComponentData, IComponentValue, IEnableableComponent
+    {
+        [GhostField]
+        public int value;
+        public void SetValue(int value) => this.value = value;
+        public int GetValue() => value;
+    }
+    // ----
+    [GhostComponent(SendDataForChildEntity = false, SendTypeOptimization = GhostSendType.OnlyPredictedClients, OwnerSendType = SendToOwnerType.SendToOwner)]
+    [GhostEnabledBit]
+    public struct DontSendForChildren_OnlyPredictedGhosts_SendToOwner_EnableableComponent : IComponentData, IComponentValue, IEnableableComponent
+    {
+        [GhostField]
+        public int value;
+        public void SetValue(int value) => this.value = value;
+        public int GetValue() => value;
+    }
+    [GhostComponent(SendDataForChildEntity = false, SendTypeOptimization = GhostSendType.OnlyInterpolatedClients, OwnerSendType = SendToOwnerType.SendToOwner)]
+    [GhostEnabledBit]
+    public struct DontSendForChildren_OnlyInterpolatedGhosts_SendToOwner_EnableableComponent : IComponentData, IComponentValue, IEnableableComponent
+    {
+        [GhostField]
+        public int value;
+        public void SetValue(int value) => this.value = value;
+        public int GetValue() => value;
+    }
+    [GhostComponent(SendDataForChildEntity = false, SendTypeOptimization = GhostSendType.OnlyPredictedClients, OwnerSendType = SendToOwnerType.SendToNonOwner)]
+    [GhostEnabledBit]
+    public struct DontSendForChildren_OnlyPredictedGhosts_SendToNonOwner_EnableableComponent : IComponentData, IComponentValue, IEnableableComponent
+    {
+        [GhostField]
+        public int value;
+        public void SetValue(int value) => this.value = value;
+        public int GetValue() => value;
+    }
+    [GhostComponent(SendDataForChildEntity = false, SendTypeOptimization = GhostSendType.OnlyInterpolatedClients, OwnerSendType = SendToOwnerType.SendToNonOwner)]
+    [GhostEnabledBit]
+    public struct DontSendForChildren_OnlyInterpolatedGhosts_SendToNonOwner_EnableableComponent : IComponentData, IComponentValue, IEnableableComponent
     {
         [GhostField]
         public int value;

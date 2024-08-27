@@ -26,9 +26,9 @@
     "autoReferenced": false,
     "versionDefines": [
       {
-        "name": "com.unity.test-framework.performance",
+        "name": "com.unity.logging",
         "expression": "0.0",
-        "define": "NETCODE_ENABLE_PERF_TESTS"
+        "define": "USING_UNITY_LOGGING"
       }
     ],
     "noEngineReferences": false

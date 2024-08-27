@@ -13,7 +13,9 @@
         "Unity.Networking.Transport",
         "Unity.Build",
         "Unity.Logging",
-        "Unity.Properties"
+        "Unity.Properties",
+        "Unity.DedicatedServer.MultiplayerRoles",
+        "Unity.DedicatedServer.MultiplayerRoles.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -24,14 +26,24 @@
     "defineConstraints": [],
     "versionDefines": [
         {
+            "name": "com.unity.logging",
+            "expression": "0.0",
+            "define": "USING_OBSOLETE_METHODS_VIA_INTERNALSVISIBLETO"
+        },
+        {
           "name": "com.unity.logging",
           "expression": "0.0",
-          "define": "USING_OBSOLETE_METHODS_VIA_INTERNALSVISIBLETO"
+          "define": "USING_UNITY_LOGGING"
         },
         {
             "name": "Unity",
             "expression": "2022.2.14f1",
             "define": "UNITY_2022_2_14F1_OR_NEWER"
+        },
+        {
+            "name": "com.unity.dedicated-server",
+            "expression": "0.8.0",
+            "define": "UNITY_USE_MULTIPLAYER_ROLES"
         }
     ],
     "noEngineReferences": false

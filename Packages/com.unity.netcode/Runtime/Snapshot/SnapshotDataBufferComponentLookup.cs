@@ -191,9 +191,9 @@ namespace Unity.NetCode.LowLevel
             {
                 SnapshotBefore = (System.IntPtr)compDataPtr,
                 SnapshotAfter = (System.IntPtr)compDataPtr,
-                GhostOwner = 0
+                RequiredOwnerSendMask = SendToOwnerType.All
             };
-            m_ghostSerializers[serializerIndex].CopyFromSnapshot.Ptr.Invoke(
+            m_ghostSerializers[serializerIndex].CopyFromSnapshot.Invoke(
                 (System.IntPtr)UnsafeUtility.AddressOf(ref deserializerState),
                 (System.IntPtr)UnsafeUtility.AddressOf(ref dataAtTick),
                 0,
@@ -247,7 +247,7 @@ namespace Unity.NetCode.LowLevel
                     return offset;
                 }
                 var compSize =  comType.IsBuffer
-                    ? GhostSystemConstants.DynamicBufferComponentSnapshotSize
+                    ? GhostComponentSerializer.DynamicBufferComponentSnapshotSize
                     : m_ghostSerializers.ElementAtRO(compIndices.SerializerIndex).SnapshotSize;
                 offset += GhostComponentSerializer.SnapshotSizeAligned(compSize);
             }
@@ -290,6 +290,7 @@ namespace Unity.NetCode.LowLevel
     /// </summary>
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
     [CreateAfter(typeof(GhostCollectionSystem))]
+    [CreateBefore(typeof(GhostReceiveSystem))]
     internal partial struct SnapshotLookupCacheSystem : ISystem
     {
         /// <summary>

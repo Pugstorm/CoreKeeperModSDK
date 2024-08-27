@@ -402,19 +402,17 @@ namespace Unity.NetCode
         /// <exception cref="InvalidOperationException"></exception>
         public void Disconnect(NetworkStreamConnection connection)
         {
-            ref var driverData = ref m_Driver0;
             switch (connection.DriverId)
             {
                 case 1:
-                    driverData = m_Driver0; break;
+                    m_Driver0.instance.driver.Disconnect(connection.Value); return;
                 case 2:
-                    driverData = m_Driver1; break;
+                    m_Driver1.instance.driver.Disconnect(connection.Value); return;
                 case 3:
-                    driverData = m_Driver2; break;
+                    m_Driver2.instance.driver.Disconnect(connection.Value); return;
                 default:
                     throw new InvalidOperationException($"Cannot find NetworkDriver with id {connection.DriverId}");
             }
-            driverData.instance.driver.Disconnect(connection.Value);
         }
 
         internal JobHandle ScheduleUpdateAllDrivers(JobHandle dependency)

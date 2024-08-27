@@ -268,7 +268,7 @@ namespace Unity.NetCode
                         }
 
                         if (rpcIndex == ushort.MaxValue)
-                            netDebug.DebugLog(FixedString.Format("[{0}] {1} in disconnected state but allowing RPC protocol version message to get processed", worldName, connections[i].Value.ToFixedString()));
+                            netDebug.DebugLog($"[{worldName}] {connections[i].Value.ToFixedString()} in disconnected state but allowing RPC protocol version message to get processed");
                         else
                             continue;
                     }
@@ -286,7 +286,7 @@ namespace Unity.NetCode
                         Connection = entities[i],
                         JobIndex = unfilteredChunkIndex
                     };
-                    int msgHeaderLen = (dynamicAssemblyList == 1) ? 10 : 4;
+                    int msgHeaderLen = RpcCollection.GetInnerRpcMessageHeaderLength(dynamicAssemblyList == 1);
                     while (parameters.Reader.GetBytesRead() < parameters.Reader.Length)
                     {
                         int rpcIndex = 0;
@@ -302,7 +302,7 @@ namespace Unity.NetCode
                             else if (rpcHash != 0 && !hashToIndex.TryGetValue(rpcHash, out rpcIndex))
                             {
                                 netDebug.LogError(
-                                    FixedString.Format("[{0}] RpcSystem received rpc with invalid hash ({1}) from {2}", worldName, rpcHash, connections[i].Value.ToFixedString()));
+                                    $"[{worldName}] RpcSystem received rpc with invalid hash ({rpcHash}) from {connections[i].Value.ToFixedString()}");
                                 commandBuffer.AddComponent(unfilteredChunkIndex, entities[i],
                                     new NetworkStreamRequestDisconnect { Reason = NetworkStreamDisconnectReason.InvalidRpc });
                                 break;
@@ -353,7 +353,7 @@ namespace Unity.NetCode
                         {
                             //If this is the server, we must disconnect the connection
                             netDebug.LogError(
-                                FixedString.Format("[{0}] RpcSystem received invalid rpc (index {1} out of range) from {2}", worldName, rpcIndex, connections[i].Value.ToFixedString()));
+                                $"[{worldName}] RpcSystem received invalid rpc (index {rpcIndex} out of range) from {connections[i].Value.ToFixedString()}");
                             commandBuffer.AddComponent(unfilteredChunkIndex, entities[i],
                                 new NetworkStreamRequestDisconnect { Reason = NetworkStreamDisconnectReason.InvalidRpc });
                             break;
@@ -361,7 +361,7 @@ namespace Unity.NetCode
                         else if (connections[i].ProtocolVersionReceived == 0)
                         {
                             netDebug.LogError(
-                                FixedString.Format("[{0}] RpcSystem received illegal rpc as it has not yet received the protocol version ({1})", worldName, connections[i].Value.ToFixedString()));
+                                $"[{worldName}] RpcSystem received illegal rpc as it has not yet received the protocol version ({connections[i].Value.ToFixedString()})");
                             commandBuffer.AddComponent(unfilteredChunkIndex, entities[i],
                                 new NetworkStreamRequestDisconnect { Reason = NetworkStreamDisconnectReason.InvalidRpc });
                             break;
@@ -378,77 +378,80 @@ namespace Unity.NetCode
                     var ack = acks[i];
                     while (sendBuffer.Length > 0)
                     {
-                        if (driver.BeginSend(concurrentDriver.reliablePipeline, connections[i].Value, out var tmp) == 0)
+                        int result;
+                        if ((result = driver.BeginSend(concurrentDriver.reliablePipeline, connections[i].Value, out var tmp)) < 0)
                         {
-                            tmp.WriteByte((byte) NetworkStreamProtocol.Rpc);
-                            tmp.WriteUInt(localTime);
-                            uint returnTime = ack.LastReceivedRemoteTime;
-                            if (returnTime != 0)
-                                returnTime += (localTime - ack.LastReceiveTimestamp);
-                            tmp.WriteUInt(returnTime);
-                            var headerLength = tmp.Length;
+                            netDebug.DebugLog($"[{worldName}] RPCSystem failed to send message. Will retry later, but this could mean too many messages are being sent. Error: {result}!");
+                            break;
+                        }
+                        tmp.WriteByte((byte) NetworkStreamProtocol.Rpc);
+                        tmp.WriteUInt(localTime);
+                        uint returnTime = ack.LastReceivedRemoteTime;
+                        if (returnTime != 0)
+                            returnTime += (localTime - ack.LastReceiveTimestamp);
+                        tmp.WriteUInt(returnTime);
+                        var headerLength = tmp.Length;
 
-                            // If sending failed we stop and wait until next frame
-                            if (sendBuffer.Length + headerLength > tmp.Capacity)
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+                        UnityEngine.Debug.Assert(headerLength == RpcCollection.k_RpcCommonHeaderLengthBytes);
+#endif
+
+                        // If sending failed we stop and wait until next frame
+                        if (sendBuffer.Length + headerLength > tmp.Capacity)
+                        {
+                            var sendArray = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<byte>(sendBuffer.GetUnsafePtr(), sendBuffer.Length, Allocator.Invalid);
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+                            var safety = NativeArrayUnsafeUtility.GetAtomicSafetyHandle(sendBuffer.AsNativeArray());
+                            NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref sendArray, safety);
+#endif
+                            var reader = new DataStreamReader(sendArray);
+                            if (dynamicAssemblyList == 1)
+                                reader.ReadULong();
+                            else
+                                reader.ReadUShort();
+                            var len = reader.ReadUShort() + msgHeaderLen;
+                            if (len + headerLength > tmp.Capacity)
                             {
-                                var sendArray = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<byte>(sendBuffer.GetUnsafePtr(), sendBuffer.Length, Allocator.Invalid);
-    #if ENABLE_UNITY_COLLECTIONS_CHECKS
-                                var safety = NativeArrayUnsafeUtility.GetAtomicSafetyHandle(sendBuffer.AsNativeArray());
-                                NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref sendArray, safety);
-    #endif
-                                var reader = new DataStreamReader(sendArray);
+                                sendBuffer.Clear();
+                                // Could not fit a single message in the packet, this is a serious error
+                                throw new InvalidOperationException($"[{worldName}] An RPC was too big to be sent, reduce the size of your RPCs");
+                            }
+                            tmp.WriteBytesUnsafe((byte*) sendBuffer.GetUnsafePtr(), len);
+                            // Try to fit a few more messages in this packet
+                            while (true)
+                            {
+                                var curTmpDataLength = tmp.Length - headerLength;
+                                var subArray = sendArray.GetSubArray(curTmpDataLength, sendArray.Length - curTmpDataLength);
+                                reader = new DataStreamReader(subArray);
                                 if (dynamicAssemblyList == 1)
                                     reader.ReadULong();
                                 else
                                     reader.ReadUShort();
-                                var len = reader.ReadUShort() + msgHeaderLen;
-                                if (len + headerLength > tmp.Capacity)
-                                {
-                                    sendBuffer.Clear();
-                                    // Could not fit a single message in the packet, this is a serious error
-                                    throw new InvalidOperationException("An RPC was too big to be sent, reduce the size of your RPCs");
-                                }
-                                tmp.WriteBytesUnsafe((byte*) sendBuffer.GetUnsafePtr(), len);
-                                // Try to fit a few more messages in this packet
-                                while (true)
-                                {
-                                    var curTmpDataLength = tmp.Length - headerLength;
-                                    var subArray = sendArray.GetSubArray(curTmpDataLength, sendArray.Length - curTmpDataLength);
-                                    reader = new DataStreamReader(subArray);
-                                    if (dynamicAssemblyList == 1)
-                                        reader.ReadULong();
-                                    else
-                                        reader.ReadUShort();
-                                    len = reader.ReadUShort() + msgHeaderLen;
-                                    if (tmp.Length + len > tmp.Capacity)
-                                        break;
-                                    tmp.WriteBytesUnsafe((byte*) subArray.GetUnsafeReadOnlyPtr(), len);
-                                }
+                                len = reader.ReadUShort() + msgHeaderLen;
+                                if (tmp.Length + len > tmp.Capacity)
+                                    break;
+                                tmp.WriteBytesUnsafe((byte*) subArray.GetUnsafeReadOnlyPtr(), len);
                             }
-                            else
-                                tmp.WriteBytesUnsafe((byte*) sendBuffer.GetUnsafePtr(), sendBuffer.Length);
-                            // If sending failed we stop and wait until next frame
-                            var result = 0;
-                            if ((result = driver.EndSend(tmp)) <= 0)
-                            {
-                                netDebug.LogWarning(FixedString.Format("An error occured during EndSend. ErrorCode: {0}", result));
-                                break;
-                            }
-                            var tmpDataLength = tmp.Length - headerLength;
-                            if (tmpDataLength < sendBuffer.Length)
-                            {
-                                // Compact the buffer, removing the rpcs we did send
-                                for (int cpy = tmpDataLength; cpy < sendBuffer.Length; ++cpy)
-                                    sendBuffer[cpy - tmpDataLength] = sendBuffer[cpy];
-                                sendBuffer.ResizeUninitialized(sendBuffer.Length - tmpDataLength);
-                            }
-                            else
-                                sendBuffer.Clear();
                         }
                         else
+                            tmp.WriteBytesUnsafe((byte*) sendBuffer.GetUnsafePtr(), sendBuffer.Length);
+
+                        // If sending failed we stop and wait until next frame
+                        if ((result = driver.EndSend(tmp)) <= 0)
                         {
-                            netDebug.DebugLog(FixedString.Format("{0} RPCSystem failed to send message. Will retry later, but this could mean too many messages are being sent.", worldName));
+                            netDebug.LogWarning($"[{worldName}] An error occured during RpcSystem EndSend. ErrorCode: {result}!");
+                            break;
                         }
+                        var tmpDataLength = tmp.Length - headerLength;
+                        if (tmpDataLength < sendBuffer.Length)
+                        {
+                            // Compact the buffer, removing the rpcs we did send
+                            for (int cpy = tmpDataLength; cpy < sendBuffer.Length; ++cpy)
+                                sendBuffer[cpy - tmpDataLength] = sendBuffer[cpy];
+                            sendBuffer.ResizeUninitialized(sendBuffer.Length - tmpDataLength);
+                        }
+                        else
+                            sendBuffer.Clear();
                     }
                 }
             }

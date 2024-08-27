@@ -1,13 +1,11 @@
+using System;
 using NUnit.Framework;
 using Unity.Entities;
-using Unity.Networking.Transport;
-using Unity.NetCode.Tests;
-using Unity.Jobs;
 using UnityEngine;
-using Unity.NetCode;
 using Unity.Mathematics;
-using Unity.Transforms;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.NetCode.LowLevel.Unsafe;
 
 namespace Unity.NetCode.Tests
 {
@@ -188,6 +186,57 @@ namespace Unity.NetCode.Tests
                 EntityValue = serverEntity
             });
         }
+
+        [Test]
+        public void ChangeMaskUtilitiesWorks()
+        {
+            //256 bit mask, the extra bits are for checking any overflow
+            NativeArray<uint> mask = new NativeArray<uint>(9, Allocator.Temp);
+            IntPtr maskPtr;
+            unsafe { maskPtr = (IntPtr)mask.GetUnsafePtr(); }
+
+            Assert.Catch<UnityEngine.Assertions.AssertionException>(() => { GhostComponentSerializer.ResetChangeMask(maskPtr, 10, -1);});
+            Assert.Catch<UnityEngine.Assertions.AssertionException>(() => { GhostComponentSerializer.CopyFromChangeMask(maskPtr, -1, 0);});
+            Assert.Catch<UnityEngine.Assertions.AssertionException>(() => { GhostComponentSerializer.CopyFromChangeMask(maskPtr, 0, -1);});
+            Assert.Catch<UnityEngine.Assertions.AssertionException>(() => { GhostComponentSerializer.CopyToChangeMask(maskPtr, 10, -1, 0);});
+            Assert.Catch<UnityEngine.Assertions.AssertionException>(() => { GhostComponentSerializer.CopyToChangeMask(maskPtr, 10, 0, -1);});
+            //This will cross the 32 bits boundary and set mulitple bits at the same time
+            //There are some annoyince with these methods and in particular the fact the src must have exaclty the
+            //required bits set, otherwise the mask is clubbered.
+            //That is working fine at the moment given the current use case of them but we would probably make them more
+            //robust (at some slighly more cpu cost) if necessary.
+            GhostComponentSerializer.CopyToChangeMask(maskPtr, 0x1, 10, 1);
+            GhostComponentSerializer.CopyToChangeMask(maskPtr, 0x7, 14, 3);
+            GhostComponentSerializer.CopyToChangeMask(maskPtr, 0x1ff, 20, 9);
+            //Expecting to see 0b0001_1111_1111_0001_1100_0100_0000_0000
+            var maskValue = GhostComponentSerializer.CopyFromChangeMask(maskPtr, 0, 31);
+            Assert.AreEqual(0b0001_1111_1111_0001_1100_0100_0000_0000, maskValue);
+            GhostComponentSerializer.CopyToChangeMask(maskPtr, 1023, 60, 10);
+            maskValue = GhostComponentSerializer.CopyFromChangeMask(maskPtr, 60, 10);
+            Assert.AreEqual(1023, maskValue);
+            GhostComponentSerializer.CopyToChangeMask(maskPtr, 0x1, 255, 1);
+            //Should not overflow
+            Assert.AreEqual(0, mask[8]);
+            //fill with all ones
+            for (int i = 0; i < 8; ++i)
+                mask[i] = ~0u;
+            GhostComponentSerializer.CopyToChangeMask(maskPtr, 0, 60, 9);
+            Assert.AreEqual((1u<<(60-32)) -1, mask[1]);
+            Assert.AreEqual(~((1u<<5) -1), mask[2]);
+            mask[1] = ~0u;
+            mask[2] = ~0u;
+            GhostComponentSerializer.ResetChangeMask(maskPtr, 60, 9);
+            Assert.AreEqual((1u<<(60-32)) -1, mask[1]);
+            Assert.AreEqual(~((1u<<5) -1), mask[2]);
+            mask[1] = ~0u;
+            mask[2] = ~0u;
+            GhostComponentSerializer.ResetChangeMask(maskPtr, 10, 73);
+            //verify the mask content. we should have 73 zeros
+            Assert.AreEqual((1<<10) -1, mask[0]);
+            Assert.AreEqual(0, mask[1]);
+            Assert.AreEqual((~((1u << 19)-1)), mask[2]);
+        }
+
         [Test]
         public void GhostValuesAreSerialized()
         {
@@ -207,7 +256,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -246,7 +295,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -284,7 +333,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -333,7 +382,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 ghostRelevancy.GhostRelevancyMode = GhostRelevancyMode.SetIsRelevant;
 
                 // Go in-game
@@ -429,7 +478,7 @@ namespace Unity.NetCode.Tests
                 {
                     float frameTime = 1.0f / 60.0f;
                     // Connect and make sure the connection could be established
-                    Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                    testWorld.Connect(frameTime);
 
                     // Go in-game
                     testWorld.GoInGame();

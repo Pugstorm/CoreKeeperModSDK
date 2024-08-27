@@ -1,4 +1,3 @@
-using AOT;
 using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Entities;
@@ -25,7 +24,7 @@ namespace Unity.NetCode.Tests
         }
 
         [BurstCompile(DisableDirectCall = true)]
-        [MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
+        [AOT.MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
         private static void InvokeExecute(ref RpcExecutor.Parameters parameters)
         {
             RpcExecutor.ExecuteCreateRequestComponent<SimpleRpcCommand, SimpleRpcCommand>(ref parameters);
@@ -62,7 +61,7 @@ namespace Unity.NetCode.Tests
         }
 
         [BurstCompile(DisableDirectCall = true)]
-        [MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
+        [AOT.MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
         private static void InvokeExecute(ref RpcExecutor.Parameters parameters)
         {
             var serializedData = default(SerializedRpcCommand);
@@ -99,7 +98,7 @@ namespace Unity.NetCode.Tests
         }
 
         [BurstCompile(DisableDirectCall = true)]
-        [MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
+        [AOT.MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
         private static void InvokeExecute(ref RpcExecutor.Parameters parameters)
         {
             var serializedData = default(SerializedLargeRpcCommand);
@@ -136,7 +135,7 @@ namespace Unity.NetCode.Tests
         }
 
         [BurstCompile(DisableDirectCall = true)]
-        [MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
+        [AOT.MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
         private static void InvokeExecute(ref RpcExecutor.Parameters parameters)
         {
             var serializedData = default(ClientIdRpcCommand);
@@ -201,7 +200,7 @@ namespace Unity.NetCode.Tests
         }
 
         [BurstCompile(DisableDirectCall = true)]
-        [MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
+        [AOT.MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
         private static void InvokeExecute(ref RpcExecutor.Parameters parameters)
         {
             RpcExecutor.ExecuteCreateRequestComponent<RpcWithEntity, RpcWithEntity>(ref parameters);

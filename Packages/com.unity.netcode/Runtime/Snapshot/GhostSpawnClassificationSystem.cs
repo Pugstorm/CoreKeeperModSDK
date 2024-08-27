@@ -3,6 +3,8 @@ using Unity.Entities;
 using Unity.Burst;
 using Unity.Mathematics;
 using Unity.NetCode.LowLevel;
+using UnityEngine;
+using Hash128 = Unity.Entities.Hash128;
 
 namespace Unity.NetCode
 {
@@ -61,7 +63,7 @@ namespace Unity.NetCode
         /// </summary>
         public Type SpawnType;
         /// <summary>
-        /// The index of the ghost type in the <seealso cref="GhostCollectionPrefab"/> collection to use to spawn to ghost.
+        /// The index of the ghost type in the <seealso cref="GhostCollectionPrefab"/> collection. Used to classify the ghost (<see cref="GhostSpawnClassificationSystem"/>).
         /// </summary>
         public int GhostType;
         /// <summary>
@@ -123,6 +125,25 @@ namespace Unity.NetCode
         /// </summary>
         internal  int SectionIndex;
     }
+
+    /// <summary>
+    /// Contains all the system that classify spawned ghost. Runs after the <see cref="GhostReceiveSystem"/> system.
+    /// Your custom classification system should be updated into this group.
+    /// <code>
+    /// [UpdateInGroup(typeof(GhostSpawnClassificationSystemGroup))]
+    /// public partial struct MyCustomClassificationSystemGroup
+    /// {
+    ///    ...
+    /// }
+    /// </code>
+    /// </summary>
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation, WorldSystemFilterFlags.ClientSimulation)]
+    [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
+    [UpdateBefore(typeof(GhostInputSystemGroup))]
+    public partial class GhostSpawnClassificationSystemGroup : ComponentSystemGroup
+    {
+    }
+
     /// <summary>
     /// The default GhostSpawnClassificationSystem will set the SpawnType to the default specified in the
     /// GhostAuthoringComponent, unless some other classification has already set the SpawnType. This system
@@ -132,8 +153,7 @@ namespace Unity.NetCode
     /// The reason to put predictive spawn systems after the default is so the owner predicted logic has run.
     /// </summary>
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
-    [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
-    [UpdateAfter(typeof(GhostReceiveSystem))]
+    [UpdateInGroup(typeof(GhostSpawnClassificationSystemGroup))]
     [CreateAfter(typeof(GhostCollectionSystem))]
     [CreateAfter(typeof(GhostReceiveSystem))]
     [BurstCompile]
@@ -196,8 +216,7 @@ namespace Unity.NetCode
     /// is within a certain bound (by default 5 ticks).
     /// </summary>
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
-    [UpdateInGroup(typeof(GhostSimulationSystemGroup), OrderLast = true)]
-    [UpdateAfter(typeof(GhostSpawnClassificationSystem))]
+    [UpdateInGroup(typeof(GhostSpawnClassificationSystemGroup), OrderLast = true)]
     [BurstCompile]
     internal partial struct DefaultGhostSpawnClassificationSystem : ISystem
     {

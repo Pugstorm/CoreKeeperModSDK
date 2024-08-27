@@ -2,6 +2,7 @@ using Unity.Core;
 using Unity.Entities;
 using Unity.Profiling;
 using Unity.Collections;
+using Unity.Mathematics;
 
 namespace Unity.NetCode
 {
@@ -16,6 +17,7 @@ namespace Unity.NetCode
         private int m_CurrentTickAge;
         private bool m_DidPushTime;
         DoubleRewindableAllocators* m_OldGroupAllocators = null;
+        private readonly PredictedFixedStepSimulationSystemGroup m_PredictedFixedStepSimulationSystemGroup;
         private struct Count
         {
             // The total number of step the simulation should take
@@ -71,16 +73,14 @@ namespace Unity.NetCode
             else if (m_AccumulatedTime < 0.25f * fixedTimeStep)
                 rate -= 2; // lower rate means bigger deltaTime which means remaining accumulatedTime gets bigger
 
-            // TODO: need to do solve this for dots runtime. For now just do nothing
-            #if !UNITY_DOTSRUNTIME
             UnityEngine.Application.targetFrameRate = rate;
-            #endif
         }
         internal NetcodeServerRateManager(ComponentSystemGroup group)
         {
             // Create the queries for singletons
             m_NetworkTimeQuery = group.World.EntityManager.CreateEntityQuery(ComponentType.ReadWrite<NetworkTime>());
             m_ClientSeverTickRateQuery = group.World.EntityManager.CreateEntityQuery(ComponentType.ReadWrite<ClientServerTickRate>());
+            m_PredictedFixedStepSimulationSystemGroup = group.World.GetExistingSystemManaged<PredictedFixedStepSimulationSystemGroup>();
 
             m_fixedUpdateMarker = new ProfilerMarker("ServerFixedUpdate");
 
@@ -96,8 +96,6 @@ namespace Unity.NetCode
         {
             m_ClientSeverTickRateQuery.TryGetSingleton<ClientServerTickRate>(out var tickRate);
             tickRate.ResolveDefaults();
-
-            var fixedTimeStep = tickRate.SimulationFixedTimeStep;
             if (m_DidPushTime)
             {
                 group.World.PopTime();
@@ -106,16 +104,16 @@ namespace Unity.NetCode
             }
             else
             {
-                m_UpdateCount = GetUpdateCount(group.World.Time.DeltaTime, fixedTimeStep, tickRate.MaxSimulationStepsPerFrame, tickRate.MaxSimulationStepBatchSize);
+                m_UpdateCount = GetUpdateCount(group.World.Time.DeltaTime, tickRate.SimulationFixedTimeStep, tickRate.MaxSimulationStepsPerFrame, tickRate.MaxSimulationStepBatchSize);
                 m_CurrentTickAge = m_UpdateCount.Total-1;
-
+                m_PredictedFixedStepSimulationSystemGroup.ConfigureTimeStep(tickRate);
 #if UNITY_SERVER && !UNITY_EDITOR
                 if (tickRate.TargetFrameRateMode != ClientServerTickRate.FrameRateMode.BusyWait)
 #else
                 if (tickRate.TargetFrameRateMode == ClientServerTickRate.FrameRateMode.Sleep)
 #endif
                 {
-                    AdjustTargetFrameRate(tickRate.SimulationTickRate, fixedTimeStep);
+                    AdjustTargetFrameRate(tickRate.SimulationTickRate, tickRate.SimulationFixedTimeStep);
                 }
             }
             if (m_CurrentTickAge < 0)
@@ -125,7 +123,7 @@ namespace Unity.NetCode
             }
             if (m_CurrentTickAge == (m_UpdateCount.Short - 1))
                 --m_UpdateCount.Length;
-            var dt = fixedTimeStep * m_UpdateCount.Length;
+            var dt = tickRate.SimulationFixedTimeStep * m_UpdateCount.Length;
             // Check for wrap around
             ref var networkTime = ref m_NetworkTimeQuery.GetSingletonRW<NetworkTime>().ValueRW;
             var currentServerTick = networkTime.ServerTick;
@@ -133,6 +131,7 @@ namespace Unity.NetCode
             var nextTick = currentServerTick;
             nextTick.Add((uint)(m_UpdateCount.Length - 1));
             networkTime.ServerTick = nextTick;
+            networkTime.InterpolationTick = networkTime.ServerTick;
             networkTime.SimulationStepBatchSize = m_UpdateCount.Length;
             if (m_CurrentTickAge == 0)
                 networkTime.Flags &= ~NetworkTimeFlags.IsCatchUpTick;
@@ -165,9 +164,7 @@ namespace Unity.NetCode
     /// Used only for DOTSRuntime and tests or other specific use cases.
     /// </summary>
 #if !UNITY_CLIENT || UNITY_SERVER || UNITY_EDITOR
-#if !UNITY_DOTSRUNTIME
     [DisableAutoCreation]
-#endif
     [WorldSystemFilter(WorldSystemFilterFlags.LocalSimulation)]
     internal partial class TickServerSimulationSystem : TickComponentSystemGroup
     {

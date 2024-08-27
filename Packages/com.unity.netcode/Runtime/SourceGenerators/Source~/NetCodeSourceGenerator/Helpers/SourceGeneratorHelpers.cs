@@ -21,7 +21,15 @@ namespace Unity.NetCode.Generators
         static private ThreadLocal<bool> s_SupportTemplatesFromAdditionalFiles;
         static private ThreadLocal<bool> s_WriteLogToDisk;
         static private ThreadLocal<bool> s_CanWriteFiles;
-        static private ThreadLocal<bool> s_IsDotsRuntime;
+        static private ThreadLocal<LoggingLevel> s_LogLevel;
+
+        public enum LoggingLevel : int
+        {
+            Debug = 0,
+            Info = 1,
+            Warning = 2,
+            Error = 3,
+        }
 
         static public string ProjectPath
         {
@@ -58,11 +66,7 @@ namespace Unity.NetCode.Generators
             private set => s_CanWriteFiles.Value = value;
         }
 
-        static public bool IsDotsRuntime
-        {
-            get => s_IsDotsRuntime.Value;
-            private set => s_IsDotsRuntime.Value = value;
-        }
+        static public LoggingLevel CurrentLogLevel => s_LogLevel.Value;
 
         static Helpers()
         {
@@ -72,18 +76,19 @@ namespace Unity.NetCode.Generators
             s_SupportTemplatesFromAdditionalFiles = new ThreadLocal<bool>();
             s_WriteLogToDisk = new ThreadLocal<bool>();
             s_CanWriteFiles = new ThreadLocal<bool>();
-            s_IsDotsRuntime = new ThreadLocal<bool>();
+            s_LogLevel = new ThreadLocal<LoggingLevel>();
         }
 
         static public void SetupContext(GeneratorExecutionContext executionContext)
         {
             ProjectPath = null;
-            CanWriteFiles = false;
-            WriteLogToDisk = false;
-            IsDotsRuntime = executionContext.ParseOptions.PreprocessorSymbolNames.Contains("UNITY_DOTSRUNTIME");
+            //by default we allow both writing files and logs to disk. It is possible to change the behavior via
+            //globalconfig
+            CanWriteFiles = true;
+            WriteLogToDisk = true;
             IsUnity2021_OrNewer = executionContext.ParseOptions.PreprocessorSymbolNames.Any(d => d == "UNITY_2022_1_OR_NEWER" || d == "UNITY_2021_3_OR_NEWER");
             //Setup the current project folder directory by inspecting the context for global options or additional files, depending on the current Unity version
-            if (!IsUnity2021_OrNewer || IsDotsRuntime)
+            if (!IsUnity2021_OrNewer)
             {
                 SupportTemplateFromAdditionalFiles = false;
                 if (executionContext.AdditionalFiles.Any() && !string.IsNullOrEmpty(executionContext.AdditionalFiles[0].Path))
@@ -95,22 +100,30 @@ namespace Unity.NetCode.Generators
                 if (executionContext.AdditionalFiles.Any() && !string.IsNullOrEmpty(executionContext.AdditionalFiles[0].Path))
                     ProjectPath = executionContext.AdditionalFiles[0].GetText()?.ToString();
             }
-            //Parse global options. They are used by both tests, and Editor (2021_OR_NEWER)
-            if (executionContext.AnalyzerConfigOptions.GlobalOptions.TryGetValue(GlobalOptions.ProjectPath, out var projectpath))
-                ProjectPath = projectpath;
-            if (executionContext.AnalyzerConfigOptions.GlobalOptions.TryGetValue(GlobalOptions.OutputPath, out var outputFolder))
-                OutputFolder = outputFolder;
-            if (executionContext.AnalyzerConfigOptions.GlobalOptions.TryGetValue(GlobalOptions.TemplateFromAdditionalFiles, out var templateFromAdditionalFiles))
-                SupportTemplateFromAdditionalFiles = templateFromAdditionalFiles == "1";
+            //Parse global options and overrides default behaviour. They are used by both tests, and Editor (2021_OR_NEWER)
+            ProjectPath = executionContext.GetOptionsString(GlobalOptions.ProjectPath, ProjectPath);
+            OutputFolder = executionContext.GetOptionsString(GlobalOptions.OutputPath, OutputFolder);
+            SupportTemplateFromAdditionalFiles = GlobalOptions.GetOptionsFlag(executionContext, GlobalOptions.TemplateFromAdditionalFiles, SupportTemplateFromAdditionalFiles);
 
-            if (!string.IsNullOrEmpty(ProjectPath))
+            //If the project path is not valid, for any reason, we can't write files and/or log to disk
+            if (string.IsNullOrEmpty(ProjectPath))
+            {
+                WriteLogToDisk = false;
+                CanWriteFiles = false;
+                Debug.LogWarning("Unable to setup/find the project path. Forcibly disable writing logs and files to disk");
+            }
+            else
             {
                 Directory.CreateDirectory(GetOutputPath());
-                CanWriteFiles = true;
+                CanWriteFiles = executionContext.GetOptionsFlag(GlobalOptions.WriteFilesToDisk, CanWriteFiles);
+                WriteLogToDisk = executionContext.GetOptionsFlag(GlobalOptions.WriteLogsToDisk, WriteLogToDisk);
             }
 
-            if (executionContext.AnalyzerConfigOptions.GlobalOptions.TryGetValue(GlobalOptions.WriteFilesToDisk, out var outputToDisk))
-                CanWriteFiles = outputToDisk == "1";
+            //The default log level is info. User can customise that via debug config. Info level is very light right now.
+            s_LogLevel.Value = LoggingLevel.Info;
+            var loggingLevel = executionContext.GetOptionsString(GlobalOptions.LoggingLevel);
+            if (!string.IsNullOrEmpty(loggingLevel) && Enum.TryParse<LoggingLevel>(loggingLevel.ToLower(), out var logLevel))
+                s_LogLevel.Value = logLevel;
         }
 
         public static string GetOutputPath()
@@ -130,7 +143,9 @@ namespace Unity.NetCode.Generators
 
         public static ulong ComputeVariantHash(ITypeSymbol variantType, ITypeSymbol componentType)
         {
-            return ComputeVariantHash(Roslyn.Extensions.GetFullTypeName(variantType), Roslyn.Extensions.GetFullTypeName(componentType));
+            return ComputeVariantHash(
+                Roslyn.Extensions.GetMetadataQualifiedName(variantType),
+                Roslyn.Extensions.GetMetadataQualifiedName(componentType));
         }
 
         public static ulong ComputeVariantHash(string variantTypeFullname, string componentTypeFullName)
@@ -173,7 +188,9 @@ namespace Unity.NetCode.Generators
 
         public static void LaunchDebugger(GeneratorExecutionContext context, string assembly)
         {
-            if(context.Compilation.AssemblyName == assembly)
+            if(string.IsNullOrEmpty(assembly)
+               || string.IsNullOrEmpty(context.Compilation.AssemblyName)
+               || context.Compilation.AssemblyName.Equals(assembly, StringComparison.InvariantCultureIgnoreCase))
             {
                 LaunchDebugger();
             }
@@ -241,12 +258,22 @@ namespace Unity.NetCode.Generators
                 Console.WriteLine($"Exception while writing to log: {flushEx.Message}");
             }
         }
+        public static void LogDebug(string message)
+        {
+            if(Helpers.CurrentLogLevel > Helpers.LoggingLevel.Debug)
+                return;
+            LogToDebugStream("Debug", message);
+        }
         public static void LogInfo(string message)
         {
+            if(Helpers.CurrentLogLevel > Helpers.LoggingLevel.Info)
+                return;
             LogToDebugStream("Info", message);
         }
         public static void LogWarning(string message)
         {
+            if(Helpers.CurrentLogLevel > Helpers.LoggingLevel.Warning)
+                return;
             LogToDebugStream("Warning", message);
         }
         public static void LogError(string message)

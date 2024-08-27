@@ -48,17 +48,29 @@ In the example above, we declared that the `MySystem` system should **only** be 
 ## Bootstrap
 When the Netcode for Entities package is added to your project, a new default [bootstrap](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.ClientServerBootstrap.html) is added to the project.
 
-The default bootstrap creates client server Worlds automatically at startup. 
-It populates them with the systems defined in the attributes you have set. This is useful when you are working in the Editor and you enter play-mode with your game scene opened. 
-But in a standalone game, or when you want to use some sort of frontend menu, you might want to delay the World creation, i.e you can use the same executable as both a client and server.
+The default bootstrap creates the client and server Worlds automatically at startup:
+```c#
+        public virtual bool Initialize(string defaultWorldName)
+        {
+            CreateDefaultClientServerWorlds();
+            return true;
+        }
+```
 
-It it possible to create your own bootstrap class and customise your game flow by creating a class that extends `ClientServerBootstrap` and override the default `Initialize` method implementation. 
-You can re-use in your class mostly of the provided helper methods that can let you create `client`, `server`, `thin-client` and `local simulation` worlds. See for more details [ClientServerBootstrap methods](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.ClientServerBootstrap.html).
+It populates them with the systems defined by the `[WorldSystemFilter(...)]` attributes you have set. This is useful when you are working in the Editor, and you enter play-mode with your game scene opened. 
+But in a standalone game - where you typically want to use some sort of frontend menu - you might want to delay the World creation, and/or choose which netcode worlds to spawn.
 
-The following code example shows how to override the default bootstrap to prevent automatic creation of the client server worlds:
+E.g. Consider a "Hosting a Client Hosted Server" flow vs a "Connect as a client to a Dedicated Server via Matchmaking" flow. 
+In the former case, you want to add (and connect via IPC to) an in-proc server world. In the latter, you only want to create a Client world.
+
+It it possible to create your own bootstrap class and customise your game flow. 
+Create a class that extends `ClientServerBootstrap` (e.g. `MyGameSpecificBootstrap`), and override the default `Initialize` method implementation. 
+In your derived class, you can mostly re-use the provided helper methods, which let you create `client`, `server`, `thin-client` and `local simulation` worlds. See for more details [ClientServerBootstrap methods](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.ClientServerBootstrap.html).
+
+The following code example shows how to override the default bootstrap, to prevent automatic creation of the client server worlds:
 
 ```c#
-public class ExampleBootstrap : ClientServerBootstrap
+public class MyGameSpecificBootstrap : ClientServerBootstrap
 {
     public override bool Initialize(string defaultWorldName)
     {
@@ -69,6 +81,29 @@ public class ExampleBootstrap : ClientServerBootstrap
 
 }
 ```
+
+Then, when you're ready to create the various netcode worlds, call:
+```c#
+void OnPlayButtonClicked()
+{
+    // Typically this:
+    var clientWorld = ClientServerBoostrap.CreateClientWorld();
+    // And/Or this:
+    var serverWorld = ClientServerBoostrap.CreateServerWorld();
+    
+    // And/Or something like this, for soak testing:
+    const int numThinClientWorldsForStressTest = 10;
+    for(int i = 0; i < numThinClientWorldsForStressTest; i++)
+        ClientServerBoostrap.CreateThinClientWorld();
+        
+    // Or the following, which creates worlds smartly based on:
+    // - The Playmode Tool setting specified in the editor.
+    // - The current build type, if used in a player.
+    ClientServerBootstrap.CreateDefaultClientServerWorlds();
+}
+```
+
+We have NetcodeSamples showcasing how to manage scene and sub-scene loading with this World creation setup, as well as proper netcode world disposal (when leaving the gameplay loop). 
 
 ## Fixed and dynamic time-step
 
@@ -111,21 +146,9 @@ The prediction runs in the [PredictedSimulationSystemGroup](https://docs.unity3d
 **The `ClientServerTickRate` configuration is sent (by the server, to the client) during the initial connection handshake. The client prediction loop runs at the exact same `SimulationTickRate` as the server (as mentioned).**
 
 ## Standalone builds
-When you build a standalone game, Netcode uses the __DOTS Settings__ in the __Project Settings__ window to:
-- To decide which type of build to make (only valid for standalone player builds).
-- To choose mode-specific baking settings.
+Netcode exposes build configuration options inside **ProjectSettings** > **Entities** > **Build**. 
 
-### Building standalone servers
-In order to build standalone server, you need to switch to a `Dedicated Server` platform. When building a server, the `UNITY_SERVER` define is set automatically (**and also automatically set in the editor**). <br/> 
-The `DOTS` project setting will reflect this change, by using the setting for the server build type.
-
-### Building standalone client
-When using a normal standalone player target (i.e Windows), it is possible to select the type of build to make (in the `DOTS` project setting):
-- A `client-only` build. The `UNITY_CLIENT` define will be set in the build (**but not in-editor**).
-- A `client/server` build. Neither the `UNITY_CLIENT`, nor the `UNITY_SERVER` are set (i.e. not in built players, nor in-editor).
-
-For either build type, specific baking filters can be specified in the `DOTS` project setting.
-
+[Please refer to the Project Settings page for details.](project-settings.md)
 
 ## World migration
 Sometimes you want to be able to destroy the world you are in and spin up another world without loosing your connection state. In order to do this we supply a DriverMigrationSystem, that allows a user to Store and Load Transport related information so a smooth world transition can be made.
@@ -155,12 +178,54 @@ public World MigrateWorld(World sourceWorld)
 
 ## Thin Clients
 
-Thin clients are a tool to help test and debug in the editor by running simulated dummy clients with your normal client and server worlds. See the _Playmode Tools_ section above for how to configure them
+Thin clients are a tool to help test and debug in the editor, by running simulated dummy clients alongside your normal client and server worlds. 
+See the _Playmode Tools_ section above for how to configure them.
 
-These clients are heavily stripped down and should run as little logic as possible so they don't put a heavy load on the CPU while testing. Each thin client added adds a little bit of extra work to be computed each frame.
+These clients are heavily stripped down, and should run as little logic as possible (so they don't put a heavy load on the CPU while testing). 
+Each thin client added adds a little bit of extra work to be computed each frame.
 
-Only systems which have explicitly been set up to run on thin client worlds will run, marked with the `WorldSystemFilterFlags.ThinClientSimulation` flag on the `WorldSystemFilter` attribute. No rendering is done for thin client data so they are invisible to the presentation.
+Only systems which have explicitly been set up to run on thin client worlds will run, marked with the `WorldSystemFilterFlags.ThinClientSimulation` flag on the `WorldSystemFilter` attribute. 
+No rendering is done for thin client data, so they are invisible to the presentation.
 
-In some cases like in `MonoBehaviour` scripts you might need to check if it's running on a thin client and then early out or cancel processing, the `World.IsThinClient()` can be used in those cases.
+In some cases, you might need to check if your system logic should be running for thin clients, and then early out or cancel processing.
+The `World.IsThinClient()` extension methods can be used in these cases.
 
-Most commonly the only important work they need to do is generate random inputs for the server to process. These inputs usually need to be added to a manually created dummy entity as no ghost spawning is done on thin clients. Not even for it's own local ghost/player.
+### Thin Client Workflow Recommendations
+
+Thin clients can be used in a variety of ways to help test multiplayer games. We recommend the following:
+1) Thin Clients allow you to quickly test client flows: Things like team assignment, spawn locations, leaderboards, UI etc.
+2) Thin Clients created in built players, allowing stress and soak testing of your game servers. _E.g. You may wish to add a configuration option to automatically create N Thin Client worlds (alongside your normal client world). Have each thin client "follow the leader" and automatically attempt to join the same IP Address and Port as your main client world. Thus, you can use your existing UI flows (matchmaking, lobby, relay etc.) to get these thin clients into the stress test target server._
+3) Thin Clients controlled by a second input source. I.e. Multiplayer games often have complex PvP interactions, and therefore you often wish to have an AI perform a specific action while your client is interacting with it. _Examples: Crouch, go prone, jump, run diagonally backwards, reload, enable shield, activate ability etc. Hooking thin client controls up to keyboard commands allows you to test these situations without requiring a play-test (or a second dev)._
+You can also hookup thin clients to have mirrored inputs of the tester, with similarly good results.
+
+### Thin Client Samples
+- [NetcodeSamples > HelloNetcode > ThinClient](https://github.com/Unity-Technologies/EntityComponentSystemSamples/tree/master/NetcodeSamples/Assets/Samples/HelloNetcode/2_Intermediate/06_ThinClients)
+- [NetcodeSamples > Asteroids](https://github.com/Unity-Technologies/EntityComponentSystemSamples/blob/f22bb949b3865c68d5fc588a6e8d032096dc788a/NetcodeSamples/Assets/Samples/Asteroids/Client/Systems/InputSystem.cs#L66)
+
+### Setting up inputs for Thin Clients
+
+Thin Client do not work out of the box with `AutoCommandTarget`.
+This is because `AutoCommandTarget` requires the same ghost to exist on both the client and the server. 
+But - because Thin Clients do not create ghosts - `AutoCommandTarget` does not have a client entity to hookup to.
+Thus, you need to set up the `CommandTarget` component on the connection entity yourself.
+
+`IInputComponentData` is our newest input API. It automatically handles writing out inputs (from your input struct) directly to the replicated Dynamic Buffer.
+Additionally: When we bake the ghost entity - and said entity contains an `IInputCommandData` composed struct - we automatically add an underlying `ICommandData` dynamic buffer to the entity.
+However: Once again, this baking process is not available on Thin Clients, as Thin Clients do not create ghosts entities.
+
+`ICommandData` is also supported with Thin Clients ([details here](command-stream.md)), but note that you'll need to perform the same thin client hookup work (below) that you do with `IInputComponentData`.
+
+Therefore, to support sending input from a Thin Client, you must do the following:
+
+1) Create an entity containing your `IInputCommmandData` (or `ICommandData`) component, as well as the code-generated `YourNamespace.YouCommandNameInputBufferData` dynamic buffer. **This may appear to throw a missing assembly definition error in your IDE, but it will work.**
+2) You need to setup the `CommandTarget` component to point to this entity. Therefore, in a `[WorldSystemFilter(WorldSystemFilterFlags.ThinClientSimulation)]` system:
+```c#
+    var myDummyGhostCharacterControllerEntity = entityManager.CreateEntity(typeof(MyNamespace.MyInputComponent), typeof(InputBufferData<MyNamespace.MyInputComponent>));
+    var myConnectionEntity = SystemAPI.GetSingletonEntity<NetworkId>();
+    entityManager.SetComponentData(myConnectionEntity, new CommandTarget { targetEntity = myDummyGhostCharacterControllerEntity }); // This tells the netcode package which entity it should be sending inputs for.
+```
+
+And on the server (where you spawn the actual character controller ghost for the thinClient, which will be replicated to all proper clients), you **_only_** need to setup the `CommandTarget` for Thin Clients (as presumably your player ghosts all use `AutoCommandTarget`. If you're **_not_** using `AutoCommandTarget`, you probably already perform this action for all clients already).
+```c#
+    entityManager.SetComponentData(thinClientConnectionEntity, new CommandTarget { targetEntity = thinClientsCharacterControllerGhostEntity });
+```

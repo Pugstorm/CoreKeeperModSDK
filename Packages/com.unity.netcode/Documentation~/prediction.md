@@ -21,7 +21,7 @@ The basic flow on the client is:
 > [!NOTE]
 > This "rollback" and prediction re-simulation can become a **substantial** overhead to each frame.
 > Example: For a 300ms connection, expect ~22 frames of re-simulation. I.e. Physics, and all other systems in the `PredictedSimulationSystemGroup`, will tick ~22 times in a single frame.
-> You can test this (via setting a high simulated ping in the `Multiplayer PlayMode Tools Window`).
+> You can test this (via setting a high simulated ping in the `PlayMode Tools Window`).
 > See the [Optimizations](optimizations.md) page for further details.
 
 Because the prediction loop runs from the oldest tick applied to any entity, and some entities might already have newer data, **you must check whether each entity needs to be simulated or not**. There are two distinct ways to do this check:

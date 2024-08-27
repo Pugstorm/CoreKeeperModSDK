@@ -146,7 +146,7 @@ namespace Unity.NetCode
     /// <summary>
     /// Cleanup component added to all subscenes with ghost. Used for tracking when a subscene is unloaded on both client and server
     /// </summary>
-    internal struct SubSceneWithGhostClenup : ICleanupComponentData
+    internal struct SubSceneWithGhostCleanup : ICleanupComponentData
     {
         /// <summary>
         /// The sub-scene hash <see cref="SubSceneWithPrespawnGhosts"/>

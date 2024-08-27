@@ -67,7 +67,7 @@ namespace Unity.NetCode
         /// </summary>
         public float ServerTickFraction;
         /// <summary>
-        /// The current interpolated tick (integral part). Always less then the ServerTick on the Client (and equals to ServerTick on the server).
+        /// The current interpolated tick (integral part). Always less than the ServerTick on the Client (and equal to ServerTick on the server).
         /// </summary>
         public NetworkTick InterpolationTick;
         /// <summary>
@@ -115,12 +115,17 @@ namespace Unity.NetCode
         /// "In full" meaning the first non-partial simulation tick. I.e. Partial ticks don't count.
         /// </summary>
         public bool IsFirstTimeFullyPredictingTick => (Flags & NetworkTimeFlags.IsFirstTimeFullyPredictingTick) != 0;
-
         /// <summary>
         /// Only valid on server. True when the current simulated tick is running with a variabled delta time to recover from
         /// a previous long running frame.
         /// </summary>
         public bool IsCatchUpTick => (Flags & NetworkTimeFlags.IsCatchUpTick) != 0;
+        /// <summary>
+        /// Counts the number of predicted ticks triggered on this frame (while inside the prediction loop).
+        /// Thus, client only, and increments BEFORE the tick occurs (i.e. the first predicted tick will have a value of 1).
+        /// Outside the prediction loop, records the current or last frames prediction tick count (until prediction restarts).
+        /// </summary>
+        public int PredictedTickIndex { get; internal set; }
     }
 
     /// <summary>

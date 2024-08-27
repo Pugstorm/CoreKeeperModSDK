@@ -22,16 +22,38 @@ namespace Unity.NetCode
     }
 
     /// <summary>
-    /// The parent group for all input gather systems. Only present in client worlds,
-    /// it runs before the <see cref="CommandSendSystemGroup"/> in order to remove any latency in betwen the input gathering and
-    /// the command submission.
+    /// The parent group for all input gather systems. Only present in client worlds
+    /// (and local worlds, to allow singleplayer to use the same input gathering system).
+    /// It runs before the <see cref="CommandSendSystemGroup"/>, in order to remove any latency in between
+    /// the input gathering and the command submission.
     /// All the your systems that translate user input (ex: using the <see cref="UnityEngine.Input"/> into
-    /// <see cref="ICommandData"/> command data must should update in this group.
+    /// <see cref="ICommandData"/> command data must update in this group.
     /// </summary>
-    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ThinClientSimulation, WorldSystemFilterFlags.ClientSimulation)]
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ThinClientSimulation | WorldSystemFilterFlags.LocalSimulation, WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.LocalSimulation)]
     [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
-    [UpdateBefore(typeof(CommandSendSystemGroup))]
     public partial class GhostInputSystemGroup : ComponentSystemGroup
+    {
+    }
+
+    /// <summary>
+    /// The parent group for all generated systems that copy data from the an <see cref="IInputComponentData"/> to the
+    /// underlying <see cref="InputBufferData{T}"/>, that is the ring buffer that will contains the generated user commands.
+    /// </summary>
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ThinClientSimulation,
+        WorldSystemFilterFlags.ClientSimulation)]
+    [UpdateInGroup(typeof(GhostInputSystemGroup), OrderLast = true)]
+    public partial class CopyInputToCommandBufferSystemGroup : ComponentSystemGroup
+    {
+    }
+
+    /// <summary>
+    /// The parent group for all generated systems that copy data from and underlying <see cref="InputBufferData{T}"/>
+    /// to its parent <see cref="IInputComponentData"/>.
+    /// </summary>
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ServerSimulation,
+                       WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ServerSimulation)]
+    [UpdateInGroup(typeof(PredictedSimulationSystemGroup), OrderFirst = true)]
+    public partial class CopyCommandBufferToInputSystemGroup : ComponentSystemGroup
     {
     }
 
@@ -77,6 +99,7 @@ namespace Unity.NetCode
     /// </summary>
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ThinClientSimulation, WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ThinClientSimulation)]
     [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
+    [UpdateAfter(typeof(GhostInputSystemGroup))]
     // dependency just for acking
     [UpdateAfter(typeof(GhostReceiveSystem))]
     public partial class CommandSendSystemGroup : ComponentSystemGroup
@@ -153,12 +176,17 @@ namespace Unity.NetCode
             public unsafe void Execute(DynamicBuffer<OutgoingCommandDataStreamBuffer> rpcData,
                     in NetworkStreamConnection connection, in NetworkSnapshotAck ack)
             {
+                if (!connection.Value.IsCreated)
+                    return;
+
                 var concurrentDriver = concurrentDriverStore.GetConcurrentDriver(connection.DriverId);
                 var requiredPayloadSize = k_CommandHeadersBytes + rpcData.Length;
                 int maxSnapshotSizeWithoutFragmentation = NetworkParameterConstants.MTU - concurrentDriver.driver.MaxHeaderSize(concurrentDriver.unreliablePipeline);
                 var pipelineToUse = requiredPayloadSize > maxSnapshotSizeWithoutFragmentation ? concurrentDriver.unreliableFragmentedPipeline : concurrentDriver.unreliablePipeline;
-                if (concurrentDriver.driver.BeginSend(pipelineToUse, connection.Value, out var writer, requiredPayloadSize) != 0)
+                int result;
+                if ((result = concurrentDriver.driver.BeginSend(pipelineToUse, connection.Value, out var writer, requiredPayloadSize)) < 0)
                 {
+                    netDebug.LogWarning($"CommandSendPacket BeginSend failed with errorCode: {result} on {connection.Value.ToFixedString()}!");
                     rpcData.Clear();
                     return;
                 }
@@ -189,10 +217,9 @@ namespace Unity.NetCode
 #endif
 
                 if(writer.HasFailedWrites)
-                    netDebug.LogError("CommandSendPacket job triggered Writer.HasFailedWrites, despite allocating the collection based on needed size!");
-                var result = 0;
+                    netDebug.LogError($"CommandSendPacket job triggered Writer.HasFailedWrites on {connection.Value.ToFixedString()}, despite allocating the collection based on needed size!");
                 if ((result = concurrentDriver.driver.EndSend(writer)) <= 0)
-                    netDebug.LogError(FixedString.Format("An error occured during EndSend. ErrorCode: {0}", result));
+                    netDebug.LogError($"CommandSendPacket EndSend failed with errorCode: {result} on {connection.Value.ToFixedString()}!");
             }
         }
         [BurstCompile]
@@ -260,10 +287,6 @@ namespace Unity.NetCode
             /// The readonly <see cref="CommandTarget"/> type handle for accessing the chunk data.
             /// </summary>
             [ReadOnly] public ComponentTypeHandle<CommandTarget> commmandTargetType;
-            /// <summary>
-            /// The readonly <see cref="networkIdType"/> type handle for accessing the chunk data.
-            /// </summary>
-            [ReadOnly] public ComponentTypeHandle<NetworkId> networkIdType;
             /// <summary>
             /// <see cref="OutgoingCommandDataStreamBuffer"/> buffer type handle for accessing the chunk data.
             /// This is the output of buffer for the job
@@ -399,19 +422,16 @@ namespace Unity.NetCode
             public void Execute(ArchetypeChunk chunk, int orderIndex)
             {
                 var commandTargets = chunk.GetNativeArray(ref commmandTargetType);
-                var networkIds = chunk.GetNativeArray(ref networkIdType);
                 var rpcDatas = chunk.GetBufferAccessor(ref outgoingCommandBufferType);
 
                 for (int i = 0, chunkEntityCount = chunk.Count; i < chunkEntityCount; ++i)
                 {
                     var targetEntity = commandTargets[i].targetEntity;
-                    var owner = networkIds[i].Value;
                     bool sentTarget = false;
                     for (int ent = 0; ent < autoCommandTargetEntities.Length; ++ent)
                     {
                         var autoTarget = autoCommandTargetEntities[ent];
-                        if (ghostOwnerFromEntity[autoTarget].NetworkId == owner &&
-                            autoCommandTargetFromEntity[autoTarget].Enabled &&
+                        if (autoCommandTargetFromEntity[autoTarget].Enabled &&
                             inputFromEntity.HasBuffer(autoTarget))
                         {
                             Serialize(rpcDatas[i], autoTarget, true);
@@ -435,7 +455,6 @@ namespace Unity.NetCode
         private NetworkTick m_PrevInputTargetTick;
 
         private ComponentTypeHandle<CommandTarget> m_CommandTargetComponentHandle;
-        private ComponentTypeHandle<NetworkId> m_NetworkIdComponentHandle;
         private BufferTypeHandle<OutgoingCommandDataStreamBuffer> m_OutgoingCommandDataStreamBufferComponentHandle;
         private BufferLookup<TCommandData> m_TCommandDataFromEntity;
         private ComponentLookup<GhostInstance> m_GhostComponentFromEntity;
@@ -450,7 +469,7 @@ namespace Unity.NetCode
                 .WithAll<NetworkStreamInGame, CommandTarget>();
             m_connectionQuery = state.GetEntityQuery(builder);
             builder.Reset();
-            builder.WithAll<GhostInstance, GhostOwner, PredictedGhost, TCommandData, AutoCommandTarget>();
+            builder.WithAll<GhostInstance, GhostOwner, GhostOwnerIsLocal, TCommandData, AutoCommandTarget>();
             m_autoTargetQuery = state.GetEntityQuery(builder);
             builder.Reset();
             builder.WithAll<NetworkTime>();
@@ -458,7 +477,6 @@ namespace Unity.NetCode
 
             m_CompressionModel = StreamCompressionModel.Default;
             m_CommandTargetComponentHandle = state.GetComponentTypeHandle<CommandTarget>(true);
-            m_NetworkIdComponentHandle = state.GetComponentTypeHandle<NetworkId>(true);
             m_OutgoingCommandDataStreamBufferComponentHandle = state.GetBufferTypeHandle<OutgoingCommandDataStreamBuffer>();
             m_TCommandDataFromEntity = state.GetBufferLookup<TCommandData>(true);
             m_GhostComponentFromEntity = state.GetComponentLookup<GhostInstance>(true);
@@ -478,7 +496,6 @@ namespace Unity.NetCode
         public SendJobData InitJobData(ref SystemState state)
         {
             m_CommandTargetComponentHandle.Update(ref state);
-            m_NetworkIdComponentHandle.Update(ref state);
             m_OutgoingCommandDataStreamBufferComponentHandle.Update(ref state);
             m_TCommandDataFromEntity.Update(ref state);
             m_GhostComponentFromEntity.Update(ref state);
@@ -491,7 +508,6 @@ namespace Unity.NetCode
             var sendJob = new SendJobData
             {
                 commmandTargetType = m_CommandTargetComponentHandle,
-                networkIdType = m_NetworkIdComponentHandle,
                 outgoingCommandBufferType = m_OutgoingCommandDataStreamBufferComponentHandle,
                 inputFromEntity = m_TCommandDataFromEntity,
                 ghostFromEntity = m_GhostComponentFromEntity,

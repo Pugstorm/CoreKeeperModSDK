@@ -104,7 +104,7 @@ namespace Unity.NetCode.Tests
                     break;
                 }
 
-                Assert.IsTrue(testWorld.Connect(1.0f/60.0f, 64));
+                testWorld.Connect(1.0f/60.0f);
                 testWorld.GoInGame();
 
                 var net1 = testWorld.TryGetSingletonEntity<NetworkId>(testWorld.ClientWorlds[0]);

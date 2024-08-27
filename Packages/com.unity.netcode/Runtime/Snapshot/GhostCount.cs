@@ -30,5 +30,14 @@ namespace Unity.NetCode
         {
             m_GhostCompletionCount = ghostCompletionCount;
         }
+
+        /// <summary>
+        /// Logs 'GhostCount[c:X,s:X]'.
+        /// </summary>
+        /// <returns>Logs 'GhostCount[c:X,s:X]'.</returns>
+        public FixedString128Bytes ToFixedString() => $"GhostCount[c:{GhostCountOnClient},s:{GhostCountOnServer}]";
+
+        /// <inheritdoc cref="ToFixedString"/>
+        public override string ToString() => ToFixedString().ToString();
     }
 }

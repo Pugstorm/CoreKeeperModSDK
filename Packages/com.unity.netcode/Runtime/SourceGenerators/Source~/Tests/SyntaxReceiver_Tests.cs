@@ -41,6 +41,25 @@ namespace Unity.NetCode.GeneratorTests
         }
 
         [Test]
+        public void SyntaxReceiver_SkipGenericTypes()
+        {
+            var testData = @"
+            using Unity.Entities;
+            using Unity.NetCode;
+            using Unity.Mathematics;
+            public struct MyTest<T> : IComponentData
+            {
+                [GhostField] public int IntValue;
+            }
+            ";
+            var receiver = GeneratorTestHelpers.CreateSyntaxReceiver();
+            var walker = new TestSyntaxWalker {Receiver = receiver};
+
+            CSharpSyntaxTree.ParseText(testData).GetCompilationUnitRoot().Accept(walker);
+            Assert.AreEqual(0, receiver.Candidates.Count);
+        }
+
+        [Test]
         public void SyntaxReceiver_FindVariants()
         {
             var testData = @"

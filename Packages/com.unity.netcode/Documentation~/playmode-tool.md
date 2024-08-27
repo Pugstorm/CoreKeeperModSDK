@@ -26,13 +26,14 @@ Once the simulator is enabled, you can set the packet delay, drop either manuall
 
 You can also specify your own settings, by setting custom values in the `RTT Delay`, `RTT Jitter` `PacketDrop` fields (or `Packet Delay`, `Packet Jitter` for `Packet View`).
 
-| **Property**                         | **Description**                                                                                                                                                                                                                                                                        |
-|--------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| __RTTDelay__                         | Use this property to emulate round trip time. The property delay the incoming and outgoing packet (in ms) such that the sum of the delays equals the specified value.                                                                                                                  |
-| __RTTJitter__                        | Use this property to add a random value to the delay, which makes the delay a value between the delay you have set plus or minus the jitter value. For example, if you set __RTTDelay__ to 45 and __RTTJitter__ to 5, you will get a random value between 40 and 50.                   |
-| __PacketDrop__                       | Use this property to simulate bad connections where not all packets arrive. Specify a value (as a percentage) and Netcode discards that percentage of packets from the total it receives. For example, set the value to 5 and Netcode discards 5% of all incoming and outgoing packets. |
-| __AutoConnectAddress (Client only)__ | Specify which server a client should connect to. This field only appears if you set __PlayMode Type__ to __Client__. The user code needs to read this value and connect because the connection flows are in user code.                                                                 |
-| __AutoConnectPort (Client only)__    | Override and/or specify which port to use for both listening (server) and connecting (client)|
+| **Property**                           | **Description**                                                                                                                                                                                                                                                                         |
+|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| __RTT Delay (ms)__                     | Use this property to emulate round trip time. The property delay the incoming and outgoing packet (in ms) such that the sum of the delays equals the specified value.                                                                                                                   |
+| __RTT Jitter (ms)__                    | Use this property to add (or subtract) a random value to the delay, which makes the delay a value between the delay you have set plus or minus the jitter value. For example, if you set __RTTDelay__ to 45 and __RTTJitter__ to 5, you will get a random value between 40 and 50.      |
+| __Packet Drop (%)__                    | Use this property to simulate bad connections where not all packets arrive. Specify a value (as a percentage) and Netcode discards that percentage of packets from the total it receives. For example, set the value to 5 and Netcode discards 5% of all incoming and outgoing packets. |
+| __Packet Fuzz (%)__                    | Use this property to simulate security-related MitM attacks, where malicious clients will attempt to bring down your server (or other clients) by intentionally serializing bad data.                                                                                                   |
+| __Auto Connect Address (Client only)__ | Specify which server a client should connect to. This field only appears if you set __PlayMode Type__ to __Client__. The user code needs to read this value and connect because the connection flows are in user code.                                                                  |
+| __Auto Connect Port (Client only)__    | Override and/or specify which port to use for both listening (server) and connecting (client)                                                                                                                                                                                           |
 
 
 > [!NOTE]
@@ -51,3 +52,10 @@ Alternatively, `--createNetworkSimulatorJsonFile [optionalJsonFilePath]` can be 
 It expects a json file containing `SimulatorUtility.Parameters`.
 
 Passing in either parameter will **always** enable a simulator profile, as we fallback to using the `DefaultSimulatorProfile` if the file is not found (or generated).
+
+### Bounding boxes on GameObjects
+To draw bounding boxes around objects not using entities graphics, you need to add the `GhostDebugMeshBounds` component to its supporting entity. You can call `Initialize` for convenience to set it up.
+See GhostPresentationGameObjectEntityOwner for an example.
+Entities using Entities Graphics will automatically draw bounding boxes.
+
+<img src="images/DebugBoundingBox.png" width="600" alt="Predicted and Server Debug Bounding Boxes"/>

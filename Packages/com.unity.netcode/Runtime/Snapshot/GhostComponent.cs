@@ -81,7 +81,7 @@ namespace Unity.NetCode
         /// </summary>
         public int ghostType;
         /// <summary>
-        /// The tick the entity spawned on the server. Together with <see cref="ghostId"/> is guaranted to be always unique.
+        /// The tick the entity spawned on the server. Together with <see cref="ghostId"/> is guaranteed to be always unique.
         /// </summary>
         public NetworkTick spawnTick;
 

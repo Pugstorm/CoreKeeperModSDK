@@ -1,4 +1,195 @@
+---
+uid: changelog
+---
+
 # Changelog
+
+## [1.2.1] - 2024-04-26
+
+### Changed
+
+* Updated Burst dependency to version 1.8.13
+* Updated entities packages dependencies
+
+## [1.2.0] - 2024-03-22
+
+### Changed
+* Release Preparation
+
+
+## [1.2.0-pre.12] - 2024-02-13
+
+### Added
+
+* Optimisations for the gather-ghost-chunk by batching function pointer calls and using a better hash map.
+* BatchScaleImportanceDelegate, a new version of the importance scaling function that work in batches. It is not required to set both the ScaleImportance and the BatchScaleImportance function pointers. If the BatchScaleImportance is set, it is the preferred.
+* TempStreamInitialSize, a new parameter in the GhostSendSystemData for tuning the initial size of the temporary buffer used by server to serialise ghosts. By default now the size is 8KB.
+* AlwaysRelevantQuery to specify general rules for relevancy without specifying it ghost by ghost.
+
+### Changed
+
+* StreamCompressionDataModel is passed as in parameter to avoid many copy every time a WriteXXX or ReadXXX was called.
+* Updated Burst dependency to version 1.8.12
+
+### Fixed
+
+* UI issue disallowing the user from enabling the Network Emulator utility when upgrading with a now-deprecated EditorPref value.
+* an issue with pre-serialised ghosts, corrupting memory, crashing or copying wrong data into the snapshot buffer in certain conditions.
+* avoided GC allocation and the costly Marshal.GetDelegateFromFunctionPointer every time an FunctionPointer.Invoke is called. This is done by using directly unmanaged function pointers.  All this, compatible with Burst enabled/disabled at any time.
+* lot of memory copies for loop invariants. This also reduced some SafetyChecks and costly operations.
+* avoid costly re-serialization of the whole chunk when the temp buffer can't fit all the data. This is one of the biggest costs during the serialisation loop. By default now the buffer is 8KB that reduce this possibility almost to 0.
+* Assigned InterpolationTick to always be equal ServerTick on the Server simulation (as stated in the summary for this parameter). Additionally the typos pointed out in the parameter summary were corrected.
+* Issue where prespawn failed to initialize when relevancy list was updated before replicating internal prespawn ghosts.
+
+## [1.2.0-pre.6] - 2023-12-13
+
+### Changed
+
+* Promotion preparation
+
+
+## [1.2.0-pre.4] - 2023-11-28
+
+### Added
+
+* You can now disable the automatic Entities `ICustomBootstrap` bootstrapping (which calls NetCode's own `ClientServerBootstrap`) by either; a) disabling it in the ProjectSettings (default value is enabled), or b) adding the new `OverrideAutomaticNetcodeBootstrap` MonoBehaviour to your first build scene (i.e. your Active scene). Thus, there is no longer any need to write a custom bootstrap just to support a Frontend scene vs a Gameplay scene.
+* A `NetCodeConfig` ScriptableObject, containing most NetCode configuration variables, allowing customization without needing to modify code. Most variables are live-tweakable.
+* A 'Snapshot Sequence Id' (SSId), which is used to accurately measure packet loss. It adds 1 byte of header to each snapshot, but enables us to measure Netcode-caused causes of PL (i.e. out of order snapshots being discarded, and discarding a snapshot if another arrives on the same frame). Access statistics via a new struct on the client's `NetworkSnapshotAck`.
+* `RpcCollection.GetRpcHeaderLength` and `NetworkStreamDriver.GetMaximumHeaderSize` to allow users to determine max safe payload sizes.
+
+### Fixed
+
+* Esoteric exception in `MultiplayerPlaymodeWindow` in server-only cases.
+* Interpolated ghosts now support `IInputComponentData` and `AutoCommandTarget`.
+* Improved `UpdateGhostOwnerIsLocal` to make it reactive to `GhostOwner` changes, thus it no longer needs to poll.
+* NetDbg `ArgumentException` when a predicted ghost contains a replicated enableable flag component.
+* Display-only issue where the variants for additional entities (created via baking) were calculated as if they were 'root' entities. They are - in fact - child entities, thus the variants automatically selected for them should default to child defaults.
+* QoL issue; we now allow users to opt-out of auto-baking `GhostAuthoringInspectionComponent`s when selecting their GameObject, reducing stalls when clicking around the Hierarchy or Project.
+* QoL issue where `GhostAuthoringInspectionComponent` was not always modifiable in areas of the Editor where it is valid to modify them.
+* Issue where `GhostAuthoringComponent` was disallowed in nested prefab setups (where the root prefab is NOT a ghost).
+* Log verbiage when creating a driver in DefaultDriverConstructor read like a 'call to action'. It's not.
+
+
+## [1.2.0-exp.3] - 2023-11-09
+
+### Added
+
+* `GhostInputSystemGroup` and `GhostSimulationSystemGroup` are now included in the LocalSimulation world, which means your Input polling systems will now automatically get added to the LocalWorld. This helps facilitate support for singleplayer testing workflows. LocalWorld performance is unaffected (as it's a negligible overhead to tick these empty `SystemGroup`s).
+* support for GameObject rendering for debug bounding boxes. Entities Graphics was already supported, this adds support for GameObjects rendering. See Playmode Tools in docs for more details.
+* `ConvertToGhostPrefab` will now set the `EntityName` to the configured GhostName (if null). Useful for dynamically created Entity prefabs.
+* components, buffers and commands that implement generic interfaces that inherit from the IComponentData and IBufferElementData (i.e IComponentData) are now detected correctly and serialization code generated.
+
+### Changed
+
+* mostly for maintenance, code-generation for the component and buffer serialiser, using helper methods living all inside the package. No user visible changes
+* Updated Transport dependency to version 2.1.0.
+* The minimum supported editor version is now 2022.3.11f1
+* all Simulate component enable states are reset to using a job instead of doing that synchronously on the main thread. Reason for the change is the fact this was inducing a big stall at the end of the Prediction loop. However, the benefits is only visible when there are a large number of jobified workload.
+* components, command, buffers and rpc are now replicated also if they are private or internal
+
+### Removed
+
+* dependency from com.unity.logging. Before, in order to use Netcode for Entities, the logging package was required. Now it is optional.
+
+### Fixed
+
+* We now correctly throw a `PlatformNotSupportedException` in the three locations we previously threw `NotImplementedException`s in `ClientServerBootStrap` (methods; `CreateServerWorld`, `CreateClientWorld`, and `CreateThinClientWorld`).
+* when the server change owner for a ghost configured as owner-predicted, the ghost automatically switch the operation mode from interpolated to predicted (or vice versa) based on the owner.
+* an issue with "partial component" send optimisation (component present only on interpolated or predicted ghost, or based on the owner) that was causing data being deserialised incorrectly.
+* an issue with enable-bits serialisation not respecting the SendToOwner property set in the GhostComponentAttribute, cluttering the state always with the latest server data, regardless of the setting.
+* an issue with code-gen when using combination of flags for the GhostComponent.PrefabType property.
+* `Error: Invalid context argument index` errors when using the Timeout feature of the PlayMode Tools.
+* Updated log message for overriding variants rule
+* `IndexOutOfRangeException` in the `GhostCollectionSystem` when ghost hash mismatches are present (a common error during dev).
+* An issue accessing the m_PredictionSwitchingSmoothingLookup buffer when multiple ghosts change their owner and they need to switch prediction mode.
+* GhostPrefabCreation.ConvertToGhostPrefab api that incorrectly replicated and assign to child entity components the root entity variant.
+
+
+## [1.1.0-pre.3] - 2023-10-17
+
+### Changed
+
+* the DefaultTranslationSmoothingAction.DefaultStaticUserParams is now public and can be used by user code (to either change the defaults or use them in their own custom smoothing methods).
+
+### Fixed
+
+* issue when using prediction error smoothing, causing wrong component data retrieved from the backup buffer and consequently not making the smoothing function work as expected.
+* an issue in the reported elapsed time when executing the PredictedFixedStepSystemGroup in presence of partial ticks and PredictedFixedStepSimulationTickRatio grater than 1, causing problem with physics and character controller interpolation.
+* An issue with the change mask not read correctly when serializing/deserializing components with more than 32 fields.
+* `InvalidOperationException: Comparison function is incorrect` inside `GhostComponentSerializerCollectionSystemGroup` due to `ComponentTypeSerializationStrategy.DefaultType` being a `byte` flag enum (so it erroneously matched `128 - 0` the same as `0 - 128` due to wrapping).
+
+
+## [1.1.0-exp.1] - 2023-09-18
+
+### Added
+
+* source generator can now be configure to enable/disable logs, report timings. It also possible to set the minimal log level (by default is now Error).
+* new public template specs and generator documentation
+* Added convenience methods for getting the clientworld / serverworld (or thin client list) added to ClientServerBootstrap
+* Additional analytics events. Multiplayer tools fields, prediction switching counters, tick rate configuration.
+* New method on the `PredictedFixedStepSimulationSystemGroup` class to initialise the rate as a multiple of a base tick rate.
+* `Packet Fuzz %` is now configurable via the Network Simulator. It's a security tool that should not be enabled during normal testing. It's purpose is to test against malicious MitM attacks, which aim to take down your server via triggering exceptions during packet deserialization. Thus, all deserialization code should be written with safeguards and tolerances, ensuring your logic will fail gracefully.
+* CopyInputToCommandBufferSystemGroup group, that contains all the system that copy IInputCommandData to the underlying ICommand buffer. This let you now target this group with the guarantee that all inputs are not copied after it run.
+* CopyCommandBufferToInputSystemGroup group, that contains all the system that copy ICommandData to their IInputCommandData representation. It runs first in the prediction loop and you can easily target it to do logic before or after the input are updated.
+* GhostSpawnClassificationSystemGroup, that is aimed to contains all your classification systems in one place.
+* Error messages to some missing `NetworkDriver.Begin/EndSend` locations.
+* defining `ENABLE_UNITY_RPC_REGISTRATION_LOGGING` will now log information about registered RPCs during netcode startup
+* We now automatically detect `Application.runInBackground` being set to false during multiplayer gameplay (a common error), and give advice via a suppressible error log as to why it should be enabled.
+* We introduced the new InputBufferData<T> buffer, that is used as underlying container for all IInputComponentData.
+* conditional compilation for some public interfaces in DefaultDriverBuilder to exclude the use of RegisterServer methods for WebGL build (they can't listen). It is possible to do everything manually, but the helper methods are not present anymore.
+* new method for creating a NetworkDriver using WebSocketNetworkInterface.
+* Added two new values to the `NetworkStreamDisconnectReason` enum: `AuthenticationFailure` and `ProtocolError`. The former is returned when the transport is configured to use DTLS or TLS and it fails to establish a secure session. The latter is returned for low-level unexpected transport errors (e.g. malformed packets in a TCP stream).
+
+### Changed
+
+* relaxed public field condition for variants. When declaring a ghost component variations, the variant fields are not required to be public. This make the type pretty much unusable for any other purpose but declaring the type serialisation.
+* Increased the ThinClient cap on `MultiplayerPlayModePreferences.MaxNumThinClients` from 32 to 1k, to facilitate some amount of in-editor testing of high-player-counts.
+* NetcodeTestWorld updates the worlds in the same way the package does: first server, then all clients worlds.
+* When Dedicated Server package is installed, the PlayMode Type value is overridden by the active Multiplayer Role.
+
+### Deprecated
+
+* The public `PredictedFixedStepSimulationGroup.TimeStep`. You should always use the `PredictedFixedStepSimulationGroup.ConfigureTimeStep` to setup the rate of the `PredictedFixedStepSimulationSystemGroup.`.
+* the IInputBufferData interface (internal for code-gen use but public) has been deprecated and will be removed in the 1.2 release.
+
+### Fixed
+
+* incorrect code generated serialization and calculated ChangeMask bits for component and buffers when the GhostFieldAttribute.Composite flag is set to true (in some cases).
+* wrong check for typename in GhostComponentVariation
+* missing region in unquantized float template, causing errors when used for interpolated field.
+* improper check when the ClientServerSetting asset is saved, causing worker process not seeing the changes in the settings.
+* The server world was not setting the correct rate to the group, if that was not done as part of the bootstrap.
+* Exception thrown when the NetDbg tools is connecting to either the editor or player.
+* Renamed (and marginally improved) the "Multiplayer PlayMode Tools" Window to the "PlayMode Tools" Window, to disambiguate it from "[MPPM] Multiplayer Play Mode" (an Engine feature).
+* Attempting to access internals of Netcode for Entities (e.g. via Assembly Definition References) would cause compiler errors due to `MonoPInvokeCallbackAttribute` being ambiguous between AOT and Unity.Entities.
+* Packet dump logging exception when using relevancy, despawns, and packet dumps enabled. Also fixed performance overhead (as it was erroneously logging stack traces).
+* An issue with variant hash calculation in release build, causing ghost prefab hash being different in between development/editor and release build.
+* GhostUpdateSystem.RestoreFromBackup does not always invalidate/bump the chunk version for a component, but only if the chunk as changed since the last time the restore occurred.
+* Issue in TryGetHashElseZero, that was using the ComponentType.GetDebugName to calculate the variant hash, leading incorrect results in a release player build
+* A `NetworkDriver.BeginSend` error causing an infinite loop in the `RpcSystem`.
+* Deprecated Analytics API when using 2023.2 or newer.
+* compilation issue when using 2023.2, caused by an ambiguous symbol (define in both Editor and in Entities.Editor assembly)
+* Errant netcode systems no longer show up in the DefaultWorld: `PhysicsWorldHistory`, `SwitchPredictionSmoothingPhysicsOrderingSystem`, `SwitchPredictionSmoothingSystem`, `GhostPresentationGameObjectTransformSystem`, `GhostPresentationGameObjectSystem`, and `SetLocalPlayerGraphicsColorsSystem`.
+* Previous was hard to retrieve the generated buffer for a given IInputComponentData. Now is easy as doing something like InputBufferData<MyInputComponent>.
+* Compilation error when building for WebGL
+* SnapshotDataLookupCache not created in the correct order, causing custom classification system using the SnapshotBufferHelper to throw exceptions, because the cache was not initialised.
+* A replicated `[GhostEnabledBit]` flag component would throw an `ArgumentException` when added to a Prespawned Ghost due to `ArchetypeChunk.GetDynamicComponentDataArrayReinterpret`.
+
+
+## [1.0.17] - 2023-09-11
+
+### Added
+
+* defining ENABLE_UNITY_RPC_REGISTRATION_LOGGING will now log information about registered RPCs during netcode startup
+
+### Changed
+
+* NetcodePacket debug log filenames changed to include date/time and version information
+
+### Fixed
+
+* addressed a case where it was possible for an exception to be thrown on the server if an RPC was queued for a then dropped connection.
+* "AssetDatabase.RegisterCustomDependency are restricted during importing" exception thrown by the NetCodeClientSettings, NetCodeClientServerSettings, NetCodeServerSettings in their OnDisable method, when using 2023.2 or newer.
 
 
 ## [1.0.15] - 2023-07-27
@@ -18,10 +209,6 @@
 
 ### Changed
 * Updated com.unity.entities dependency to 1.0.11
-
-### Fixed
-* `MultiplayerPlayModeWindow > Dump Packet Logs` now works more reliably, now works with NUnit tests, and dump files are named with more context.
-* Fixed bug in `GhostSendSystem` that caused it to not replicate ghosts when enabling packet dumps. `GhostValuesAreSerialized_WithPacketDumpsEnabled` test added.
 
 
 ## [1.0.11] - 2023-06-02
@@ -164,6 +351,87 @@ MetricsMonitorComponent: MetricsMonitor,
 * Fixed serialization of components on child entities in the case where `SentForChildEntities = true`. This fix may introduce a small performance regression in baking and netcode world initialization. Contact us with all performance related issues.
 * `GhostUpdateSystem` now supports Change Filtering, so components on the client will now only be marked as changed _when they actually are changed_. We strongly recommend implementing change filtering when reading components containing `[GhostField]`s and `[GhostEnabledBit]`s on the client.
 * Fixed input component codegen issue when the type is nested in a parent class
+
+
+## [1.0.0-pre.15] - 2022-11-16
+
+### Added
+
+* A "Client & Server Bounding Boxes" debug drawer has been added to the package (at `Packages\com.unity.netcode\Editor\Drawers\BoundingBoxDebugGhostDrawerSystem.cs`), allowing you to view the absolute positions of where the client _thinks_ a Ghost is, vs where it _actually_ is on the server. This drawer can also be used to visualize relevancy logic (as you can see widgets for server ghosts that are "not relevant" for your client). Enable & disable it via the `Multiplayer PlayMode Tools Window`.
+* FRONTEND_PLAYER_BUILD scripting define added to the NetCodeClientSetting project setting.
+* New `GhostSpawnBufferInspectorHelper` and `GhostSpawnBufferComponentInspector` structs, that permit to read from the ghost spawn buffer any type of component. They can be used in spawn classification systems to help resolving predicted spawning requests.
+* `GhostTypeComponent` explicit conversion to Hash128.
+* Templates for serialising `double` type.
+* A `TransformDefaultVariantSystem` that optionally setup the default variant to use for `LocalTransform`, (`Rotation`, `Position` for V1) if a user defined default is not provided.
+* A `PhysicsDefaultVariantSystem` that optionally setup the default variant to use for `PhysicVelocity` if a user defined default is not provided.
+* New GetLocalEndPoint API to NetworkStreamDriver.
+* `GhostAuthoringInspectionComponent` now provides more information about default variant selection.
+
+### Changed
+
+* Updated com.unity.transport dependency to 2.0.0-exp.4
+* `SharedGhostTypeComponent` is also added to the client ghost prefab to split ghosts in different chunks.
+* `GhostTypeComponent` equals/matches the prefab guid.
+* Removed `CodeGenTypeMetaData`, and made internal changes to how `VariantType` structs are generated. We also renamed `VariantType` to `ComponentTypeSerializationStrategies` to better reflect their purpose, and to better distinguish them from the concept of "Variants".
+* Support for replicating "enable bits" on `IEnableableComponent`s (i.e. "enableable components") via new attribute `GhostEnabledBitAttribute` (`[GhostEnabledBit]`), which can be added to the component struct. Note: If this attribute is **not** added, your enabled bits will not replicate (even on components marked with `[GhostField]`s). _This is a breaking change. Ensure all your "enableable components" with "ghost fields" on them now also have `[GhostEnabledBit]` on the struct declaration._
+* All `DefaultVariantSystemBase` are all grouped into the `DefaultVariantSystemGroup`.
+* It is not necessary anymore to define a custom `DefaultGhostVariant` system if a `LocalTransform` (`Rotation` or `Position` for V1) or `PhysicsVelocity` variants are added to project (since a `default` selection is already provided by the package).
+* Updated `com.unity.transport` dependency to 2.0.0-pre.2
+
+
+### Deprecated
+
+* `ProjectSettings / NetCodeClientTarget` was not actually saved to the ProjectSettings. Instead, it was saved to `EditorPrefs`, breaking build determinism across machines. Now that this has been fixed, your EditorPref has been clobbered, and `ClientSettings.NetCodeClientTarget` has been deprecated (in favour of `NetCodeClientSettings.instance.ClientTarget`).
+
+### Removed
+
+* Removing dependencies on `com.unity.jobs` package.
+
+### Fixed
+
+* Error in source generator when input buffer type was in default namespace.
+* Always pass `SystemState` by `ref` to avoid `UnsafeList`s being reallocated in a copy, but not in the original.
+* Use correct datatype for prespawned count in analytics.
+* Use `EditorAnalytics` to verify whether it is enabled.
+* Exception thrown by the hierarchy window if a scene entity does not have a SubScene component.
+* Issue with the `GhostComponentSerializerRegistrationSystem` and the ghost metadata registration system trying accessing the `GhostComponentSerializerCollectionData` before it is created.
+* A crash in the `GhostUpdateSystem`, `GhostPredictionHistorySystem` and others, when different ghost types (prefab) share/have the same archetype.
+* A NetCodeSample project issue that was causing screen flickering and entities rendered multiple times when demos were launched from the Frontend scene.
+* An issue in the `GhostSendSystem` that prevent the DataStream to be aborted when an exception is throw while serialising the entities.
+* InvalidOperationException in the `GhostAuthoringInspectionComponent` when reverting a Variant back to the default.
+* UI layout issues with the `GhostAuthoringInspectionComponent`.
+* Hashing issue with `GhostAuthoringInspectionComponent.ComponentOverrides` during baking, where out-of-date hashes would still be baked into the `BlobAsset`. You now get an error, pointing you to the offending (i.e. out-of-date) Ghost prefab.
+* `quaternion`s cannot be added as fields in `ICommandData` and/or `IInputComponentData`. A new region has been added to the code-generation templates for handling other, similar cases.
+* Fixed hash generation when using `DontSerializeVariant` (or `ClientOnlyVariant`) on `DefaultVariantSystemBase.Rule`. They now use the constant hashes (`DontSerializeHash` and `ClientOnlyHash`).
+* `NetDbg` will now correctly show long namespaces in the "Prediction Errors" section (also: improved readability).
+* Removed CSS warning in package.
+* A problem with baking and additional ghost entities that was removing `LocalTransform`, `WorldTransform` and `LocalToWorld` matrix.
+* Mismatched ClientServerTickRate.SimulationTickRate and PredictedFixedStepSimulationSystemGroup.RateManager.Timestep will throw an error and will set the values to match each other.
+* An issue with pre-spawned ghost baking when the baked entity has not LocalTransform (position/rotation for transform v1) component.
+* "Ghost Distance Importance Scaling" is now working again. Ensure you read the updated documentation.
+* Missing field write in `NetworkStreamListenSystem.OnCreate`, fixing Relay servers.
+* Code-Generated Burst-compiled Serializer methods will now only compile inside worlds with `WorldFlag.GameClient` and `WorldFlag.GameServer` WorldFlags. This improves exit play-mode speeds (when Domain Reload is enabled), baking (in all cases), and recompilation speeds.
+* Fixed an issue where multiple ghost types with the same archetype but difference data could sometime trigger errors about ghosts changing type.
+* Improvements to the `GhostAuthoringInspectionComponent`, including removing the freeze when a baker creates lots of "Additional" entities, better display of Inputs, and fixed bug where the EntityGuid was not being saved (so modifying additional Entities is now supported). We now also detect (but don't destroy) broken ComponentOverrides, making it easier to switch from TRANSFORMS_V1 (for example).
+* Fix a mistake where the relay sample will create a client driver rather than a server driver
+* Fix logic for relay set up on the client. Making sure when calling DefaultDriverConstructor.RegisterClientDriver with relay settings that we skip this unless, requested playtype is client or clientandserver (if no server is found), the simulator is enabled, or on a client only build.
+* Fixed `ArgumentException: ArchetypeChunk.GetDynamicComponentDataArrayReinterpret<System.Byte> cannot be called on zero-sized IComponentData` in `GhostPredictionHistorySystem.PredictionBackupJob`. Added comprehensive test coverage for the `GhostPredictionHistorySystem` (via adding a predicted ghost version of the `GhostSerializationTestsForEnableableBits` tests).
+* Fixed serialization of components on child entities in the case where `SentForChildEntities = true`. This fix may introduce a small performance regression in baking and netcode world initialization.
+* `GhostUpdateSystem` now supports Change Filtering, so components on the client will now only be marked as changed _when they actually are changed_. We strongly recommend implementing change filtering when reading components containing `[GhostField]`s and `[GhostEnabledBit]`s on the client.
+* Fixed input component codegen issue when the type is nested in a parent class
+* Exposed NetworkTick value to Entity Inspector.
+* Fixed code-gen error where `ICommandData.Tick` was not being replicated.
+* Fixed code-gen GhostField error handling when dealing with properties on Buffers, Commands, and Components.
+* Fixed code-gen exceptions for `Entity`s, `float`s, `double`s, `quaternions` and `ulong`s in specific conditions (unquantized, or in commands). Also improved exception reporting when trying to set an invalid `SmoothingAction` on `ICommandData`s.
+* Code-gen now will not explode if you have very long field names (support upto 509 characters, from 61), and will not throw truncation errors if you have too many fields.
+* Added error log reporting for ICommandDatas:
+  * If you attempt to serialize more than 1024 bytes for an individual ICommandData.
+  * If there are failed writes in the ICommandData batched send.
+* ICommandData batches now support fragmentation, which means writing multiple ICommandData's will no longer silently fail to send.
+* ICommandData now properly supports `floats`, `doubles`, `ulong`, and `Entity` types.
+* Fixed various Variant selection issues. In particular, `PrefabType` rules defined in `GhostComponentAttribute` of the "Default Serializer" will now be propagated to all of its `DontSerializeVariant`s.
+* Optimized string locale.
+* Netcode settings assets could be modified and saved when asset modification was not allowed.
 
 
 ## [1.0.0-exp.8] - 2022-09-21

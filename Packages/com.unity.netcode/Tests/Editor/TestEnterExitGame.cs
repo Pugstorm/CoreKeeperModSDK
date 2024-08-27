@@ -36,7 +36,7 @@ namespace Unity.NetCode.Tests
                 //Stream the sub scene in
                 SubSceneHelper.LoadSubSceneInWorlds(testWorld);
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 var firstTimeJoinStats = new uint[testWorld.ClientWorlds.Length * 3];
                 var rejoinStats = new uint[testWorld.ClientWorlds.Length * 3];
                 testWorld.GoInGame();

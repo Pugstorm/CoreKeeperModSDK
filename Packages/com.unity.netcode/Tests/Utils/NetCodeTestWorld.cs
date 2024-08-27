@@ -6,19 +6,20 @@ using System.Text.RegularExpressions;
 using NUnit.Framework;
 using Unity.Core;
 using Unity.Entities;
-using Unity.NetCode;
 using Unity.Networking.Transport;
 using Unity.Networking.Transport.Utilities;
 using Unity.Collections;
-
-using Unity.Logging;
-using Unity.Logging.Sinks;
 using Unity.Profiling;
 using Unity.Transforms;
+using UnityEngine.TestTools;
 using Debug = UnityEngine.Debug;
 #if UNITY_EDITOR
 using Unity.NetCode.Editor;
 using UnityEngine;
+#endif
+#if USING_UNITY_LOGGING
+using Unity.Logging;
+using Unity.Logging.Sinks;
 #endif
 
 namespace Unity.NetCode.Tests
@@ -32,7 +33,18 @@ namespace Unity.NetCode.Tests
 
     public class NetCodeTestWorld : IDisposable, INetworkStreamDriverConstructor
     {
+        /// <summary>True if you want to forward all netcode logs from the server, to allow <see cref="LogAssert"/> usage.</summary>
+        /// <remarks>Defaults to true. <seealso cref="DebugPackets"/> and <seealso cref="LogLevel"/>.</remarks>
+        public bool EnableLogsOnServer = true;
+        /// <summary>True if you want to forward all netcode logs from the client, to allow <see cref="LogAssert"/> usage.</summary>
+        /// <remarks>Defaults to true. <seealso cref="DebugPackets"/> and <seealso cref="LogLevel"/>.</remarks>
+        public bool EnableLogsOnClients = true;
+
+        /// <summary>Enable packet dumping in tests? Useful to ensure serialization doesn't fail.</summary>
+        /// <remarks>Note: Packet dump files will not be cleaned up!</remarks>
         public bool DebugPackets = false;
+        /// <summary>If you want to test extremely verbose logs, you can modify this flag.</summary>
+        public NetDebug.LogLevelType LogLevel = NetDebug.LogLevelType.Notify;
 
         static readonly ProfilerMarker k_TickServerInitializationSystem = new ProfilerMarker("TickServerInitializationSystem");
         static readonly ProfilerMarker k_TickClientInitializationSystem = new ProfilerMarker("TickClientInitializationSystem");
@@ -67,19 +79,17 @@ namespace Unity.NetCode.Tests
         private BlobAssetStore m_BlobAssetStore;
 #endif
 
-        private static void ForwardUnityLoggingToDebugLog()
+        /// <summary>Configure how logging should occur in tests. We apply <see cref="LogLevel"/> and <see cref="DebugPackets"/> here.</summary>
+        /// <param name="world">World to apply this config on.</param>
+        private void SetupNetDebugConfig(World world)
         {
-            static void AddUnityDebugLogSink(Unity.Logging.Logger logger)
+            var shouldLog = (world.IsServer() && EnableLogsOnServer) || (world.IsClient() && EnableLogsOnClients);
+            world.EntityManager.CreateSingleton(new NetCodeDebugConfig
             {
-                logger.GetOrCreateSink<UnityDebugLogSink>(new UnityDebugLogSink.Configuration(logger.Config.WriteTo, LogFormatterText.Formatter,
-                    minLevelOverride: logger.MinimalLogLevelAcrossAllSystems, outputTemplateOverride: "{Message}"));
-            }
-
-            Unity.Logging.Internal.LoggerManager.OnNewLoggerCreated(AddUnityDebugLogSink);
-            Unity.Logging.Internal.LoggerManager.CallForEveryLogger(AddUnityDebugLogSink);
-
-            // Self log enabled, so any error inside logging will cause Debug.LogError -> failed test
-            Unity.Logging.Internal.Debug.SelfLog.SetMode(Unity.Logging.Internal.Debug.SelfLog.Mode.EnabledInUnityEngineDebugLogError);
+                // Hack essentially disabling all logging for this world, as we should never have exceptions going via this logger anyway.
+                LogLevel = shouldLog ? LogLevel : NetDebug.LogLevelType.Exception,
+                DumpPackets = DebugPackets,
+            });
         }
 
         public NetCodeTestWorld()
@@ -93,8 +103,6 @@ namespace Unity.NetCode.Tests
             ClientServerBootstrap.AutoConnectPort = 0;
             m_DefaultWorld = new World("NetCodeTest");
             m_ElapsedTime = 42;
-
-            ForwardUnityLoggingToDebugLog();
         }
 
         public void Dispose()
@@ -209,8 +217,10 @@ namespace Unity.NetCode.Tests
             m_ControlSystems.Add(typeof(TickClientSimulationSystem));
             m_ControlSystems.Add(typeof(TickClientPresentationSystem));
 #endif
+#if !UNITY_CLIENT
             m_ControlSystems.Add(typeof(TickServerInitializationSystem));
             m_ControlSystems.Add(typeof(TickServerSimulationSystem));
+#endif
             m_ControlSystems.Add(typeof(DriverMigrationSystem));
 
             s_AllClientSystems ??= DefaultWorldInitialization.GetAllSystems(WorldSystemFilterFlags.ClientSimulation);
@@ -226,6 +236,10 @@ namespace Unity.NetCode.Tests
             m_ClientSystems.AddRange(s_AllClientSystems.Where(filter));
             m_ThinClientSystems.AddRange(s_AllThinClientSystems.Where(filter));
             m_ServerSystems.AddRange(s_AllServerSystems.Where(filter));
+
+            m_ClientSystems.Add(typeof(Unity.Entities.UpdateWorldTimeSystem));
+            m_ThinClientSystems.Add(typeof(Unity.Entities.UpdateWorldTimeSystem));
+            m_ServerSystems.Add(typeof(Unity.Entities.UpdateWorldTimeSystem));
 
             m_ClientSystems.AddRange(TestSpecificAdditionalSystems);
             m_ThinClientSystems.AddRange(TestSpecificAdditionalSystems);
@@ -293,11 +307,8 @@ namespace Unity.NetCode.Tests
 #if UNITY_EDITOR
                 BakeGhostCollection(m_ServerWorld);
 #endif
-                if (DebugPackets)
-                {
-                    var dbg = m_ServerWorld.EntityManager.CreateEntity(ComponentType.ReadWrite<NetCodeDebugConfig>());
-                    m_ServerWorld.EntityManager.SetComponentData(dbg, new NetCodeDebugConfig {LogLevel = NetDebug.LogLevelType.Debug, DumpPackets = true});
-                }
+
+                SetupNetDebugConfig(m_ServerWorld);
             }
 
             if (numClients > 0)
@@ -314,11 +325,7 @@ namespace Unity.NetCode.Tests
 
                         m_ClientWorlds[i] = CreateClientWorld($"ClientTest{i}-{testMethodName}", useThinClients);
 
-                        if (DebugPackets)
-                        {
-                            var dbg = m_ClientWorlds[i].EntityManager.CreateEntity(ComponentType.ReadWrite<NetCodeDebugConfig>());
-                            m_ClientWorlds[i].EntityManager.SetComponentData(dbg, new NetCodeDebugConfig {LogLevel = NetDebug.LogLevelType.Debug, DumpPackets = true});
-                        }
+                        SetupNetDebugConfig(m_ClientWorlds[i]);
                     }
                     catch (Exception)
                     {
@@ -339,6 +346,32 @@ namespace Unity.NetCode.Tests
             //Run 1 tick so that all the ghost collection and the ghost collection component run once.
             if (tickWorldAfterCreation)
                 Tick(1.0f / 60.0f);
+
+            TrySetSuppressRunInBackgroundWarning(true);
+        }
+
+        /// <summary>
+        /// Tests will fail on CI due to `runInBackground = false`, so we must suppress the warning:
+        /// Note that if netcode systems don't exist (i.e. no NetDebug), no suppression is necessary.
+        /// </summary>
+        /// <param name="suppress"></param>
+        /// <remarks>Called multiple times as some tests don't tick until they've established a collection.</remarks>
+        public bool TrySetSuppressRunInBackgroundWarning(bool suppress)
+        {
+            var success = TryGetSingletonEntity<NetDebug>(ServerWorld) != default;
+            if (success)
+                GetSingletonRW<NetDebug>(ServerWorld).ValueRW.SuppressApplicationRunInBackgroundWarning = suppress;
+
+            if (ClientWorlds != null)
+            {
+                foreach (var clientWorld in ClientWorlds)
+                {
+                    success &= TryGetSingletonEntity<NetDebug>(clientWorld) != default;
+                    if(success)
+                        GetSingletonRW<NetDebug>(clientWorld).ValueRW.SuppressApplicationRunInBackgroundWarning = suppress;
+                }
+            }
+            return success;
         }
 
         private World CreateServerWorld(string name, World world = null)
@@ -350,6 +383,7 @@ namespace Unity.NetCode.Tests
             var initializationGroup = world.GetExistingSystemManaged<InitializationSystemGroup>();
             var simulationGroup = world.GetExistingSystemManaged<SimulationSystemGroup>();
             var presentationGroup = world.GetExistingSystemManaged<PresentationSystemGroup>();
+            world.GetExistingSystemManaged<UpdateWorldTimeSystem>().Enabled = false;
 #if !UNITY_SERVER
             var initializationTickSystem = m_DefaultWorld.GetExistingSystemManaged<TickClientInitializationSystem>();
             var simulationTickSystem = m_DefaultWorld.GetExistingSystemManaged<TickClientSimulationSystem>();
@@ -358,6 +392,7 @@ namespace Unity.NetCode.Tests
             simulationTickSystem.AddSystemGroupToTickList(simulationGroup);
             presentationTickSystem.AddSystemGroupToTickList(presentationGroup);
 #endif
+            ClientServerBootstrap.ServerWorlds.Add(world);
             return world;
         }
 
@@ -372,7 +407,7 @@ namespace Unity.NetCode.Tests
             var initializationGroup = world.GetExistingSystemManaged<InitializationSystemGroup>();
             var simulationGroup = world.GetExistingSystemManaged<SimulationSystemGroup>();
             var presentationGroup = world.GetExistingSystemManaged<PresentationSystemGroup>();
-
+            world.GetExistingSystemManaged<UpdateWorldTimeSystem>().Enabled = false;
 #if !UNITY_SERVER
             var initializationTickSystem = m_DefaultWorld.GetExistingSystemManaged<TickClientInitializationSystem>();
             var simulationTickSystem = m_DefaultWorld.GetExistingSystemManaged<TickClientSimulationSystem>();
@@ -381,6 +416,7 @@ namespace Unity.NetCode.Tests
             simulationTickSystem.AddSystemGroupToTickList(simulationGroup);
             presentationTickSystem.AddSystemGroupToTickList(presentationGroup);
 #endif
+            ClientServerBootstrap.ClientWorlds.Add(world);
             return world;
         }
 
@@ -399,18 +435,19 @@ namespace Unity.NetCode.Tests
             }
 
             // Make sure the log flush does not run
+            // FIXME: Fix this so that the test world updates the below systems in the same order as the package simulation does. (Server first, then client).
+#if !UNITY_CLIENT
             k_TickServerInitializationSystem.Begin();
             m_DefaultWorld.GetExistingSystemManaged<TickServerInitializationSystem>().Update();
             k_TickServerInitializationSystem.End();
+            k_TickServerSimulationSystem.Begin();
+            m_DefaultWorld.GetExistingSystemManaged<TickServerSimulationSystem>().Update();
+            k_TickServerSimulationSystem.End();
+#endif
 #if !UNITY_SERVER
             k_TickClientInitializationSystem.Begin();
             m_DefaultWorld.GetExistingSystemManaged<TickClientInitializationSystem>().Update();
             k_TickClientInitializationSystem.End();
-#endif
-            k_TickServerSimulationSystem.Begin();
-            m_DefaultWorld.GetExistingSystemManaged<TickServerSimulationSystem>().Update();
-            k_TickServerSimulationSystem.End();
-#if !UNITY_SERVER
             k_TickClientSimulationSystem.Begin();
             m_DefaultWorld.GetExistingSystemManaged<TickClientSimulationSystem>().Update();
             k_TickClientSimulationSystem.End();
@@ -418,9 +455,10 @@ namespace Unity.NetCode.Tests
             m_DefaultWorld.GetExistingSystemManaged<TickClientPresentationSystem>().Update();
             k_TickClientPresentationSystem.End();
 #endif
-
+#if USING_UNITY_LOGGING
             // Flush the pending logs since the system doing that might not have run yet which means Log.Expect does not work
             Logging.Internal.LoggerManager.ScheduleUpdateLoggers().Complete();
+#endif
         }
 
         public void MigrateServerWorld(World suppliedWorld = null)
@@ -441,6 +479,8 @@ namespace Unity.NetCode.Tests
             m_ServerWorld = CreateServerWorld(newWorld.Name, newWorld);
 
             Assert.True(newWorld.Name == m_ServerWorld.Name);
+
+            TrySetSuppressRunInBackgroundWarning(true);
         }
 
         public void MigrateClientWorld(int index, World suppliedWorld = null)
@@ -463,6 +503,8 @@ namespace Unity.NetCode.Tests
             m_ClientWorlds[index] = CreateClientWorld(newWorld.Name, false, newWorld);
 
             Assert.True(newWorld.Name == m_ClientWorlds[index].Name);
+
+            TrySetSuppressRunInBackgroundWarning(true);
         }
 
         public void RestartClientWorld(int index)
@@ -590,25 +632,32 @@ namespace Unity.NetCode.Tests
             }
         }
 
-        public bool Connect(float dt, int maxSteps)
+        /// <summary>
+        /// Will throw if connect fails.
+        /// </summary>
+        public void Connect(float dt, int maxSteps = 4)
         {
             var ep = NetworkEndpoint.LoopbackIpv4;
             ep.Port = 7979;
             GetSingletonRW<NetworkStreamDriver>(ServerWorld).ValueRW.Listen(ep);
+            var connectionEntities = new Entity[ClientWorlds.Length];
             for (int i = 0; i < ClientWorlds.Length; ++i)
-                GetSingletonRW<NetworkStreamDriver>(ClientWorlds[i]).ValueRW.Connect(ClientWorlds[i].EntityManager, ep);
+                connectionEntities[i] = GetSingletonRW<NetworkStreamDriver>(ClientWorlds[i]).ValueRW.Connect(ClientWorlds[i].EntityManager, ep);
             for (int i = 0; i < ClientWorlds.Length; ++i)
             {
                 while (TryGetSingletonEntity<NetworkId>(ClientWorlds[i]) == Entity.Null)
                 {
                     if (maxSteps <= 0)
-                        return false;
+                    {
+                        var streamDriver = GetSingleton<NetworkStreamDriver>(ClientWorlds[i]);
+                        var nsc = ClientWorlds[i].EntityManager.GetComponentData<NetworkStreamConnection>(connectionEntities[i]);
+                        Assert.Fail($"ClientWorld[{i}] failed to connect to the server after {maxSteps} ticks! Driver status: {streamDriver.GetConnectionState(nsc)}!");
+                        return;
+                    }
                     --maxSteps;
                     Tick(dt);
                 }
             }
-
-            return true;
         }
 
         public void GoInGame(World w = null)
@@ -616,11 +665,13 @@ namespace Unity.NetCode.Tests
             if (w == null)
             {
                 if (ServerWorld != null)
-                    GoInGame(ServerWorld);
-                if (ClientWorlds != null)
                 {
-                    for (int i = 0; i < ClientWorlds.Length; ++i)
-                        GoInGame(ClientWorlds[i]);
+                    GoInGame(ServerWorld);
+                }
+                if (ClientWorlds == null) return;
+                foreach (var clientWorld in ClientWorlds)
+                {
+                    GoInGame(clientWorld);
                 }
 
                 return;

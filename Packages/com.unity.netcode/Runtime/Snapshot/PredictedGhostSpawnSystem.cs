@@ -28,11 +28,11 @@ namespace Unity.NetCode
     public struct PredictedGhostSpawn : IBufferElementData
     {
         /// <summary>
-        /// The entitis that has been spawned
+        /// The Entity that has been spawned.
         /// </summary>
         public Entity entity;
         /// <summary>
-        /// The index inside the <see cref="GhostCollectionPrefab"/> that identify the type of ghost to be spawned.
+        /// The index of the ghost type in the <seealso cref="GhostCollectionPrefab"/> collection. Used to classify the ghost (<see cref="GhostSpawnClassificationSystem"/>).
         /// </summary>
         public int ghostType;
         /// <summary>

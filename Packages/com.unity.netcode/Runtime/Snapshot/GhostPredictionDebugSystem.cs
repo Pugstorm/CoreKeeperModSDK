@@ -183,7 +183,7 @@ namespace Unity.NetCode
             // FIXME: placeholder to show the idea behind prediction smoothing
             public ComponentType transformType;
 
-            const GhostComponentSerializer.SendMask requiredSendMask = GhostComponentSerializer.SendMask.Predicted;
+            const GhostSendType requiredSendMask = GhostSendType.OnlyPredictedClients;
 
     #pragma warning disable 649
             [NativeSetThreadIndex] public int ThreadIndex;
@@ -233,12 +233,13 @@ namespace Unity.NetCode
                     if ((GhostComponentIndex[baseOffset + comp].SendMask&requiredSendMask) == 0)
                         continue;
 
-                    var compSize = GhostComponentCollection[serializerIdx].ComponentType.IsBuffer
-                        ? GhostSystemConstants.DynamicBufferComponentSnapshotSize
-                        : GhostComponentCollection[serializerIdx].ComponentSize;
-                    if (chunk.Has(ref ghostChunkComponentTypesPtr[compIdx]))
+                    ref readonly var ghostSerializer = ref GhostComponentCollection.ElementAtRO(serializerIdx);
+                    var compSize = ghostSerializer.ComponentType.IsBuffer
+                        ? GhostComponentSerializer.DynamicBufferComponentSnapshotSize
+                        : ghostSerializer.ComponentSize;
+                    if (chunk.Has(ref ghostChunkComponentTypesPtr[compIdx]) && ghostSerializer.HasGhostFields)
                     {
-                        if (!GhostComponentCollection[serializerIdx].ComponentType.IsBuffer)
+                        if (!ghostSerializer.ComponentType.IsBuffer)
                         {
                             var compData = (byte*)chunk.GetDynamicComponentDataArrayReinterpret<byte>(ref ghostChunkComponentTypesPtr[compIdx], compSize).GetUnsafeReadOnlyPtr();
                             for (int ent = 0; ent < entities.Length; ++ent)
@@ -253,7 +254,7 @@ namespace Unity.NetCode
                                     float* errorsPtr = ((float*)predictionErrors.GetUnsafePtr()) + errorIndex + ThreadIndex * numPredictionErrors;
                                     int errorsLength = numPredictionErrors - errorIndex;
 
-                                    GhostComponentCollection[serializerIdx].ReportPredictionErrors.Ptr.Invoke((System.IntPtr)(compData + compSize * ent), (System.IntPtr)(dataPtr + compSize * ent), (System.IntPtr)(errorsPtr), errorsLength);
+                                    ghostSerializer.ReportPredictionErrors.Invoke((System.IntPtr)(compData + compSize * ent), (System.IntPtr)(dataPtr + compSize * ent), (System.IntPtr)(errorsPtr), errorsLength);
                                 }
                             }
                         }
@@ -279,35 +280,39 @@ namespace Unity.NetCode
                         if ((GhostComponentIndex[baseOffset + comp].SendMask&requiredSendMask) == 0)
                             continue;
 
-                        var compSize = GhostComponentCollection[serializerIdx].ComponentType.IsBuffer
-                            ? GhostSystemConstants.DynamicBufferComponentSnapshotSize
-                            : GhostComponentCollection[serializerIdx].ComponentSize;
-                        var entityIdx = GhostComponentIndex[baseOffset + comp].EntityIndex;
+                        ref readonly var ghostSerializer = ref GhostComponentCollection.ElementAtRO(serializerIdx);
+                        var compSize = ghostSerializer.ComponentType.IsBuffer
+                            ? GhostComponentSerializer.DynamicBufferComponentSnapshotSize
+                            : ghostSerializer.ComponentSize;
 
-                        for (int ent = 0, chunkEntityCount = chunk.Count; ent < chunkEntityCount; ++ent)
+                        if (ghostSerializer.HasGhostFields)
                         {
-                            // If this entity did not predict anything there was no rollback and no need to debug it
-                            if (!PredictedGhosts[ent].ShouldPredict(tick))
-                                continue;
-                            if (entities[ent] != backupEntities[ent])
-                                continue;
-                            var linkedEntityGroup = linkedEntityGroupAccessor[ent];
-                            var childEnt = linkedEntityGroup[entityIdx].Value;
-                            if (childEntityLookup.TryGetValue(childEnt, out var childChunk) && childChunk.Chunk.Has(ref ghostChunkComponentTypesPtr[compIdx]))
+                            var entityIdx = GhostComponentIndex[baseOffset + comp].EntityIndex;
+                            for (int ent = 0, chunkEntityCount = chunk.Count; ent < chunkEntityCount; ++ent)
                             {
-                                if (!GhostComponentCollection[serializerIdx].ComponentType.IsBuffer)
+                                // If this entity did not predict anything there was no rollback and no need to debug it
+                                if (!PredictedGhosts[ent].ShouldPredict(tick))
+                                    continue;
+                                if (entities[ent] != backupEntities[ent])
+                                    continue;
+                                var linkedEntityGroup = linkedEntityGroupAccessor[ent];
+                                var childEnt = linkedEntityGroup[entityIdx].Value;
+                                if (childEntityLookup.TryGetValue(childEnt, out var childChunk) && childChunk.Chunk.Has(ref ghostChunkComponentTypesPtr[compIdx]))
                                 {
-                                    var compData = (byte*)childChunk.Chunk.GetDynamicComponentDataArrayReinterpret<byte>(ref ghostChunkComponentTypesPtr[compIdx], compSize).GetUnsafeReadOnlyPtr();
-                                    int errorIndex = GhostComponentIndex[baseOffset + comp].PredictionErrorBaseIndex;
+                                    if (!ghostSerializer.ComponentType.IsBuffer)
+                                    {
+                                        var compData = (byte*) childChunk.Chunk.GetDynamicComponentDataArrayReinterpret<byte>(ref ghostChunkComponentTypesPtr[compIdx], compSize).GetUnsafeReadOnlyPtr();
+                                        int errorIndex = GhostComponentIndex[baseOffset + comp].PredictionErrorBaseIndex;
 
-                                    float* errorsPtr = ((float*)predictionErrors.GetUnsafePtr()) + errorIndex + ThreadIndex * numPredictionErrors;
-                                    int errorsLength = numPredictionErrors - errorIndex;
+                                        float* errorsPtr = ((float*) predictionErrors.GetUnsafePtr()) + errorIndex + ThreadIndex * numPredictionErrors;
+                                        int errorsLength = numPredictionErrors - errorIndex;
 
-                                    GhostComponentCollection[serializerIdx].ReportPredictionErrors.Ptr.Invoke((System.IntPtr)(compData + compSize * childChunk.IndexInChunk), (System.IntPtr)(dataPtr + compSize * ent), (System.IntPtr)(errorsPtr), errorsLength);
-                                }
-                                else
-                                {
-                                    //FIXME Buffers need to report error for the size and an aggregate for each element in the buffer
+                                        ghostSerializer.ReportPredictionErrors.Invoke((System.IntPtr)(compData + compSize * childChunk.IndexInChunk), (System.IntPtr)(dataPtr + compSize * ent), (System.IntPtr)(errorsPtr), errorsLength);
+                                    }
+                                    else
+                                    {
+                                        //FIXME Buffers need to report error for the size and an aggregate for each element in the buffer
+                                    }
                                 }
                             }
                         }

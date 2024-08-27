@@ -85,7 +85,7 @@ namespace Unity.NetCode.Tests
         int connectAndGoInGame(NetCodeTestWorld testWorld, int maxFrames = 4)
         {
             // Connect and make sure the connection could be established
-            Assert.IsTrue(testWorld.Connect(frameTime, maxFrames));
+            testWorld.Connect(frameTime, maxFrames);
 
             // Go in-game
             testWorld.GoInGame();
@@ -592,7 +592,7 @@ namespace Unity.NetCode.Tests
                 {
                     float frameTime = 1.0f / 60.0f;
                     // Connect and make sure the connection could be established
-                    Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                    testWorld.Connect(frameTime);
 
                     // Go in-game
                     testWorld.GoInGame();
@@ -623,6 +623,348 @@ namespace Unity.NetCode.Tests
                     Assert.AreEqual(0, ghostCount.GhostCountOnClient);
                 }
             }
+        }
+
+        [Test]
+        public void TestAlwaysRelevantQuery()
+        {
+            // basic feature test, custom components set user side in that query should always be relevant
+            
+            // Setup spawn
+            using var testWorld = new NetCodeTestWorld();
+            testWorld.Bootstrap(true);
+            var ghostGameObject = new GameObject();
+            ghostGameObject.AddComponent<TestNetCodeAuthoring>().Converter = new GhostValueSerializerConverter();
+            Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObject));
+            testWorld.CreateWorlds(true, 1);
+            var prefabCollection = testWorld.TryGetSingletonEntity<NetCodeTestPrefabCollection>(testWorld.ServerWorld);
+            var prefab = testWorld.ServerWorld.EntityManager.GetBuffer<NetCodeTestPrefab>(prefabCollection)[0].Value;
+            var entity = testWorld.ServerWorld.EntityManager.Instantiate(prefab);
+
+            var serverRelevancyQuery = testWorld.ServerWorld.EntityManager.CreateEntityQuery(typeof(GhostRelevancy));
+            var clientGhostQuery = testWorld.ClientWorlds[0].EntityManager.CreateEntityQuery(typeof(GhostValueSerializer));
+            var relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.GhostRelevancyMode = GhostRelevancyMode.SetIsRelevant;
+            relevancy.ValueRW.GhostRelevancySet.Clear(); // make sure the only way to get the ghost is through the query
+            testWorld.Connect(frameTime);
+            testWorld.GoInGame();
+            for (int i = 0; i < 100; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+
+            // test nothing is relevant for now
+            Assert.That(clientGhostQuery.IsEmpty);
+            
+            // test add query and check that the ghost is relevant now
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.DefaultRelevancyQuery = testWorld.ServerWorld.EntityManager.CreateEntityQuery(typeof(GhostValueSerializer));
+            for (int i = 0; i < 4; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQuery.CalculateEntityCount(), Is.EqualTo(1));
+        }
+        
+        public class GhostRelevancyConverterA : TestNetCodeAuthoring.IConverter
+        {
+            public void Bake(GameObject gameObject, IBaker baker)
+            {
+                baker.DependsOn(gameObject);
+                var entity = baker.GetEntity(TransformUsageFlags.None);
+                baker.AddComponent(entity, new GhostRelevancyA());
+            }
+        }
+        public class GhostRelevancyConverterB : TestNetCodeAuthoring.IConverter
+        {
+            public void Bake(GameObject gameObject, IBaker baker)
+            {
+                baker.DependsOn(gameObject);
+                var entity = baker.GetEntity(TransformUsageFlags.None);
+                baker.AddComponent(entity, new GhostRelevancyB());
+            }
+        }
+
+        public struct GhostRelevancyA : IComponentData
+        {
+            [GhostField] public int Value;
+        }
+        public struct GhostRelevancyB : IComponentData
+        {
+            [GhostField] public int Value;
+        }
+
+        [Test]
+        public void TestMoreComplexAlwaysRelevantQuery()
+        {
+            // Setup spawn
+            using var testWorld = new NetCodeTestWorld();
+            testWorld.Bootstrap(true);
+            var ghostGameObjectPrefabA = new GameObject();
+            ghostGameObjectPrefabA.AddComponent<TestNetCodeAuthoring>().Converter = new GhostRelevancyConverterA();
+            var authoringA = ghostGameObjectPrefabA.AddComponent<GhostAuthoringComponent>();
+            authoringA.DefaultGhostMode = GhostMode.Predicted;
+            var ghostGameObjectPrefabB = new GameObject();
+            ghostGameObjectPrefabB.AddComponent<TestNetCodeAuthoring>().Converter = new GhostRelevancyConverterB();
+            var authoringB = ghostGameObjectPrefabB.AddComponent<GhostAuthoringComponent>();
+            authoringB.DefaultGhostMode = GhostMode.Predicted;
+            Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObjectPrefabA, ghostGameObjectPrefabB));
+
+            testWorld.CreateWorlds(true, 1);
+            var prefabCollection = testWorld.TryGetSingletonEntity<NetCodeTestPrefabCollection>(testWorld.ServerWorld);
+            var prefabA = testWorld.ServerWorld.EntityManager.GetBuffer<NetCodeTestPrefab>(prefabCollection)[0].Value;
+            var prefabB = testWorld.ServerWorld.EntityManager.GetBuffer<NetCodeTestPrefab>(prefabCollection)[1].Value;
+            var ghostEntityA = testWorld.ServerWorld.EntityManager.Instantiate(prefabA);
+            var ghostEntityB = testWorld.ServerWorld.EntityManager.Instantiate(prefabB);
+
+            var serverRelevancyQuery = testWorld.ServerWorld.EntityManager.CreateEntityQuery(typeof(GhostRelevancy));
+            var clientGhostQueryA = testWorld.ClientWorlds[0].EntityManager.CreateEntityQuery(typeof(GhostRelevancyA));
+            var clientGhostQueryB = testWorld.ClientWorlds[0].EntityManager.CreateEntityQuery(typeof(GhostRelevancyB));
+            var relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.GhostRelevancyMode = GhostRelevancyMode.SetIsRelevant;
+            relevancy.ValueRW.GhostRelevancySet.Clear(); // make sure the only way to get the ghost is through the query
+            testWorld.Connect(frameTime);
+            testWorld.GoInGame();
+            for (int i = 0; i < 100; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+
+            int tickCountForReplication = 4;
+            
+            // Clear for next tests
+            void Clear()
+            {
+                relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+
+                relevancy.ValueRW.GhostRelevancyMode = GhostRelevancyMode.SetIsRelevant;
+                relevancy.ValueRW.DefaultRelevancyQuery = default;
+                relevancy.ValueRW.GhostRelevancySet.Clear();
+                for (int i = 0; i < tickCountForReplication; i++)
+                {
+                    testWorld.Tick(frameTime);
+                }
+
+                Assert.That(clientGhostQueryA.IsEmpty);
+                Assert.That(clientGhostQueryB.IsEmpty);
+            }
+
+            // test nothing is relevant for now
+            Assert.That(clientGhostQueryA.IsEmpty);
+            Assert.That(clientGhostQueryB.IsEmpty);
+
+            // test add query for A and check that the ghost is relevant now
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.DefaultRelevancyQuery = testWorld.ServerWorld.EntityManager.CreateEntityQuery(typeof(GhostRelevancyA));
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.CalculateEntityCount(), Is.EqualTo(1));
+            Assert.That(clientGhostQueryB.IsEmpty);
+
+            Clear();
+            
+            // test add query for B and check that the ghost is relevant now
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.DefaultRelevancyQuery = testWorld.ServerWorld.EntityManager.CreateEntityQuery(typeof(GhostRelevancyB));
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.IsEmpty);
+            Assert.That(clientGhostQueryB.CalculateEntityCount(), Is.EqualTo(1));
+
+            Clear();
+            
+            // test add query and check that both ghosts are relevant now
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.DefaultRelevancyQuery = new EntityQueryBuilder(Allocator.Temp).WithAny<GhostRelevancyA, GhostRelevancyB>().Build(testWorld.ServerWorld.EntityManager);
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.CalculateEntityCount(), Is.EqualTo(1));
+            Assert.That(clientGhostQueryB.CalculateEntityCount(), Is.EqualTo(1));
+
+            Clear();
+
+            // test hash map is union with query
+            var connection = testWorld.ServerWorld.EntityManager.CreateEntityQuery(typeof(NetworkId)).GetSingleton<NetworkId>();
+            var ghostIDA = testWorld.ServerWorld.EntityManager.GetComponentData<GhostInstance>(ghostEntityA).ghostId;
+            var ghostIDB = testWorld.ServerWorld.EntityManager.GetComponentData<GhostInstance>(ghostEntityB).ghostId;
+
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.GhostRelevancySet.Clear();
+            relevancy.ValueRW.GhostRelevancySet.Add(new RelevantGhostForConnection(connection.Value, ghostIDA), 0);
+            relevancy.ValueRW.DefaultRelevancyQuery = testWorld.ServerWorld.EntityManager.CreateEntityQuery(typeof(GhostRelevancyB));
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.CalculateEntityCount(), Is.EqualTo(1));
+            Assert.That(clientGhostQueryB.CalculateEntityCount(), Is.EqualTo(1));
+
+            Clear();
+
+            // test hash map has priority over query
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.GhostRelevancySet.Clear();
+            relevancy.ValueRW.GhostRelevancySet.Add(new RelevantGhostForConnection(connection.Value, ghostIDA), 0);
+            relevancy.ValueRW.DefaultRelevancyQuery = new EntityQueryBuilder(Allocator.Temp).WithNone<GhostRelevancyA, GhostRelevancyB>().Build(testWorld.ServerWorld.EntityManager);
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.CalculateEntityCount(), Is.EqualTo(1));
+            Assert.That(clientGhostQueryB.IsEmpty);
+            
+            // Test same ghost set, but with new relevancy query
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            // A should already be relevant
+            relevancy.ValueRW.DefaultRelevancyQuery = new EntityQueryBuilder(Allocator.Temp).WithAll<GhostRelevancyB>().Build(testWorld.ServerWorld.EntityManager);
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.CalculateEntityCount(), Is.EqualTo(1));
+            Assert.That(clientGhostQueryB.CalculateEntityCount(), Is.EqualTo(1));
+            
+            // Test no query has no relevant ghosts
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.DefaultRelevancyQuery = default;
+            relevancy.ValueRW.GhostRelevancySet.Clear();
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.IsEmpty);
+            Assert.That(clientGhostQueryB.IsEmpty);
+
+            Clear();
+
+            // make sure relevancy disabled status works as expected with internal vs user facing query
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.GhostRelevancyMode = GhostRelevancyMode.Disabled;
+            relevancy.ValueRW.DefaultRelevancyQuery = new EntityQueryBuilder(Allocator.Temp).WithNone<GhostRelevancyA, GhostRelevancyB>().Build(testWorld.ServerWorld.EntityManager); // should be ignored
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.CalculateEntityCount(), Is.EqualTo(1));
+            Assert.That(clientGhostQueryB.CalculateEntityCount(), Is.EqualTo(1));
+
+            Clear();
+
+            // test if user marks a ghost as not relevant specifically, that a always relevant query won't override it
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.GhostRelevancyMode = GhostRelevancyMode.SetIsIrrelevant;
+            relevancy.ValueRW.DefaultRelevancyQuery = new EntityQueryBuilder(Allocator.Temp).WithAny<GhostRelevancyA, GhostRelevancyB>().Build(testWorld.ServerWorld.EntityManager);
+            relevancy.ValueRW.GhostRelevancySet.Clear();
+            relevancy.ValueRW.GhostRelevancySet.Add(new RelevantGhostForConnection(connection.Value, ghostIDA), 0);
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.IsEmpty);
+            Assert.That(clientGhostQueryB.CalculateEntityCount(), Is.EqualTo(1));
+
+            Clear();
+            // test for breaking change, if users set Irrelevant and expect non-included ghosts to be relevant without specifying a query
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.GhostRelevancyMode = GhostRelevancyMode.SetIsIrrelevant;
+            relevancy.ValueRW.DefaultRelevancyQuery = default; // This should work, since a default query matches everything
+            relevancy.ValueRW.GhostRelevancySet.Clear();
+            // B is excluded, A is implicitly included
+            relevancy.ValueRW.GhostRelevancySet.Add(new RelevantGhostForConnection(connection.Value, ghostIDB), 0);
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.CalculateEntityCount(), Is.EqualTo(1));
+            Assert.That(clientGhostQueryB.IsEmpty);
+            
+            Clear();
+            // test None filter in query vs SetIsIrrelevant
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            relevancy.ValueRW.GhostRelevancyMode = GhostRelevancyMode.SetIsIrrelevant;
+            relevancy.ValueRW.DefaultRelevancyQuery = new EntityQueryBuilder(Allocator.Temp).WithNone<GhostRelevancyA>().Build(testWorld.ServerWorld.EntityManager);
+            relevancy.ValueRW.GhostRelevancySet.Clear();
+            // A is excluded by query, but included by set implicitly?
+            relevancy.ValueRW.GhostRelevancySet.Add(new RelevantGhostForConnection(connection.Value, ghostIDB), 0);
+            for (int i = 0; i < tickCountForReplication; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+            Assert.That(clientGhostQueryA.CalculateEntityCount(), Is.EqualTo(1));
+            Assert.That(clientGhostQueryB.IsEmpty);
+        }
+
+        [TestCase(GhostRelevancyMode.SetIsRelevant, true, true, true)]
+        [TestCase(GhostRelevancyMode.SetIsRelevant, true, false, true)]
+        [TestCase(GhostRelevancyMode.SetIsRelevant, false, true, true)]
+        [TestCase(GhostRelevancyMode.SetIsRelevant, false, false, false)]
+        [TestCase(GhostRelevancyMode.SetIsIrrelevant, true, true, false)]
+        [TestCase(GhostRelevancyMode.SetIsIrrelevant, true, false, true)]
+        [TestCase(GhostRelevancyMode.SetIsIrrelevant, false, true, false)]
+        [TestCase(GhostRelevancyMode.SetIsIrrelevant, false, false, true)] // if set does not contain, then implicitly we want the ghost replicated
+        [TestCase(GhostRelevancyMode.Disabled, true, true, true)]
+        [TestCase(GhostRelevancyMode.Disabled, true, false, true)]
+        [TestCase(GhostRelevancyMode.Disabled, false, true, true)]
+        [TestCase(GhostRelevancyMode.Disabled, false, false, true)]
+        public void TestRelevancyScenarios(GhostRelevancyMode mode, bool queryMatchesGhost, bool setContainsGhost, bool expectedRelevancyResult)
+        {
+            // Setup spawn
+            using var testWorld = new NetCodeTestWorld();
+            testWorld.Bootstrap(true);
+            var ghostGameObjectPrefabA = new GameObject();
+            ghostGameObjectPrefabA.AddComponent<TestNetCodeAuthoring>().Converter = new GhostRelevancyConverterA();
+            var authoringA = ghostGameObjectPrefabA.AddComponent<GhostAuthoringComponent>();
+            authoringA.DefaultGhostMode = GhostMode.Predicted;
+            Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObjectPrefabA));
+
+            testWorld.CreateWorlds(true, 1);
+            var prefabCollection = testWorld.TryGetSingletonEntity<NetCodeTestPrefabCollection>(testWorld.ServerWorld);
+            var prefabA = testWorld.ServerWorld.EntityManager.GetBuffer<NetCodeTestPrefab>(prefabCollection)[0].Value;
+            var ghostEntityA = testWorld.ServerWorld.EntityManager.Instantiate(prefabA);
+
+            var serverRelevancyQuery = testWorld.ServerWorld.EntityManager.CreateEntityQuery(typeof(GhostRelevancy));
+            var clientGhostQueryA = testWorld.ClientWorlds[0].EntityManager.CreateEntityQuery(typeof(GhostRelevancyA));
+            var relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+
+            relevancy.ValueRW.GhostRelevancyMode = mode;
+            relevancy.ValueRW.GhostRelevancySet.Clear(); // make sure the only way to get the ghost is through the query
+            testWorld.Connect(frameTime);
+            testWorld.GoInGame();
+            for (int i = 0; i < 100; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+
+            var connection = testWorld.ServerWorld.EntityManager.CreateEntityQuery(typeof(NetworkId)).GetSingleton<NetworkId>();
+            var ghostIDA = testWorld.ServerWorld.EntityManager.GetComponentData<GhostInstance>(ghostEntityA).ghostId;
+
+            relevancy = serverRelevancyQuery.GetSingletonRW<GhostRelevancy>();
+            if (queryMatchesGhost)
+            {
+                relevancy.ValueRW.DefaultRelevancyQuery = new EntityQueryBuilder(Allocator.Temp).WithAny<GhostRelevancyA>().Build(testWorld.ServerWorld.EntityManager);
+            }
+            else
+            {
+                relevancy.ValueRW.DefaultRelevancyQuery = new EntityQueryBuilder(Allocator.Temp).WithNone<GhostRelevancyA>().Build(testWorld.ServerWorld.EntityManager);
+            }
+
+            if (setContainsGhost)
+            {
+                relevancy.ValueRW.GhostRelevancySet.Add(new RelevantGhostForConnection(connection.Value, ghostIDA), 0);
+            }
+
+            for (int i = 0; i < 4; i++)
+            {
+                testWorld.Tick(frameTime);
+            }
+
+            Assert.That(clientGhostQueryA.CalculateEntityCount(), expectedRelevancyResult ? Is.EqualTo(1) : Is.EqualTo(0));
         }
     }
 }

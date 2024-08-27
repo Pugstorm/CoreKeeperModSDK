@@ -63,7 +63,7 @@ namespace Unity.NetCode.Tests
 
                 Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObject));
                 testWorld.CreateWorlds(true, 1);
-                Assert.IsTrue(testWorld.Connect(frameTime, 128));
+                testWorld.Connect(frameTime, 128);
                 testWorld.GoInGame();
                 // Spawn a new entity on the server. Server will start send snapshots now.
                 var serverEnt = testWorld.SpawnOnServer(ghostGameObject);
@@ -106,7 +106,7 @@ namespace Unity.NetCode.Tests
                 ghostConfig.DefaultGhostMode = GhostMode.Interpolated;
                 Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObject));
                 testWorld.CreateWorlds(true, 1);
-                Assert.IsTrue(testWorld.Connect(frameTime, 128));
+                testWorld.Connect(frameTime, 128);
                 testWorld.GoInGame();
                 // Spawn a new entity on the server. Server will start send snapshots now.
                 var serverEnt = testWorld.SpawnOnServer(ghostGameObject);
@@ -145,7 +145,7 @@ namespace Unity.NetCode.Tests
                 ghostConfig.DefaultGhostMode = GhostMode.Interpolated;
                 Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObject));
                 testWorld.CreateWorlds(true, 1);
-                Assert.IsTrue(testWorld.Connect(frameTime, 128));
+                testWorld.Connect(frameTime, 128);
                 testWorld.GoInGame();
                 // Spawn a new entity on the server. Server will start send snapshots now.
                 var serverEnt = testWorld.SpawnOnServer(ghostGameObject);
@@ -197,7 +197,7 @@ namespace Unity.NetCode.Tests
                 ghostConfig.DefaultGhostMode = GhostMode.Interpolated;
                 Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObject));
                 testWorld.CreateWorlds(true, 1);
-                Assert.IsTrue(testWorld.Connect(frameTime, 128));
+                testWorld.Connect(frameTime, 128);
                 testWorld.GoInGame();
                 // Spawn a new entity on the server. Server will start send snapshots now.
                 var serverEnt = testWorld.SpawnOnServer(ghostGameObject);

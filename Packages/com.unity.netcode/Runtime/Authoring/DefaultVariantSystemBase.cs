@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Entities;
 using Unity.Collections;
-#if ENABLE_UNITY_COLLECTIONS_CHECKS && !UNITY_DOTSRUNTIME
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
 using System.Reflection;
 #endif
 
@@ -116,7 +116,7 @@ namespace Unity.NetCode
                     return GhostVariantsUtility.ClientOnlyHash;
                 if (variantType == typeof(ServerOnlyVariant))
                     return GhostVariantsUtility.ServerOnlyHash;
-                return GhostVariantsUtility.UncheckedVariantHash(variantType.FullName, new FixedString512Bytes(componentType.GetDebugTypeName()));
+                return GhostVariantsUtility.UncheckedVariantHash(variantType.FullName, componentType);
             }
         }
 
@@ -211,7 +211,7 @@ namespace Unity.NetCode
         /// <returns></returns>
         public bool TrySetDefaultVariant(ComponentType componentType, DefaultVariantSystemBase.Rule rule, SystemBase currentSystem)
         {
-#if ENABLE_UNITY_COLLECTIONS_CHECKS && !UNITY_DOTSRUNTIME
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             ValidateVariantRule(componentType, rule, currentSystem);
 #endif
             var added = DefaultVariants.TryAdd(componentType, rule.CreateHashRule(componentType));
@@ -232,7 +232,7 @@ namespace Unity.NetCode
         /// <returns></returns>
         public void SetDefaultVariant(ComponentType componentType, DefaultVariantSystemBase.Rule rule, SystemBase currentSystem)
         {
-#if ENABLE_UNITY_COLLECTIONS_CHECKS && !UNITY_DOTSRUNTIME
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             ValidateVariantRule(componentType, rule, currentSystem);
 #endif
             var newRuleHash = rule.CreateHashRule(componentType);
@@ -243,7 +243,8 @@ namespace Unity.NetCode
                 if (!rulesAreTheSame)
                 {
                     UnityEngine.Debug.Log($"`Overriding the default variant rule for type `{componentType.ToFixedString()}` with '{rule}' ('{newRuleHash}'). Previous rule was " +
-                                          $"('{existingRule.Rule}' ('{existingRule.Rule.CreateHashRule(componentType)}'), setup by {TypeManager.GetSystemName(existingRule.LastSystem.GetType())}.");
+                                          $"('{existingRule.Rule}' ('{existingRule.Rule.CreateHashRule(componentType)}'), setup by {TypeManager.GetSystemName(existingRule.LastSystem.GetType())}." +
+                                          $"In your implementation of DefaultVariantSystemBase use [CreateBefore(typeof({TypeManager.GetSystemName(existingRule.LastSystem.GetType())}))] to resolve this issue.");
                 }
             }
             DefaultVariantsManaged[componentType] = new RuleAssignment{Rule = rule, LastSystem = currentSystem};
@@ -251,14 +252,14 @@ namespace Unity.NetCode
             DefaultVariants[componentType] = newRuleHash;
         }
 
-#if ENABLE_UNITY_COLLECTIONS_CHECKS && !UNITY_DOTSRUNTIME
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
         void ValidateVariantRule(ComponentType componentType, DefaultVariantSystemBase.Rule rule, ComponentSystemBase systemBase)
         {
             if (rule.VariantForParents == default && rule.VariantForChildren == default)
                 throw new System.ArgumentException($"`{componentType}` has an invalid default variant rule ({rule}) defined in `{TypeManager.GetSystemName(systemBase.GetType())}` (in '{systemBase.World.Name}'), as both are `null`!");
 
             var managedType = componentType.GetManagedType();
-            if (typeof(IInputBufferData).IsAssignableFrom(managedType))
+            if (typeof(InputBufferData<>).IsAssignableFrom(managedType))
                 throw new System.ArgumentException($"`{managedType}` is of type `IInputBufferData`, which must get its default variants from the `IInputComponentData` that it is code-generated from. Replace this dictionary entry ({rule}) with the `IInputComponentData` type in system `{TypeManager.GetSystemName(systemBase.GetType())}`, in '{systemBase.World.Name}'!");
 
             ValidateUserDefinedDefaultVariantRule(componentType, rule.VariantForParents, systemBase);

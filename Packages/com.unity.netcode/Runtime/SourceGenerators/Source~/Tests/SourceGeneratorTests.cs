@@ -212,9 +212,12 @@ namespace Unity.NetCode.GeneratorTests
             tree.GetCompilationUnitRoot().Accept(walker);
             Assert.AreEqual(1, walker.Receiver.Candidates.Count);
             //Make a full pass: generate the code and write files to disk
-            GeneratorTestHelpers.RunGeneratorsWithOptions(new Dictionary<string, string> { {GlobalOptions.WriteFilesToDisk, "1"}}, tree);
-            Assert.IsTrue(File.Exists($"{GeneratorTestHelpers.OutputFolder}/{GeneratorTestHelpers.GeneratedAssemblyName}/TestComponentSerializer.cs"));
-            Assert.IsTrue(File.Exists($"{GeneratorTestHelpers.OutputFolder}/{GeneratorTestHelpers.GeneratedAssemblyName}/GhostComponentSerializerCollection.cs"));
+            GeneratorTestHelpers.RunGeneratorsWithOptions(
+                new Dictionary<string, string> { { GlobalOptions.WriteFilesToDisk, "1" } }, tree);
+            Assert.IsTrue(File.Exists(
+                $"{GeneratorTestHelpers.OutputFolder}/{GeneratorTestHelpers.GeneratedAssemblyName}/TestComponentSerializer.cs"));
+            Assert.IsTrue(File.Exists(
+                $"{GeneratorTestHelpers.OutputFolder}/{GeneratorTestHelpers.GeneratedAssemblyName}/GhostComponentSerializerCollection.cs"));
         }
 
         [Test]
@@ -360,7 +363,8 @@ namespace Unity.NetCode.GeneratorTests
                 Assert.AreEqual(fields.Length, members.Length);
                 for (int i = 0; i < fields.Length; ++i)
                 {
-                    Assert.AreEqual(fields[i].Item1, (members[i].Declaration.Type as PredefinedTypeSyntax)?.Keyword.Text,
+                    Assert.AreEqual(fields[i].Item1,
+                        (members[i].Declaration.Type as PredefinedTypeSyntax)?.Keyword.Text,
                         $"{i}");
                     Assert.AreEqual(fields[i].Item2, members[i].Declaration.Variables[0].Identifier.Text);
                 }
@@ -395,7 +399,8 @@ namespace Unity.NetCode.GeneratorTests
             var errors = results.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
             Assert.AreEqual(2, results.GeneratedSources.Length, "Num generated files does not match");
             Assert.AreEqual(0, errors.Length);
-            var maskBits = results.GeneratedSources[0].SyntaxTree.GetRoot().DescendantNodes().OfType<FieldDeclarationSyntax>()
+            var maskBits = results.GeneratedSources[0].SyntaxTree.GetRoot().DescendantNodes()
+                .OfType<FieldDeclarationSyntax>()
                 .First(t => t.Declaration.Variables[0].Identifier.ValueText == "ChangeMaskBits");
             Assert.IsNotNull(maskBits.Declaration.Variables[0].Initializer);
             Assert.AreEqual("44", maskBits.Declaration.Variables[0].Initializer!.Value.ToString());
@@ -434,7 +439,7 @@ namespace Unity.NetCode.GeneratorTests
             Assert.AreEqual(2, walker.Receiver.Candidates.Count);
 
             var resuls = GeneratorTestHelpers.RunGenerators(tree);
-            Assert.AreEqual(0, resuls.Diagnostics.Count(m=>m.Severity == DiagnosticSeverity.Error));
+            Assert.AreEqual(0, resuls.Diagnostics.Count(m => m.Severity == DiagnosticSeverity.Error));
             Assert.AreEqual(2, resuls.GeneratedSources.Length, "Num generated files does not match");
         }
 
@@ -584,13 +589,6 @@ namespace Unity.NetCode.GeneratorTests
                 .First(e => ((AssignmentExpressionSyntax)e).Left.ToString() == "VariantHash");
             Assert.IsTrue(variantHashField.IsKind(SyntaxKind.SimpleAssignmentExpression));
             Assert.AreNotEqual("0", ((AssignmentExpressionSyntax)variantHashField).Right.ToString());
-            //Check that the GhostSerializerAttribute also is present and initialized correctly
-            var serializationAttribute = outputTree.GetRoot().DescendantNodes()
-                .First(n => n.IsKind(SyntaxKind.Attribute) && ((AttributeSyntax)n).Name.ToString() == "GhostSerializer");
-            Assert.AreEqual(2, ((AttributeSyntax)serializationAttribute).ArgumentList?.Arguments.Count);
-            Assert.AreEqual("typeof(Unity.Transforms.Translation)",
-                ((AttributeSyntax)serializationAttribute).ArgumentList?.Arguments[0].ToString());
-            Assert.AreNotEqual("0", ((AttributeSyntax)serializationAttribute).ArgumentList?.Arguments[1].ToString());
         }
 
         [Test]
@@ -698,15 +696,26 @@ namespace Unity.NetCode.GeneratorTests
             //only the command serializer
             Assert.AreEqual(3, results.GeneratedSources.Length, "Num generated files does not match");
             //But some errors are reported too
-            var diagnostics = results.Diagnostics.Where(m=>m.Severity == DiagnosticSeverity.Error).ToArray();
+            var diagnostics = results.Diagnostics.Where(m => m.Severity == DiagnosticSeverity.Error).ToArray();
             int i = 0;
-            Assert.True(diagnostics[i++].GetMessage().StartsWith("GhostField present on an invalid property Buffer.BValue6: Setter is not public.", StringComparison.Ordinal));
-            Assert.True(diagnostics[i++].GetMessage().StartsWith("GhostField missing on field Buffer.BValue2.", StringComparison.Ordinal));
-            Assert.True(diagnostics[i++].GetMessage().StartsWith("GhostField present on an invalid property CommandData.CValue4: No setter.", StringComparison.Ordinal));
-            Assert.True(diagnostics[i++].GetMessage().StartsWith("GhostField missing on field CommandData.CValue1.", StringComparison.Ordinal));
-            Assert.True(diagnostics[i++].GetMessage().StartsWith("GhostField missing on field CommandData.Tick.", StringComparison.Ordinal));
-            Assert.True(diagnostics[i++].GetMessage().StartsWith("GhostField present on an invalid property ComponentData.this[int]: Indexer.", StringComparison.Ordinal));
-            Assert.True(diagnostics[i++].GetMessage().StartsWith("GhostField present on an invalid property CommandData.CValue4: No setter.", StringComparison.Ordinal));
+            Assert.True(diagnostics[i++].GetMessage()
+                .StartsWith("GhostField present on an invalid property Buffer.BValue6: Setter is not public.",
+                    StringComparison.Ordinal));
+            Assert.True(diagnostics[i++].GetMessage()
+                .StartsWith("GhostField missing on field Buffer.BValue2.", StringComparison.Ordinal));
+            Assert.True(diagnostics[i++].GetMessage()
+                .StartsWith("GhostField present on an invalid property CommandData.CValue4: No setter.",
+                    StringComparison.Ordinal));
+            Assert.True(diagnostics[i++].GetMessage().StartsWith("GhostField missing on field CommandData.CValue1.",
+                StringComparison.Ordinal));
+            Assert.True(diagnostics[i++].GetMessage()
+                .StartsWith("GhostField missing on field CommandData.Tick.", StringComparison.Ordinal));
+            Assert.True(diagnostics[i++].GetMessage()
+                .StartsWith("GhostField present on an invalid property ComponentData.this[int]: Indexer.",
+                    StringComparison.Ordinal));
+            Assert.True(diagnostics[i++].GetMessage()
+                .StartsWith("GhostField present on an invalid property CommandData.CValue4: No setter.",
+                    StringComparison.Ordinal));
             Assert.AreEqual(7, diagnostics.Length);
         }
 
@@ -754,18 +763,23 @@ namespace Unity.NetCode.GeneratorTests
             Assert.AreEqual(5, walker.Receiver.Candidates.Count);
             var results = GeneratorTestHelpers.RunGenerators(tree);
             Assert.AreEqual(0, results.GeneratedSources.Length, "Num generated files does not match");
-            var diagnostics = results.Diagnostics.Where(m=>m.Severity == DiagnosticSeverity.Error).ToArray();
+            var diagnostics = results.Diagnostics.Where(m => m.Severity == DiagnosticSeverity.Error).ToArray();
             Assert.AreEqual(5, diagnostics.Length);
             Assert.True(diagnostics[0].GetMessage()
-                .StartsWith("struct Test.Invalid1 cannot implement Component,Rpc interfaces at the same time", StringComparison.Ordinal));
+                .StartsWith("struct Test.Invalid1 cannot implement Component,Rpc interfaces at the same time",
+                    StringComparison.Ordinal));
             Assert.True(diagnostics[1].GetMessage()
-                .StartsWith("struct Test.Invalid2 cannot implement Component,CommandData interfaces at the same time", StringComparison.Ordinal));
+                .StartsWith("struct Test.Invalid2 cannot implement Component,CommandData interfaces at the same time",
+                    StringComparison.Ordinal));
             Assert.True(diagnostics[2].GetMessage()
-                .StartsWith("struct Test.Invalid3 cannot implement Component,Buffer interfaces at the same time", StringComparison.Ordinal));
+                .StartsWith("struct Test.Invalid3 cannot implement Component,Buffer interfaces at the same time",
+                    StringComparison.Ordinal));
             Assert.True(diagnostics[3].GetMessage()
-                .StartsWith("struct Test.Invalid4 cannot implement Buffer,CommandData interfaces at the same time", StringComparison.Ordinal));
+                .StartsWith("struct Test.Invalid4 cannot implement Buffer,CommandData interfaces at the same time",
+                    StringComparison.Ordinal));
             Assert.True(diagnostics[4].GetMessage()
-                .StartsWith("struct Test.Invalid5 cannot implement Buffer,Rpc interfaces at the same time", StringComparison.Ordinal));
+                .StartsWith("struct Test.Invalid5 cannot implement Buffer,Rpc interfaces at the same time",
+                    StringComparison.Ordinal));
         }
 
         [Test]
@@ -867,7 +881,8 @@ namespace Unity.NetCode.GeneratorTests
             // No ghost snapshot serializer is generated (but does contain serializer collection with empty variants + client-to-server command serializer)
             Assert.AreEqual(2, results.GeneratedSources.Length, "Num generated files does not match");
             Assert.IsTrue(results.GeneratedSources[0].SourceText.ToString().Contains("SerializerIndex = -1"));
-            Assert.AreEqual(false, results.GeneratedSources[1].SyntaxTree.ToString().Contains("GhostComponentSerializer.State"));
+            Assert.AreEqual(false,
+                results.GeneratedSources[1].SyntaxTree.ToString().Contains("GhostComponentSerializer.State"));
         }
 
         [Test]
@@ -890,7 +905,9 @@ namespace Unity.NetCode.GeneratorTests
             //     Console.WriteLine($"ERROR: {msg.GetMessage()}");
             var errors = results.Diagnostics.Where(m => m.Severity == DiagnosticSeverity.Error).ToArray();
             Assert.AreEqual(1, errors.Length);
-            Assert.IsTrue(errors[0].GetMessage().Contains("Inside type 'MyType', we could not find the exact template for field 'MyField' with configuration 'Type:System.Char Key:System.Char (quantized=-1 composite=False smoothing=0 subtype=0)'"));
+            Assert.IsTrue(errors[0].GetMessage()
+                .Contains(
+                    "Inside type 'MyType', we could not find the exact template for field 'MyField' with configuration 'Type:System.Char Key:System.Char (quantized=-1 composite=False smoothing=0 subtype=0)'"));
         }
 
         [Test]
@@ -945,7 +962,8 @@ namespace Unity.NetCode.GeneratorTests
             var results = GeneratorTestHelpers.RunGenerators(tree, templateTree);
             var diagnostics = results.Diagnostics.Where(m => m.Severity == DiagnosticSeverity.Error).ToArray();
             Assert.AreEqual(2, diagnostics.Length);
-            Assert.IsTrue(diagnostics[0].GetMessage().Contains("Unable to find the Template associated with 'TypeRegistryEntry:[Type: System.Single, Template: NetCode.GhostSnapshotValueFloat.cs, TemplateOverride: , SubType: 1, Smoothing: Clamp, Quantized: True, SupportCommand: False, Composite: False]'."));
+            Assert.IsTrue(diagnostics[0].GetMessage().Contains(
+                "Unable to find the Template associated with 'TypeRegistryEntry:[Type: System.Single, Template: NetCode.GhostSnapshotValueFloat.cs, TemplateOverride: , SubType: 1, Smoothing: Clamp, Quantized: True, SupportCommand: False, Composite: False]'."));
 
             tree = CSharpSyntaxTree.ParseText(testDataCorrect);
             templateTree = CSharpSyntaxTree.ParseText(customTemplates);
@@ -962,7 +980,8 @@ namespace Unity.NetCode.GeneratorTests
             Assert.AreEqual(expected.Length, members.Length);
             for (int i = 0; i < expected.Length; ++i)
             {
-                Assert.AreEqual(expected[i].Item1, (members[i].Declaration.Type as PredefinedTypeSyntax)?.Keyword.Text, $"{i}");
+                Assert.AreEqual(expected[i].Item1, (members[i].Declaration.Type as PredefinedTypeSyntax)?.Keyword.Text,
+                    $"{i}");
                 Assert.AreEqual(expected[i].Item2, members[i].Declaration.Variables[0].Identifier.Text);
             }
         }
@@ -1023,11 +1042,12 @@ namespace Unity.NetCode.GeneratorTests
                 var compilation = GeneratorTestHelpers.CreateCompilation(tree, templateTree);
                 var driver = GeneratorTestHelpers.CreateGeneratorDriver().AddAdditionalTexts(additionalTexts);
                 var results = driver.RunGenerators(compilation).GetRunResult();
-                var diagnostics = results.Diagnostics.Where(m=>m.Severity == DiagnosticSeverity.Error).ToArray();
+                var diagnostics = results.Diagnostics.Where(m => m.Severity == DiagnosticSeverity.Error).ToArray();
                 Assert.That(diagnostics[0].GetMessage().Contains("Subtyped types cannot also be defined as composite"));
             }
 
-            customTemplates = customTemplates.Replace("Composite = true", "Composite = false", StringComparison.Ordinal);
+            customTemplates =
+                customTemplates.Replace("Composite = true", "Composite = false", StringComparison.Ordinal);
             {
                 // Fix issue and verify it now works as expected (composite true->false)
                 var templateTree = CSharpSyntaxTree.ParseText(customTemplates);
@@ -1047,7 +1067,8 @@ namespace Unity.NetCode.GeneratorTests
                 Assert.AreEqual(expected.Length, members.Length);
                 for (int i = 0; i < expected.Length; ++i)
                 {
-                    Assert.AreEqual(expected[i].Item1, (members[i].Declaration.Type as PredefinedTypeSyntax)?.Keyword.Text, $"{i}");
+                    Assert.AreEqual(expected[i].Item1,
+                        (members[i].Declaration.Type as PredefinedTypeSyntax)?.Keyword.Text, $"{i}");
                     Assert.AreEqual(expected[i].Item2, members[i].Declaration.Variables[0].Identifier.Text);
                 }
             }
@@ -1076,14 +1097,14 @@ namespace Unity.NetCode.GeneratorTests
 
             // SendTypeOptimization=GhostSendType.All and PrefabType=GhostPrefabType.All makes the SendMask interpolated+predicted
             var componentTypeAssignment = initBlockWalker.Intializer!.Expressions.First(e =>
-                ((AssignmentExpressionSyntax) e).Left.ToString() == "SendMask") as AssignmentExpressionSyntax;
+                ((AssignmentExpressionSyntax)e).Left.ToString() == "SendMask") as AssignmentExpressionSyntax;
             Assert.That(componentTypeAssignment, Is.Not.Null);
             Assert.AreEqual(componentTypeAssignment!.Right.ToString(),
-                "GhostComponentSerializer.SendMask.Interpolated|GhostComponentSerializer.SendMask.Predicted");
+                "GhostSendType.AllClients");
 
             // OwnerSendType = SendToOwnerType.All
             componentTypeAssignment = initBlockWalker.Intializer.Expressions.FirstOrDefault(e =>
-                ((AssignmentExpressionSyntax) e).Left.ToString() == "SendToOwner") as AssignmentExpressionSyntax;
+                ((AssignmentExpressionSyntax)e).Left.ToString() == "SendToOwner") as AssignmentExpressionSyntax;
             Assert.That(componentTypeAssignment, Is.Not.Null);
             Assert.AreEqual(componentTypeAssignment!.Right.ToString(), "SendToOwnerType.All");
 
@@ -1147,21 +1168,21 @@ namespace Unity.NetCode.GeneratorTests
 
         [Test]
         [TestCase(GhostPrefabType.All, GhostSendType.AllClients,
-            ExpectedResult =
-                "GhostComponentSerializer.SendMask.Interpolated|GhostComponentSerializer.SendMask.Predicted")]
+            ExpectedResult = "GhostSendType.AllClients")]
         [TestCase(GhostPrefabType.All, GhostSendType.OnlyPredictedClients,
-            ExpectedResult = "GhostComponentSerializer.SendMask.Predicted")]
+            ExpectedResult = "GhostSendType.OnlyPredictedClients")]
         [TestCase(GhostPrefabType.All, GhostSendType.OnlyInterpolatedClients,
-            ExpectedResult = "GhostComponentSerializer.SendMask.Interpolated")]
+            ExpectedResult = "GhostSendType.OnlyInterpolatedClients")]
         [TestCase(GhostPrefabType.PredictedClient, GhostSendType.OnlyPredictedClients,
-            ExpectedResult = "GhostComponentSerializer.SendMask.Predicted")]
+            ExpectedResult = "GhostSendType.OnlyPredictedClients")]
         [TestCase(GhostPrefabType.PredictedClient, GhostSendType.OnlyInterpolatedClients,
-            ExpectedResult = "GhostComponentSerializer.SendMask.Predicted")]
+            ExpectedResult = "GhostSendType.OnlyPredictedClients")]
         [TestCase(GhostPrefabType.InterpolatedClient, GhostSendType.OnlyPredictedClients,
-            ExpectedResult = "GhostComponentSerializer.SendMask.Interpolated")]
+            ExpectedResult = "GhostSendType.OnlyInterpolatedClients")]
         [TestCase(GhostPrefabType.InterpolatedClient, GhostSendType.OnlyInterpolatedClients,
-            ExpectedResult = "GhostComponentSerializer.SendMask.Interpolated")]
-        [TestCase(GhostPrefabType.Server, GhostSendType.AllClients, ExpectedResult = "GhostComponentSerializer.SendMask.None")]
+            ExpectedResult = "GhostSendType.OnlyInterpolatedClients")]
+        [TestCase(GhostPrefabType.Server, GhostSendType.AllClients,
+            ExpectedResult = "GhostSendType.DontSend")]
         public string SourceGenerator_SendType_IsSetCorrectly(GhostPrefabType prefabType, GhostSendType sendType)
         {
             var testData = $@"
@@ -1189,7 +1210,7 @@ namespace Unity.NetCode.GeneratorTests
             outputTree.GetCompilationUnitRoot().Accept(initBlockWalker);
             Assert.IsNotNull(initBlockWalker.Intializer);
             var componentTypeAssignment = initBlockWalker.Intializer!.Expressions.FirstOrDefault(e =>
-                ((AssignmentExpressionSyntax) e).Left.ToString() == "SendMask") as AssignmentExpressionSyntax;
+                ((AssignmentExpressionSyntax)e).Left.ToString() == "SendMask") as AssignmentExpressionSyntax;
             Assert.IsNotNull(componentTypeAssignment);
             return componentTypeAssignment!.Right.ToString();
         }
@@ -1276,13 +1297,16 @@ namespace Unity.NetCode.GeneratorTests
             ";
             var tree = CSharpSyntaxTree.ParseText(testData);
             var results = GeneratorTestHelpers.RunGenerators(tree);
-            Assert.AreEqual(0, results.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error || d.Severity == DiagnosticSeverity.Error));
+            Assert.AreEqual(0,
+                results.Diagnostics.Count(d =>
+                    d.Severity == DiagnosticSeverity.Error || d.Severity == DiagnosticSeverity.Error));
             Assert.AreEqual(3, results.GeneratedSources.Length, "Num generated files does not match");
             Assert.IsTrue(results.GeneratedSources[0].SourceText.ToString().Contains("TestComponent"));
             Assert.IsTrue(results.GeneratedSources[1].SourceText.ToString().Contains("TestComponent2"));
 
             var outputTree = results.GeneratedSources[0].SyntaxTree;
-            var snapshotDataSyntax = outputTree.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>().First(node => node.Identifier.ValueText == "Snapshot");
+            var snapshotDataSyntax = outputTree.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>()
+                .First(node => node.Identifier.ValueText == "Snapshot");
             var members = snapshotDataSyntax.DescendantNodes().OfType<FieldDeclarationSyntax>().ToArray();
             Assert.AreEqual("int", (members[0].Declaration.Type as PredefinedTypeSyntax)?.Keyword.Text);
             Assert.AreEqual("genericEntity_ent", members[0].Declaration.Variables[0].Identifier.Text);
@@ -1290,7 +1314,8 @@ namespace Unity.NetCode.GeneratorTests
             Assert.AreEqual("genericEntity_entSpawnTick", members[1].Declaration.Variables[0].Identifier.Text);
 
             outputTree = results.GeneratedSources[1].SyntaxTree;
-            snapshotDataSyntax = outputTree.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>().First(node => node.Identifier.ValueText == "Snapshot");
+            snapshotDataSyntax = outputTree.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>()
+                .First(node => node.Identifier.ValueText == "Snapshot");
             members = snapshotDataSyntax.DescendantNodes().OfType<FieldDeclarationSyntax>().ToArray();
             Assert.AreEqual("int", (members[0].Declaration.Type as PredefinedTypeSyntax)?.Keyword.Text);
             Assert.AreEqual("entity", members[0].Declaration.Variables[0].Identifier.Text);
@@ -1332,14 +1357,18 @@ namespace Unity.NetCode.GeneratorTests
                     ++errorCount;
                 }
             }
+
             Assert.AreEqual(0, errorCount);
             Assert.AreEqual(3, results.GeneratedSources.Length, "Num generated files does not match");
-            var hintA=Generators.Utilities.TypeHash.FNV1A64(Path.Combine(GeneratorTestHelpers.GeneratedAssemblyName, "A_TestComponentSerializer.cs"));
-            var hintB=Generators.Utilities.TypeHash.FNV1A64(Path.Combine(GeneratorTestHelpers.GeneratedAssemblyName, "B_TestComponentSerializer.cs"));
-            var hintG=Generators.Utilities.TypeHash.FNV1A64(Path.Combine(GeneratorTestHelpers.GeneratedAssemblyName, "GhostComponentSerializerCollection.cs"));
-            Assert.AreEqual($"{hintA}.cs",results.GeneratedSources[0].HintName);
-            Assert.AreEqual($"{hintB}.cs",results.GeneratedSources[1].HintName);
-            Assert.AreEqual($"{hintG}.cs",results.GeneratedSources[2].HintName);
+            var hintA = Generators.Utilities.TypeHash.FNV1A64(Path.Combine(GeneratorTestHelpers.GeneratedAssemblyName,
+                "A_TestComponentSerializer.cs"));
+            var hintB = Generators.Utilities.TypeHash.FNV1A64(Path.Combine(GeneratorTestHelpers.GeneratedAssemblyName,
+                "B_TestComponentSerializer.cs"));
+            var hintG = Generators.Utilities.TypeHash.FNV1A64(Path.Combine(GeneratorTestHelpers.GeneratedAssemblyName,
+                "GhostComponentSerializerCollection.cs"));
+            Assert.AreEqual($"{hintA}.cs", results.GeneratedSources[0].HintName);
+            Assert.AreEqual($"{hintB}.cs", results.GeneratedSources[1].HintName);
+            Assert.AreEqual($"{hintG}.cs", results.GeneratedSources[2].HintName);
         }
 
         // NW: Test broken in master, not fixing in branch.
@@ -1368,13 +1397,16 @@ namespace Unity.NetCode.GeneratorTests
                     ++errorCount;
                 }
             }
+
             Assert.AreEqual(0, errorCount);
             Assert.AreEqual(2, results.GeneratedSources.Length, "Num generated files does not match");
-            var expetedHint1=Generators.Utilities.TypeHash.FNV1A64(Path.Combine(GeneratorTestHelpers.GeneratedAssemblyName,
+            var expetedHint1 = Generators.Utilities.TypeHash.FNV1A64(Path.Combine(
+                GeneratorTestHelpers.GeneratedAssemblyName,
                 "VERYVERYVERYLONG.VERYVERYVERYLONG.VERYVERYVERYLONG.VERYVERYVERYLONG.VERYVERYVERYLONG.VERYVERYVERYLONG.VERYVERYVERYLONG.VERYVERYVERYLONG.VERYVERYVERYLONG_TestComponentSerializer.cs"));
-            Assert.AreEqual($"{expetedHint1}.cs",results.GeneratedSources[0].HintName);
-            var expetedHint2=Generators.Utilities.TypeHash.FNV1A64(Path.Combine(GeneratorTestHelpers.GeneratedAssemblyName, "GhostComponentSerializerCollection.cs"));
-            Assert.AreEqual($"{expetedHint2}.cs",results.GeneratedSources[1].HintName);
+            Assert.AreEqual($"{expetedHint1}.cs", results.GeneratedSources[0].HintName);
+            var expetedHint2 = Generators.Utilities.TypeHash.FNV1A64(
+                Path.Combine(GeneratorTestHelpers.GeneratedAssemblyName, "GhostComponentSerializerCollection.cs"));
+            Assert.AreEqual($"{expetedHint2}.cs", results.GeneratedSources[1].HintName);
         }
 
         [Test]
@@ -1399,7 +1431,7 @@ namespace Unity.NetCode.GeneratorTests
             tree.GetCompilationUnitRoot().Accept(walker);
             Assert.AreEqual(1, walker.Receiver.Candidates.Count);
 
-            // Should get input buffer struct (IInputBufferData etc) and the command data (ICommandDataSerializer etc) generated from that
+            // Should get input buffer struct (InputBufferData etc) and the command data (ICommandDataSerializer etc) generated from that
             // and the registration system with the empty variant registration data
             var results = GeneratorTestHelpers.RunGenerators(tree);
             Assert.AreEqual(3, results.GeneratedSources.Length, "Num generated files does not match");
@@ -1407,19 +1439,21 @@ namespace Unity.NetCode.GeneratorTests
             var commandSourceData = results.GeneratedSources[1].SyntaxTree;
 
             var inputBufferSyntax = bufferSourceData.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>()
-                .FirstOrDefault(node => node.Identifier.ValueText == "PlayerInputInputBufferData");
+                .FirstOrDefault(node => node.Identifier.ValueText == "PlayerInputEventHelper");
             Assert.IsNotNull(inputBufferSyntax);
             var commandSyntax = commandSourceData.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>()
                 .FirstOrDefault(node => node.Identifier.ValueText == "PlayerInputInputBufferDataSerializer");
             Assert.IsNotNull(commandSyntax);
 
             // Verify the 3 variables are being serialized in the command serialize methods (normal one and baseline one)
-            var commandSerializerSyntax = commandSourceData.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+            var commandSerializerSyntax = commandSourceData.GetRoot().DescendantNodes()
+                .OfType<MethodDeclarationSyntax>()
                 .Where(node => node.Identifier.ValueText == "Serialize");
             Assert.IsNotNull(commandSerializerSyntax);
             Assert.AreEqual(2, commandSerializerSyntax.Count());
             foreach (var serializerMethod in commandSerializerSyntax)
-                Assert.AreEqual(3, serializerMethod.GetText().Lines.Where((line => line.ToString().Contains("data."))).Count());
+                Assert.AreEqual(3,
+                    serializerMethod.GetText().Lines.Where((line => line.ToString().Contains("data."))).Count());
         }
 
         [Test]
@@ -1461,19 +1495,23 @@ namespace Unity.NetCode.GeneratorTests
             var commandSourceData = results.GeneratedSources[1].SyntaxTree;
 
             var inputBufferSyntax = bufferSourceData.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>()
-                .FirstOrDefault(node => node.Identifier.ValueText == "ParentClass1_ParentClass2_PlayerInputInputBufferData");
+                .FirstOrDefault(node =>
+                    node.Identifier.ValueText == "ParentClass1_ParentClass2_PlayerInputEventHelper");
             Assert.IsNotNull(inputBufferSyntax);
             var commandSyntax = commandSourceData.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>()
-                .FirstOrDefault(node => node.Identifier.ValueText == "ParentClass1_ParentClass2_PlayerInputInputBufferDataSerializer");
+                .FirstOrDefault(node =>
+                    node.Identifier.ValueText == "ParentClass1_ParentClass2_PlayerInputInputBufferDataSerializer");
             Assert.IsNotNull(commandSyntax);
 
             // Verify the 3 variables are being serialized in the command serialize methods (normal one and baseline one)
-            var commandSerializerSyntax = commandSourceData.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+            var commandSerializerSyntax = commandSourceData.GetRoot().DescendantNodes()
+                .OfType<MethodDeclarationSyntax>()
                 .Where(node => node.Identifier.ValueText == "Serialize");
             Assert.IsNotNull(commandSerializerSyntax);
             Assert.AreEqual(2, commandSerializerSyntax.Count());
             foreach (var serializerMethod in commandSerializerSyntax)
-                Assert.AreEqual(3, serializerMethod.GetText().Lines.Where((line => line.ToString().Contains("data."))).Count());
+                Assert.AreEqual(3,
+                    serializerMethod.GetText().Lines.Where((line => line.ToString().Contains("data."))).Count());
         }
 
         [Test]
@@ -1515,7 +1553,7 @@ namespace Unity.NetCode.GeneratorTests
             var componentSourceData = results.GeneratedSources[2].SyntaxTree;
             var registrationSourceData = results.GeneratedSources[3].SyntaxTree;
             var inputBufferSyntax = bufferSourceData.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>()
-                .FirstOrDefault(node => node.Identifier.ValueText == "PlayerInputInputBufferData");
+                .FirstOrDefault(node => node.Identifier.ValueText == "PlayerInputEventHelper");
             Assert.IsNotNull(inputBufferSyntax);
 
             var commandSyntax = commandSourceData.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>()
@@ -1524,11 +1562,12 @@ namespace Unity.NetCode.GeneratorTests
             Assert.AreEqual(0, sourceText.Lines.Where((line => line.ToString().Contains("data.Tick"))).Count());
 
             var componentSyntax = componentSourceData.GetRoot().DescendantNodes().OfType<StructDeclarationSyntax>()
-                .First(node => node.Identifier.ValueText == "PlayerInputInputBufferDataGhostComponentSerializer");
+                .Where(node => node.Identifier.ValueText == "PlayerInputInputBufferDataGhostComponentSerializer")
+                .ToArray();
 
             // Verify the component snapshot data is set up correctly, this means the ghost fields
             // are configured properly in the generated input buffer for remote player prediction
-            var snapshotSyntax = componentSyntax.DescendantNodes().OfType<StructDeclarationSyntax>()
+            var snapshotSyntax = componentSyntax[0].DescendantNodes().OfType<StructDeclarationSyntax>()
                 .First(node => node.Identifier.ValueText == "Snapshot");
             var fields = snapshotSyntax.DescendantNodes().OfType<FieldDeclarationSyntax>().ToArray();
             Assert.AreEqual("int", (fields[0].Declaration.Type as PredefinedTypeSyntax)?.Keyword.Text);
@@ -1541,23 +1580,33 @@ namespace Unity.NetCode.GeneratorTests
             Assert.AreEqual("uint", (fields[3].Declaration.Type as PredefinedTypeSyntax)?.Keyword.Text);
             Assert.AreEqual("Tick", fields[3].Declaration.Variables[0].Identifier.Text);
 
-            // Verify the ghost component parameters are set up properly for the input buffer to synch
-            // in the ghost snapshots for remote players
-            sourceText = componentSyntax.GetText();
-            Assert.AreEqual(1, sourceText.Lines.Where((line => line.ToString().Contains("PrefabType = GhostPrefabType.All"))).Count());
-            Assert.AreEqual(1, sourceText.Lines.Where((line => line.ToString().Contains("SendMask = GhostComponentSerializer.SendMask.Interpolated|GhostComponentSerializer.SendMask.Predicted"))).Count());
-            Assert.AreEqual(1, sourceText.Lines.Where((line => line.ToString().Contains("SendToOwner = SendToOwnerType.SendToNonOwner"))).Count());
-
-            var maskBits = componentSyntax.DescendantNodes().OfType<FieldDeclarationSyntax>()
+            var maskBits = componentSyntax[0].DescendantNodes().OfType<FieldDeclarationSyntax>()
                 .First(t => t.Declaration.Variables[0].Identifier.ValueText == "ChangeMaskBits");
             var equalsValueClauseSyntax = maskBits.Declaration.Variables[0].Initializer;
             Assert.That(equalsValueClauseSyntax, Is.Not.Null);
             Assert.AreEqual("4", equalsValueClauseSyntax!.Value.ToString());
 
+            // Verify the ghost component parameters are set up properly for the input buffer to synch
+            // in the ghost snapshots for remote players
+            sourceText = componentSyntax[1].GetText();
+            Assert.AreEqual(1,
+                sourceText.Lines.Where((line => line.ToString().Contains("PrefabType = GhostPrefabType.All"))).Count());
+            Assert.AreEqual(1,
+                sourceText.Lines.Where((line => line.ToString().Contains("SendMask = GhostSendType.AllClients")))
+                    .Count());
+            Assert.AreEqual(1,
+                sourceText.Lines
+                    .Where((line => line.ToString().Contains("SendToOwner = SendToOwnerType.SendToNonOwner"))).Count());
+
             var registrationSyntax = registrationSourceData.GetRoot().DescendantNodes().OfType<SimpleBaseTypeSyntax>()
                 .FirstOrDefault(node => node.ToString().Contains("IGhostComponentSerializerRegistration"));
             Assert.IsNotNull(registrationSyntax);
-            Assert.AreEqual(1, registrationSourceData.GetText().Lines.Where((line => line.ToString().Contains("data.AddSerializer(PlayerInputInputBufferDataGhostComponentSerializer.GetState"))).Count());
+            Assert.AreEqual(1,
+                registrationSourceData.GetText().Lines.Where((line =>
+                        line.ToString()
+                            .Contains(
+                                "data.AddSerializer(PlayerInputInputBufferDataGhostComponentSerializer.GetState")))
+                    .Count());
         }
 
         [Test]
@@ -1607,17 +1656,243 @@ namespace Unity.NetCode.GeneratorTests
 
             var syntaxTree = results.GeneratedSources[0].SyntaxTree;
 
-            var commandSerializerSyntax = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Where(node => node.Identifier.ValueText == "Serialize");
+            var commandSerializerSyntax = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+                .Where(node => node.Identifier.ValueText == "Serialize");
             Assert.IsNotNull(commandSerializerSyntax);
             Assert.AreEqual(1, commandSerializerSyntax.Count());
             foreach (var serializerMethod in commandSerializerSyntax)
-                Assert.AreEqual(3, serializerMethod.GetText().Lines.Where((line => line.ToString().Contains("data."))).Count());
+                Assert.AreEqual(3,
+                    serializerMethod.GetText().Lines.Where((line => line.ToString().Contains("data."))).Count());
 
-            var commandDeserializerSyntax = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Where(node => node.Identifier.ValueText == "Deserialize");
+            var commandDeserializerSyntax = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+                .Where(node => node.Identifier.ValueText == "Deserialize");
             Assert.IsNotNull(commandSerializerSyntax);
             Assert.AreEqual(1, commandDeserializerSyntax.Count());
             foreach (var serializerMethod in commandDeserializerSyntax)
-                Assert.AreEqual(3, serializerMethod.GetText().Lines.Where((line => line.ToString().Contains("data."))).Count());
+                Assert.AreEqual(3,
+                    serializerMethod.GetText().Lines.Where((line => line.ToString().Contains("data."))).Count());
+        }
+
+        [Test]
+        public void SourceGenerator_ChangeMaskIncreaseCorrectly()
+        {
+            var testData = @"
+            using Unity.Entities;
+            using Unity.NetCode;
+            namespace Unity.NetCode
+            {
+                public struct TestLargeNumberOfFields : IComponentData
+                {
+[GhostField] public int Value1;
+[GhostField] public int Value2;
+[GhostField] public int Value3;
+[GhostField] public int Value4;
+[GhostField] public int Value5;
+[GhostField] public int Value6;
+[GhostField] public int Value7;
+[GhostField] public int Value8;
+[GhostField] public int Value9;
+[GhostField] public int Value11;
+[GhostField] public int Value12;
+[GhostField] public int Value13;
+[GhostField] public int Value14;
+[GhostField] public int Value15;
+[GhostField] public int Value16;
+[GhostField] public int Value17;
+[GhostField] public int Value18;
+[GhostField] public int Value19;
+[GhostField] public int Value21;
+[GhostField] public int Value22;
+[GhostField] public int Value23;
+[GhostField] public int Value24;
+[GhostField] public int Value25;
+[GhostField] public int Value26;
+[GhostField] public int Value27;
+[GhostField] public int Value28;
+[GhostField] public int Value29;
+[GhostField] public int Value31;
+[GhostField] public int Value32;
+[GhostField] public int Value33;
+[GhostField] public int Value34;
+[GhostField] public int Value35;
+[GhostField] public int Value36;
+[GhostField] public int Value37;
+[GhostField] public int Value38;
+[GhostField] public int Value39;
+[GhostField] public int Value41;
+[GhostField] public int Value42;
+[GhostField] public int Value43;
+[GhostField] public int Value44;
+[GhostField] public int Value45;
+[GhostField] public int Value46;
+[GhostField] public int Value47;
+[GhostField] public int Value48;
+[GhostField] public int Value49;
+[GhostField] public int Value51;
+[GhostField] public int Value52;
+[GhostField] public int Value53;
+[GhostField] public int Value54;
+[GhostField] public int Value55;
+[GhostField] public int Value56;
+[GhostField] public int Value57;
+[GhostField] public int Value58;
+[GhostField] public int Value59;
+[GhostField] public int Value51;
+[GhostField] public int Value52;
+[GhostField] public int Value53;
+[GhostField] public int Value54;
+[GhostField] public int Value55;
+[GhostField] public int Value56;
+[GhostField] public int Value57;
+[GhostField] public int Value58;
+[GhostField] public int Value59;
+[GhostField] public int Value61;
+[GhostField] public int Value62;
+[GhostField] public int Value63;
+[GhostField] public int Value64;
+[GhostField] public int Value65;
+[GhostField] public int Value66;
+[GhostField] public int Value67;
+[GhostField] public int Value68;
+[GhostField] public int Value69;
+[GhostField] public int Value71;
+[GhostField] public int Value72;
+[GhostField] public int Value73;
+[GhostField] public int Value74;
+[GhostField] public int Value75;
+[GhostField] public int Value76;
+[GhostField] public int Value77;
+[GhostField] public int Value78;
+[GhostField] public int Value79;
+[GhostField] public int Value81;
+[GhostField] public int Value82;
+[GhostField] public int Value83;
+[GhostField] public int Value84;
+[GhostField] public int Value85;
+[GhostField] public int Value86;
+[GhostField] public int Value87;
+[GhostField] public int Value88;
+[GhostField] public int Value89;
+[GhostField] public int Value91;
+[GhostField] public int Value92;
+[GhostField] public int Value93;
+[GhostField] public int Value94;
+[GhostField] public int Value95;
+[GhostField] public int Value96;
+[GhostField] public int Value97;
+[GhostField] public int Value98;
+[GhostField] public int Value99;
+                }
+            }";
+
+            var tree = CSharpSyntaxTree.ParseText(testData);
+            var results = GeneratorTestHelpers.RunGenerators(tree);
+            var diagnostics = results.Diagnostics;
+            Assert.AreEqual(0, diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+
+            //There should be three increments for the change mask i
+            var text = results.GeneratedSources[0].SourceText.ToString();
+            Assert.IsTrue(text.Contains("CopyToChangeMask(changeMaskData, changeMask, startOffset + 0, 32)"));
+            Assert.IsTrue(text.Contains("CopyToChangeMask(changeMaskData, changeMask, startOffset + 32, 32)"));
+            Assert.IsTrue(text.Contains("CopyToChangeMask(changeMaskData, changeMask, startOffset + 64, 32)"));
+            Assert.IsTrue(text.Contains("CopyToChangeMask(changeMaskData, changeMask, startOffset + 96, 3)"));
+
+            Assert.IsTrue(text.Contains("CopyFromChangeMask(changeMaskData, startOffset, ChangeMaskBits)"));
+            Assert.IsTrue(text.Contains("CopyFromChangeMask(changeMaskData, startOffset + 32, ChangeMaskBits - 32)"));
+            Assert.IsTrue(text.Contains("CopyFromChangeMask(changeMaskData, startOffset + 64, ChangeMaskBits - 64)"));
+            Assert.IsTrue(text.Contains("CopyFromChangeMask(changeMaskData, startOffset + 96, ChangeMaskBits - 96)"));
+        }
+
+        [Test]
+        public void SourceGenerator_UseGenericAndInheritedInterfaces()
+        {
+            var testData = @"
+            using Unity.Entities;
+            using Unity.NetCode;
+
+            public interface MyComponentData : IComponentData
+            {
+            }
+            public interface MyCommandData : ICommandData
+            {
+            }
+            public interface MyRpc : IRpcCommand
+            {
+            }
+            public interface MyComponent<T> : IComponentData where T: unmanaged
+            {
+            }
+            public interface MyCommand<T> : ICommandData where T: unmanaged
+            {
+            }
+            public interface MyRpc<T> : IRpcCommand where T: unmanaged
+            {
+            }
+
+            public struct Comp : MyComponentData
+            {
+                [GhostField] public int myField
+            }
+            public struct Comm : MyCommandData
+            {
+                [GhostField] public uint Tick {get;set;}
+                [GhostField] public int myField
+            }
+            public struct CommT : MyCommand<int>
+            {
+                [GhostField] public uint Tick {get;set;}
+                [GhostField] public int myField
+            }
+            public struct CompT : MyComponent<int>
+            {
+                [GhostField] public int myField
+            }
+            public struct Rpc : MyRpc
+            {
+                public int myField
+            }
+            public struct RpcT : MyRpc<int>
+            {
+                public int myField
+            }
+            ";
+
+            var tree = CSharpSyntaxTree.ParseText(testData);
+            var results = GeneratorTestHelpers.RunGenerators(tree);
+            Assert.AreEqual(0, results.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+            Assert.AreEqual(9, results.GeneratedSources.Length);
+        }
+
+        [Test]
+        public void SourceGenerator_PrivateStructAndClassAreDetected()
+        {
+            var testData = @"
+            using Unity.Entities;
+            using Unity.NetCode;
+
+            private struct Comp : IComponentData
+            {
+                [GhostField] public int myField
+            }
+            private struct Buf : IBufferElementData
+            {
+                [GhostField] public int myField
+            }
+            private struct Comm : ICommandData
+            {
+                public uint Tick {get;set;}
+                public int myField
+            }
+            private struct Rpc : IRpcCommand
+            {
+                public int myField
+            }
+            ";
+
+            var tree = CSharpSyntaxTree.ParseText(testData);
+            var results = GeneratorTestHelpers.RunGenerators(tree);
+            Assert.AreEqual(0, results.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+            Assert.AreEqual(5, results.GeneratedSources.Length);
         }
     }
 }

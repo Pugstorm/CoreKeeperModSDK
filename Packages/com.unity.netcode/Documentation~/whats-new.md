@@ -36,7 +36,7 @@ For a full list of changes, see the [Changelog](xref:changelog). For information
 * Predicted ghost physics now use custom system to update the physics simulation. The built-in system are instead used for updating the client-only simulatiom.
 * The limit of 128 components with serialization is now for actively used components instead of components in the project.
 * Netcode source generator templates should now use the NetCodeSourceGenerator.additionalfile and are identified by an unique id (see [templates](ghost-types-templates.md) documentation for more info).
-* Various improvements to the `Multiplayer PlayMode Tools Window`, including; simulator "profiles" (which are representative of real-world speeds), runtime thin client creation/destruction support, live modification of simulator parameters, and a tool to simulate lag spikes via shortcut key.
+* Various improvements to the `PlayMode Tools Window`, including; simulator "profiles" (which are representative of real-world speeds), runtime thin client creation/destruction support, live modification of simulator parameters, and a tool to simulate lag spikes via shortcut key.
 
 ## Further information
 

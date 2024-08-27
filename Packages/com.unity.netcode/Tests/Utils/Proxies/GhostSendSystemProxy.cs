@@ -1,4 +1,3 @@
-#if NETCODE_ENABLE_PERF_TESTS
 using System.Collections.Generic;
 using Unity.Entities;
 using Unity.PerformanceTesting;
@@ -190,4 +189,3 @@ namespace Unity.NetCode.Tests
     }
 #endif
 }
-#endif

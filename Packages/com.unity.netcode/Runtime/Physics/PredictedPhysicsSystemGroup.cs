@@ -185,8 +185,23 @@ namespace Unity.NetCode
                 #if NETCODE_DEBUG
                 else if (!m_DidPrintError)
                 {
-                    // If debug, print a warning once telling users what to do
-                    SystemAPI.GetSingleton<NetDebug>().LogError("The default physics world on the client contains a dynamic physics object which is not a ghost. This is not supported, in order to have client-only physics you must setup a custom physics world for it.");
+                    // If debug, print a warning once telling users what to do,
+                    // and show them the first problem entity (for easy debugging).
+                    var erredEntities = m_Query.ToEntityArray(Allocator.Temp);
+                    FixedString512Bytes error = $"[{state.WorldUnmanaged.Name}] The default physics world contains {erredEntities.Length} dynamic physics objects which are not ghosts. This is not supported! In order to have client-only physics, you must setup a custom physics world:";
+                    foreach (var erredEntity in erredEntities)
+                    {
+                        FixedString512Bytes tempFs = "\n- ";
+                        tempFs.Append(erredEntity.ToFixedString());
+                        tempFs.Append(' ');
+                        state.EntityManager.GetName(erredEntity, out var entityName);
+                        tempFs.Append(entityName);
+
+                        var formatError = error.Append(tempFs);
+                        if (formatError == FormatError.Overflow)
+                            break;
+                    }
+                    SystemAPI.GetSingleton<NetDebug>().LogError(error);
                     m_DidPrintError = true;
                     state.RequireForUpdate<PredictedPhysicsNonGhostWorld>();
                 }
@@ -198,6 +213,7 @@ namespace Unity.NetCode
     /// <summary>
     /// System to make sure prediction switching smoothing happens after physics motion smoothing and overwrites the results
     /// </summary>
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
     [UpdateInGroup(typeof(TransformSystemGroup))]
     [UpdateBefore(typeof(SwitchPredictionSmoothingSystem))]
     [UpdateAfter(typeof(SmoothRigidBodiesGraphicalMotion))]

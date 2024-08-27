@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -36,13 +36,11 @@ namespace Unity.NetCode
             };
         }
 
-#if !UNITY_DOTSRUNTIME
         /// <inheritdoc cref="NetworkIdDebugColorUtility.Get"/>
         public static Color GetColor(int networkId)
         {
             var color4 = Get(networkId);
             return new Color(color4.x, color4.y, color4.z);
         }
-#endif
     }
 }

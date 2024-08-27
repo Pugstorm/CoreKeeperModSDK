@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -83,7 +84,7 @@ namespace Unity.NetCode.Roslyn
                     return "uptr";
                 default:
                     //TODO: need full type specifier??
-                    return type.ToDisplayString(MinQualifiedTypeFormat);
+                    return type.ToDisplayString(QualifiedTypeFormat);
             }
         }
 
@@ -181,7 +182,7 @@ namespace Unity.NetCode.Roslyn
             var interfaceQualifiedName = interfaceSymbol.ToDisplayString(QualifiedTypeFormat);
 
             // Detecting the type here for interfaces inheriting ICommandData is important for
-            // IInputBufferData when parsing it as a component (type needs to be set to ComponentType.CommandData) or the
+            // InputBufferData when parsing it as a component (type needs to be set to ComponentType.CommandData) or the
             // default ghost component parameters will not be set properly
             if (interfaceQualifiedName == "Unity.NetCode.ICommandData" ||
                 interfaceSymbol.InheritsFromInterface("Unity.NetCode.ICommandData"))
@@ -190,13 +191,15 @@ namespace Unity.NetCode.Roslyn
                 return true;
             }
 
-            if (interfaceQualifiedName == "Unity.NetCode.IRpcCommand")
+            if (interfaceQualifiedName == "Unity.NetCode.IRpcCommand" ||
+                interfaceSymbol.InheritsFromInterface("Unity.NetCode.IRpcCommand"))
             {
                 componentType = ComponentType.Rpc;
                 return true;
             }
 
-            if (interfaceQualifiedName == "Unity.NetCode.IInputComponentData")
+            if (interfaceQualifiedName == "Unity.NetCode.IInputComponentData" ||
+                interfaceSymbol.InheritsFromInterface("Unity.NetCode.IInputComponentData"))
             {
                 componentType = ComponentType.Input;
                 return true;
@@ -226,12 +229,6 @@ namespace Unity.NetCode.Roslyn
         }
 
         private static SymbolDisplayFormat QualifiedTypeFormat = new SymbolDisplayFormat(
-            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
-            genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
-            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
-                                  SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
-
-        private static SymbolDisplayFormat MinQualifiedTypeFormat = new SymbolDisplayFormat(
             typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
@@ -306,13 +303,52 @@ namespace Unity.NetCode.Roslyn
             return string.Concat(ns, ".", fullName);
         }
 
-        //Return the symbol name prepended with the declaring class names, separated by +
+        //return an ECMA compliant fully qualified name:
+        // - The namespace.[XXX+]TypeName if the type is not generic
+        // - The namespace.[XXX+]TypeName`N[[NameWithNamespaceAndContainingType, assembly],..]  if the type is generic
+        public static string GetMetadataQualifiedName(ISymbol symbol)
+        {
+            var sb = new StringBuilder(symbol.MetadataName);
+            var qualifiedNamespace = GetFullyQualifiedNamespace(symbol);
+            if (((INamedTypeSymbol)symbol).IsGenericType)
+            {
+                sb.Append('[');
+                foreach (var parameter in ((INamedTypeSymbol)symbol).TypeArguments)
+                {
+                    sb.Append($"[{parameter.ToDisplayString(QualifiedTypeFormat)}, {parameter.ContainingAssembly.ToDisplayString()}]");
+                    sb.Append(',');
+                }
+                sb.Length -= 1;
+                sb.Append(']');
+            }
+            while(symbol.ContainingType != null)
+            {
+                sb.Insert(0, $"{symbol.ContainingType.OriginalDefinition.ToDisplayString(NameOnlyFormat)}+");
+                symbol = symbol.ContainingType;
+            }
+            if(!string.IsNullOrWhiteSpace(qualifiedNamespace))
+                sb.Insert(0, $"{qualifiedNamespace}.");
+            return sb.ToString();
+        }
+
         //es: struct A { struct B { struct C} } } would return a string like A+B+C
         public static string GetTypeNameWithDeclaringTypename(ISymbol symbol)
         {
             var declaring = new List<string>(3);
             if (((INamedTypeSymbol)symbol).IsGenericType)
-                declaring.Add(symbol.ToDisplayString(NameOnlyFormat));
+            {
+                var n = new StringBuilder();
+                n.Append(symbol.Name);
+                n.Append('<');
+                foreach (var parameter in ((INamedTypeSymbol)symbol).TypeArguments)
+                {
+                    n.Append(parameter.ToDisplayString(QualifiedTypeFormat));
+                    n.Append(',');
+                }
+                n.Length -= 1;
+                n.Append('>');
+                declaring.Add(n.ToString());
+            }
             else
                 declaring.Add(symbol.Name);
 

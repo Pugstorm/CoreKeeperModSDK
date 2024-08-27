@@ -16,7 +16,6 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [
-        "!UNITY_DOTSRUNTIME",
         "!UNITY_DISABLE_MANAGED_COMPONENTS"
     ],
     "versionDefines": [

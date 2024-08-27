@@ -45,6 +45,7 @@ namespace Unity.NetCode
     /// When the transition is completed, the system removes the <see cref="SwitchPredictionSmoothing"/> component.
     /// </para>
     /// </summary>
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
     [UpdateInGroup(typeof(TransformSystemGroup))]
     [UpdateBefore(typeof(LocalToWorldSystem))]
     [BurstCompile]

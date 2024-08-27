@@ -17,7 +17,7 @@ namespace Unity.NetCode
     public class GhostAuthoringInspectionComponent : MonoBehaviour
     {
         // TODO: This doesn't support multi-edit.
-        internal static bool forceBake = true;
+        internal static bool forceBake;
         internal static bool forceRebuildInspector = true;
         internal static bool forceSave;
 
@@ -71,11 +71,9 @@ namespace Unity.NetCode
             if (!gameObject || !this)
                 throw new ArgumentException($"Attempting to GetOrAddPrefabOverride for entityGuid '{entityGuid}' to '{this}', but GameObject and/or InspectionComponent has been destroyed!");
 
-            if (gameObject.GetInstanceID() != entityGuid.OriginatingId)
+            if (gameObject.GetInstanceID() != entityGuid.OriginatingId && !TryGetFirstMatchingGameObjectInChildren(gameObject.transform, entityGuid, out _))
             {
-                var didMatchChild = TryGetFirstMatchingGameObjectInChildren(gameObject.transform, entityGuid, out var childGameObject);
-                var error = didMatchChild ? $"It matches a child instead ({childGameObject}). Overrides MUST be added to the Inspection component of the GameObject you are modifying!" : "Unknown GameObject.";
-                throw new ArgumentException($"Attempting to GetOrAddPrefabOverride for entityGuid '{entityGuid}' to '{this}', but entityGuid does not match our gameObject! {error}");
+                throw new ArgumentException($"Attempting to GetOrAddPrefabOverride for entityGuid '{entityGuid}' to '{this}', but entityGuid does not match our gameObject, nor our children!");
             }
 
             if (TryFindExistingOverrideIndex(managedType, entityGuid, out var index))
@@ -174,9 +172,7 @@ namespace Unity.NetCode
         /// <param name="validate"></param>
         internal static List<(GameObject, ComponentOverride)> CollectAllComponentOverridesInInspectionComponents(GhostAuthoringComponent ghostAuthoring, bool validate)
         {
-            var inspectionComponents = new List<GhostAuthoringInspectionComponent>(8);
-            ghostAuthoring.gameObject.GetComponents(inspectionComponents);
-            ghostAuthoring.GetComponentsInChildren(inspectionComponents);
+            var inspectionComponents = CollectAllInspectionComponents(ghostAuthoring);
             var allComponentOverrides = new List<(GameObject, ComponentOverride)>(inspectionComponents.Count * 4);
             foreach (var inspectionComponent in inspectionComponents)
             {
@@ -190,6 +186,14 @@ namespace Unity.NetCode
             }
 
             return allComponentOverrides;
+        }
+
+        internal static List<GhostAuthoringInspectionComponent> CollectAllInspectionComponents(GhostAuthoringComponent ghostAuthoring)
+        {
+            var inspectionComponents = new List<GhostAuthoringInspectionComponent>(8);
+            ghostAuthoring.gameObject.GetComponents(inspectionComponents);
+            ghostAuthoring.GetComponentsInChildren(inspectionComponents);
+            return inspectionComponents;
         }
 
         /// <summary>Saved override values.</summary>

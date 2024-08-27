@@ -1,5 +1,4 @@
 using System;
-using AOT;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
@@ -51,8 +50,16 @@ namespace Unity.NetCode
         /// </summary>
         public sealed class DefaultStaticUserParams
         {
-            internal static readonly SharedStatic<float> maxDist = SharedStatic<float>.GetOrCreate<DefaultStaticUserParams, MaxDistKey>();
-            internal static readonly SharedStatic<float> delta = SharedStatic<float>.GetOrCreate<DefaultStaticUserParams, DeltaKey>();
+            /// <summary>
+            /// If the prediction error is larger than this value, the entity position is snapped to the new value.
+            /// The default threshold is 10 units.
+            /// </summary>
+            public static readonly SharedStatic<float> maxDist = SharedStatic<float>.GetOrCreate<DefaultStaticUserParams, MaxDistKey>();
+            /// <summary>
+            /// If the prediction error is smaller than this value, the entity position is snapped to the new value.
+            /// The default threshold is 1 units.
+            /// </summary>
+            public static readonly SharedStatic<float> delta = SharedStatic<float>.GetOrCreate<DefaultStaticUserParams, DeltaKey>();
 
             static DefaultStaticUserParams()
             {
@@ -67,12 +74,10 @@ namespace Unity.NetCode
         /// Return a the burst compatible function pointer that can be used to register the smoothing action to the
         /// <see cref="GhostPredictionSmoothing"/> singleton.
         /// </summary>
-        public static readonly PortableFunctionPointer<GhostPredictionSmoothing.SmoothingActionDelegate>
-            Action =
-                new PortableFunctionPointer<GhostPredictionSmoothing.SmoothingActionDelegate>(SmoothingAction);
+        public static readonly PortableFunctionPointer<GhostPredictionSmoothing.SmoothingActionDelegate> Action = new PortableFunctionPointer<GhostPredictionSmoothing.SmoothingActionDelegate>(SmoothingAction);
 
         [BurstCompile(DisableDirectCall = true)]
-        [MonoPInvokeCallback(typeof(GhostPredictionSmoothing.SmoothingActionDelegate))]
+        [AOT.MonoPInvokeCallback(typeof(GhostPredictionSmoothing.SmoothingActionDelegate))]
         private static void SmoothingAction(IntPtr currentData, IntPtr previousData, IntPtr usrData)
         {
             ref var trans = ref UnsafeUtility.AsRef<LocalTransform>((void*)currentData);

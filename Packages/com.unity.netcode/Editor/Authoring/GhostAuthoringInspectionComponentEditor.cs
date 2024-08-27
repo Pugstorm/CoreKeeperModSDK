@@ -21,27 +21,36 @@ namespace Unity.NetCode.Editor
     {
         const string k_ExpandKey = "NetCode.Inspection.Expand.";
         const string k_PackageId = "Packages/com.unity.netcode";
+        const string k_AutoBakeKey = "AutoBake";
 
         // TODO - Manually loaded prefabs as uss is not working.
         static Texture2D PrefabEntityIcon => AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.unity.entities/Editor Default Resources/icons/dark/Entity/EntityPrefab.png");
         static Texture2D ComponentIcon => AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.unity.entities/Editor Default Resources/icons/dark/Components/Component.png");
+
+        internal static EntityPrefabComponentsPreview prefabPreview { get; private set; }
+        internal static readonly Dictionary<GhostAuthoringInspectionComponent, BakedResult> cachedBakedResults = new (4);
+        internal static bool isPrefabEditable { get; private set; }
+        internal static bool hasCachedBakingResult => cachedBakedResults.ContainsKey(inspection);
+        internal static GhostAuthoringInspectionComponent inspection { get; private set; }
 
         VisualElement m_Root;
         VisualElement m_ResultsPane;
 
         HelpBox m_UnableToFindComponentHelpBox;
         HelpBox m_NoEntityHelpBox;
-        GhostAuthoringComponent m_GhostAuthoringRoot;
-        List<Component> m_ReusableComponents = new List<Component>(8);
+        private Toggle m_AutoBakeToggle;
+        private Button m_BakeButton;
+        private int m_NumComponentsOnThisInspection;
+
 
         void OnEnable()
         {
+            inspection = target as GhostAuthoringInspectionComponent;
+
+            isPrefabEditable = GhostAuthoringComponentEditor.IsPrefabEditable(inspection.gameObject);
             EditorApplication.update += OnUpdate;
             Undo.undoRedoPerformed += RequestRebuildInspector;
-            GhostAuthoringInspectionComponent.forceRebuildInspector = true;
-
-            var inspection = ((GhostAuthoringInspectionComponent)target);
-            inspection.GetComponents<Component>(m_ReusableComponents);
+            m_NumComponentsOnThisInspection = EntityPrefabComponentsPreview.CountComponents(inspection.gameObject);
         }
 
         void OnDisable()
@@ -52,20 +61,25 @@ namespace Unity.NetCode.Editor
 
         void OnUpdate()
         {
-            var inspection = ((GhostAuthoringInspectionComponent)target);
-            if (!inspection)
+            inspection = target as GhostAuthoringInspectionComponent;
+            if (m_AutoBakeToggle == null || !inspection)
                 return;
 
-            // Detect other changes:
-            var componentsCount = m_ReusableComponents.Count;
-            m_ReusableComponents.Clear();
-            if (componentsCount != m_ReusableComponents.Count)
-                GhostAuthoringInspectionComponent.forceBake = true;
-
-            if (GhostAuthoringInspectionComponent.forceBake && m_GhostAuthoringRoot)
+            // Check for changes:
+            if (TryGetEntitiesAssociatedWithAuthoringGameObject(out var bakedGameObjectResult))
             {
-                GhostAuthoringComponentEditor.BakeNetCodePrefab(m_GhostAuthoringRoot);
+                var hasChanged = bakedGameObjectResult.NumComponents != m_NumComponentsOnThisInspection;
+                if (hasChanged)
+                {
+                    bakedGameObjectResult.NumComponents = m_NumComponentsOnThisInspection;
+
+                    if(m_AutoBakeToggle.value)
+                        GhostAuthoringInspectionComponent.forceBake = true;
+                }
             }
+
+            if (GhostAuthoringInspectionComponent.forceBake)
+                BakeNetCodePrefab();
 
             if (GhostAuthoringInspectionComponent.forceSave)
             {
@@ -81,10 +95,68 @@ namespace Unity.NetCode.Editor
                 RebuildWindow();
         }
 
+        internal bool TryGetEntitiesAssociatedWithAuthoringGameObject(out BakedGameObjectResult result)
+        {
+            if (TryGetBakedResultAssociatedWithAuthoringGameObject(out var bakedResult))
+            {
+                result = bakedResult.GetInspectionResult(inspection);
+                return result != null;
+            }
+
+            result = default;
+            return false;
+        }
+
+        internal bool TryGetBakedResultAssociatedWithAuthoringGameObject(out BakedResult result)
+        {
+            if (cachedBakedResults.TryGetValue(inspection, out result))
+            {
+                return true;
+            }
+
+            if (GhostAuthoringInspectionComponent.forceBake)
+            {
+                BakeNetCodePrefab();
+                if (cachedBakedResults.TryGetValue(inspection, out result))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void BakeNetCodePrefab()
+        {
+            var ghostAuthoring = FindRootGhostAuthoringComponent();
+
+            // These allow interop with GhostAuthoringInspectionComponentEditor.
+            prefabPreview = new EntityPrefabComponentsPreview();
+
+            try
+            {
+                prefabPreview.BakeEntireNetcodePrefab(ghostAuthoring, inspection, cachedBakedResults);
+            }
+            catch
+            {
+                cachedBakedResults.Remove(inspection);
+                throw;
+            }
+        }
+
+        private static GhostAuthoringComponent FindRootGhostAuthoringComponent()
+        {
+            var ghostAuthoring = inspection.GetComponent<GhostAuthoringComponent>()
+                                 ?? PrefabUtility.GetNearestPrefabInstanceRoot(inspection)?.GetComponent<GhostAuthoringComponent>()
+                                 ?? inspection.transform.root.GetComponent<GhostAuthoringComponent>();
+            return ghostAuthoring;
+        }
+
         static void RequestRebuildInspector() => GhostAuthoringInspectionComponent.forceRebuildInspector = true;
 
         public override VisualElement CreateInspectorGUI()
         {
+            inspection = target as GhostAuthoringInspectionComponent;
+
             m_Root = new VisualElement();
             m_Root.style.overflow = new StyleEnum<Overflow>(Overflow.Hidden);
             m_Root.style.flexShrink = 1;
@@ -92,8 +164,23 @@ namespace Unity.NetCode.Editor
             var ss = AssetDatabase.LoadAssetAtPath<StyleSheet>(Path.Combine(k_PackageId, "Editor/Authoring/GhostAuthoringEditor.uss"));
             m_Root.styleSheets.Add(ss);
 
+            m_BakeButton = new Button(HandleBakeButtonClicked);
+            m_BakeButton.name = "RefreshButton";
+            m_BakeButton.text = "Refresh";
+            m_BakeButton.tooltip = "Trigger this prefab to be baked, allowing you to view and edit netcode-related settings on a per-entity and per-component basis.";
+            m_BakeButton.style.height = 32;
+            m_Root.Add(m_BakeButton);
+
+            m_AutoBakeToggle = new Toggle("Auto-Refresh");
+            m_AutoBakeToggle.name = "Auto-Refresh Toggle";
+            m_AutoBakeToggle.value = GetShouldExpand(k_AutoBakeKey, true);
+            m_AutoBakeToggle.RegisterValueChangedCallback(evt => HandleAutoBakeValueChanged());
+            HandleAutoBakeValueChanged();
+            m_AutoBakeToggle.tooltip = "When enabled, Unity will automatically bake the selected prefab the first time automatically every time it changes. Disableable as it's a slow operation. Your preference is saved locally.";
+            m_Root.Add(m_AutoBakeToggle);
+
             m_UnableToFindComponentHelpBox = new HelpBox($"Unable to find associated {nameof(GhostAuthoringComponent)} in root or parent. " +
-                $"Either ensure it exists, or remove this component.", HelpBoxMessageType.Error);
+                                                         $"Either ensure it exists, or remove this component.", HelpBoxMessageType.Error);
             m_Root.Add(m_UnableToFindComponentHelpBox);
 
             m_NoEntityHelpBox = new HelpBox($"This GameObject does not create any Entities during baking.", HelpBoxMessageType.Info);
@@ -112,38 +199,47 @@ namespace Unity.NetCode.Editor
             return m_Root;
         }
 
+        private void HandleAutoBakeValueChanged()
+        {
+            SetShouldExpand(k_AutoBakeKey, m_AutoBakeToggle.value);
+            SetVisualElementVisibility(m_BakeButton, !m_AutoBakeToggle.value);
+
+            if (m_AutoBakeToggle.value && !hasCachedBakingResult)
+                GhostAuthoringInspectionComponent.forceBake = true;
+        }
+
+        private void HandleBakeButtonClicked()
+        {
+            GhostAuthoringInspectionComponent.forceBake = true;
+        }
+
         void RebuildWindow()
         {
+            inspection = target as GhostAuthoringInspectionComponent;
+
             if (m_Root == null)
                 return; // Wait for CreateInspectorGUI.
             GhostAuthoringInspectionComponent.forceRebuildInspector = false;
+            m_ResultsPane.Clear();
 
-            var inspection = ((GhostAuthoringInspectionComponent)target);
-            if (!m_GhostAuthoringRoot) m_GhostAuthoringRoot = inspection.transform.root.GetComponent<GhostAuthoringComponent>() ?? inspection.GetComponentInParent<GhostAuthoringComponent>();
-            var bakingSucceeded = GhostAuthoringComponentEditor.bakingSucceeded;
-            BakedGameObjectResult bakedGameObjectResult = default;
-            var hasEntitiesForThisGameObject = bakingSucceeded && GhostAuthoringComponentEditor.TryGetEntitiesAssociatedWithAuthoringGameObject(inspection, out bakedGameObjectResult);
-
-            SetVisualElementVisibility(m_UnableToFindComponentHelpBox, !m_GhostAuthoringRoot);
+            var hasEntitiesForThisGameObject = TryGetEntitiesAssociatedWithAuthoringGameObject(out var bakedGameObjectResult);
+            SetVisualElementVisibility(m_UnableToFindComponentHelpBox, hasEntitiesForThisGameObject && !bakedGameObjectResult.SourceGameObject);
             SetVisualElementVisibility(m_NoEntityHelpBox, hasEntitiesForThisGameObject && bakedGameObjectResult.BakedEntities.Count == 0);
 
-            var isEditable = bakingSucceeded && GhostAuthoringComponentEditor.IsViewingPrefab(inspection.gameObject, out _);
+            var isEditable = hasCachedBakingResult && isPrefabEditable;
             m_ResultsPane.SetEnabled(isEditable);
-
-            m_ResultsPane.Clear();
 
             if (!hasEntitiesForThisGameObject)
                 return;
 
             for (var entityIndex = 0; entityIndex < bakedGameObjectResult.BakedEntities.Count; entityIndex++)
             {
-                const int arbitraryMaxNumAdditionalEntitiesWeCanDisplay = 4;
+                const int arbitraryMaxNumAdditionalEntitiesWeCanDisplay = 20;
                 if (entityIndex > arbitraryMaxNumAdditionalEntitiesWeCanDisplay + 1)
                 {
                     m_ResultsPane.Add(new HelpBox($"Authoring GameObject '{bakedGameObjectResult.SourceGameObject.name}' creates {bakedGameObjectResult.BakedEntities.Count} \"Additional\" entities ({(bakedGameObjectResult.BakedEntities.Count - entityIndex)} are hidden)." +
                                                   " For performance reasons, we cannot display this many." +
-                                                  " If you must add a ComponentOverride for an additional entity, please attempt to do so by modifying the YAML directly. " +
-                                                  "Apologies, this will be improved soon.", HelpBoxMessageType.Warning));
+                                                  " If you must add a ComponentOverride for an additional entity, please attempt to do so by modifying the YAML directly. ", HelpBoxMessageType.Warning));
                     break;
                 }
 
@@ -378,7 +474,7 @@ Note that:
 
  - <b>Components added to the root entity</b> will default to the ""Default Serializer"" (the serializer generated by the SourceGenerators), unless you have modified the default (via a `DefaultVariantSystemBase` derived system).
 
- - <b>Components added to child entities</b> will default to the `DontSerializeVariant` global variant, as serializing children involves entity memory random-access, which is expensive.",
+ - <b>Components added to child (and additional) entities</b> will default to the `DontSerializeVariant` global variant, as serializing children involves entity memory random-access, which is expensive.",
             };
 
             if(!bakedComponent.DoesAllowVariantModification)

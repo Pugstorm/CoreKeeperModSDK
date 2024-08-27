@@ -26,12 +26,10 @@ struct v2f
 	float4 outlineColor : TEXCOORD6;
 	float3 gradientIndices : TEXCOORD7;
 	float4 screenPos : TEXCOORD8;
-#if PIVOT_DEPTH_PROJECTION
 	float3 worldSpacePivot : TEXCOORD9;
-#endif
 };
 
-void GetSpriteColor(v2f i, out float4 colorAlpha, out float3 emission, out float3 normal)
+void GetSpriteColor(v2f i, out float4 colorAlpha, out float3 emission, out float3 normal, out float outlineSum)
 {
 	float2 uv = GetUV(i.uv, i.rect);
 
@@ -43,7 +41,7 @@ void GetSpriteColor(v2f i, out float4 colorAlpha, out float3 emission, out float
 
 	colorAlpha *= insideRect; // Force 0 alpha for outline padding pixels
 
-	float outline = GetOutline(i.uv, i.rect);
+	float outline = GetOutline(i.uv, i.rect, outlineSum);
 	outline = max(0, outline - colorAlpha.a);
 
 	colorAlpha *= i.color;
@@ -65,6 +63,12 @@ void GetSpriteColor(v2f i, out float4 colorAlpha, out float3 emission, out float
 
 	float3 binormal = normalize(cross(i.tangent, i.normal));
 	normal = normalTS.x * i.tangent + normalTS.y * binormal + normalTS.z * i.normal;
+}
+
+void GetSpriteColor(v2f i, out float4 colorAlpha, out float3 emission, out float3 normal)
+{
+	float outlineSum;
+	GetSpriteColor(i, colorAlpha, emission, normal, outlineSum);
 }
 
 v2f vert(appdata v)
@@ -110,8 +114,8 @@ v2f vert(appdata v)
 
 	if (transformAnimParams.x > -1)
 	{
-#if INSTANCING_ENABLED && defined(UNITY_INSTANCING_ENABLED)
-		float time = _Time.y;
+#if INSTANCING_ENABLED && defined(UNITY_INSTANCING_ENABLED) || defined(SINGLE_RENDERER)
+		float time = _TransformAnimationTime;
 #else
 		float time = _EditorTime;
 #endif
@@ -130,9 +134,7 @@ v2f vert(appdata v)
 
 	o.screenPos = ComputeScreenPos(o.vertex);
 
-#if PIVOT_DEPTH_PROJECTION
 	o.worldSpacePivot = mul(localToWorld, float4(0.0, 0.0, 0.0, 1.0)).xyz;
-#endif
 
 	return o;
 }

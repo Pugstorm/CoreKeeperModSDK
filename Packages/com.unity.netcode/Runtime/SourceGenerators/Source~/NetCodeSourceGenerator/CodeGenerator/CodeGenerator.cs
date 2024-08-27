@@ -104,7 +104,7 @@ namespace Unity.NetCode.Generators
                 return false;
             }
 
-            context.diagnostic.LogInfo($"'{context.generatorName}' found Template for field '{typeInfo.FieldName}' with GhostField configuration '{description}': '{template}'.");
+            context.diagnostic.LogDebug($"'{context.generatorName}' found Template for field '{typeInfo.FieldName}' with GhostField configuration '{description}': '{template}'.");
             return true;
         }
 
@@ -155,7 +155,7 @@ namespace Unity.NetCode.Generators
                     replacements["TYPE_IS_INPUT_BUFFER"] = typeInfo.ComponentType == ComponentType.CommandData ? "1" : "0";
                     replacements["TYPE_IS_TEST_VARIANT"] = typeInfo.IsTestVariant ? "1" : "0";
                     replacements["TYPE_HAS_DONT_SUPPORT_PREFAB_OVERRIDES_ATTRIBUTE"] = typeInfo.HasDontSupportPrefabOverridesAttribute ? "1" : "0";
-                    replacements["GHOST_PREFAB_TYPE"] = ss.GhostAttribute != null ? $"GhostPrefabType.{ss.GhostAttribute.PrefabType.ToString()}" : "GhostPrefabType.All";
+                    replacements["GHOST_PREFAB_TYPE"] = ss.GhostAttribute != null ? $"GhostPrefabType.{ss.GhostAttribute.PrefabType.ToString().Replace(",", "|GhostPrefabType.")}" : "GhostPrefabType.All";
 
                     if (typeInfo.GhostAttribute != null)
                     {
@@ -172,7 +172,7 @@ namespace Unity.NetCode.Generators
                         else if (typeInfo.GhostAttribute.SendTypeOptimization == GhostSendType.AllClients)
                             replacements["GHOST_SEND_MASK"] = "GhostSendType.AllClients";
                         else
-                            replacements["GHOST_SEND_MASK"] = "GhostComponentSerializer.SendMask.DontSend";
+                            replacements["GHOST_SEND_MASK"] = "GhostSendType.DontSend";
                     }
                     else
                     {
@@ -287,7 +287,7 @@ namespace Unity.NetCode.Generators
                     }
 
                     var tmp = context.serializationStrategies[context.serializationStrategies.Count-1];
-                    tmp.InputBufferComponentTypeName = bufferTypeTree.TypeFullName.Replace("+", ".");
+                    tmp.InputBufferComponentTypeName = bufferSymbol.ToDisplayString();
                     context.serializationStrategies[context.serializationStrategies.Count-1] = tmp;
 
                     using (new Profiler.Auto("GenerateInputCommandData"))
@@ -325,7 +325,7 @@ namespace Unity.NetCode.Generators
                             // We must add the serialization strategy even if there are no ghost fields, as empty variants
                             // still save the ghost component attributes.
                             var bufferVariantHash = Helpers.ComputeVariantHash(bufferTypeTree.Symbol, bufferTypeTree.Symbol);
-                            context.diagnostic.LogInfo($"Adding SerializationStrategy for input buffer {bufferTypeTree.TypeFullName}, which doesn't have any GhostFields, as we still need to store the GhostComponentAttribute data.");
+                            context.diagnostic.LogDebug($"Adding SerializationStrategy for input buffer {bufferTypeTree.TypeFullName}, which doesn't have any GhostFields, as we still need to store the GhostComponentAttribute data.");
                             context.serializationStrategies.Add(new CodeGenerator.Context.SerializationStrategyCodeGen
                             {
                                 TypeInfo = typeInfo,
@@ -347,30 +347,38 @@ namespace Unity.NetCode.Generators
         {
             // TODO - Code gen should handle throwing an exception for a zero-sized buffer with [GhostEnabledBit].
 
-            // Add the generated code for the command type to the compilation syntax tree and
-            // fetch its symbol for further processing
-            var nameAndSource = context.batch[context.batch.Count - 1];
-            var syntaxTree = CSharpSyntaxTree.ParseText(nameAndSource.Code,
-                options: context.executionContext.ParseOptions as CSharpParseOptions);
-            var newCompilation = context.executionContext.Compilation.AddSyntaxTrees(syntaxTree);
+            // Add the generated code for the command type symbol to the compilation for further processing
+			// first lookup from the metadata cache. If it is present there, we are done.
+            var bufferType = context.executionContext.Compilation.GetTypeByMetadataName("Unity.NetCode.InputBufferData`1");
+            var inputType = typeTree.Symbol;
+            if (bufferType == null)
+            {
+				//Search in current compilation unit. This is slow path but only happen for the NetCode assembly itself (where we don't have any IInputComponentData, so fine).
+                var inputBufferType = context.executionContext.Compilation.GetSymbolsWithName("InputBufferData", SymbolFilter.Type).First() as INamedTypeSymbol;
+                bufferSymbol = inputBufferType.Construct(inputType);
+            }
+            else
+            {
+                bufferSymbol = bufferType.Construct(inputType);
+            }
+            if (bufferSymbol == null)
+            {
+                context.diagnostic.LogError($"Failed to construct input buffer symbol InputBufferData<{typeTree.TypeFullName}>!");
+                bufferTypeTree = null;
+                bufferName = null;
+                return false;
+            }
             // FieldTypeName includes the namespace, strip that away when generating the buffer type name
             bufferName = $"{typeTree.FieldTypeName}InputBufferData";
             if (typeTree.Namespace.Length != 0 && typeTree.FieldTypeName.Length > typeTree.Namespace.Length)
                 bufferName = $"{typeTree.FieldTypeName.Substring(typeTree.Namespace.Length + 1)}InputBufferData";
             // If the type is nested inside another class/type the parent name will be included in the type name separated by an underscore
             bufferName = bufferName.Replace('.', '_');
-            bufferSymbol = newCompilation.GetSymbolsWithName(bufferName).FirstOrDefault() as INamedTypeSymbol;
-            if (bufferSymbol == null)
-            {
-                context.diagnostic.LogError($"Failed to fetch input buffer symbol as ${bufferName}!");
-                bufferTypeTree = null;
-                return false;
-            }
 
             var typeBuilder = new TypeInformationBuilder(context.diagnostic, context.executionContext, TypeInformationBuilder.SerializationMode.Commands);
             // Parse input generated code as command data
             context.ResetState();
-            context.generatorName = Roslyn.Extensions.GetTypeNameWithDeclaringTypename(bufferSymbol);
+            context.generatorName = bufferName;
             bufferTypeTree = typeBuilder.BuildTypeInformation(bufferSymbol, null);
             if (bufferTypeTree == null)
             {
@@ -378,7 +386,7 @@ namespace Unity.NetCode.Generators
                 return false;
             }
             context.types.Add(bufferTypeTree);
-            context.diagnostic.LogInfo($"Generating input buffer command data for ${bufferTypeTree.TypeFullName}!");
+            context.diagnostic.LogDebug($"Generating input buffer command data for ${bufferTypeTree.TypeFullName}!");
             return true;
         }
 
@@ -426,7 +434,7 @@ namespace Unity.NetCode.Generators
             });
 
             context.types.Add(bufferTypeTree);
-            context.diagnostic.LogInfo($"Generating ghost for input buffer {bufferTypeTree.TypeFullName}!");
+            context.diagnostic.LogDebug($"Generating ghost for input buffer {bufferTypeTree.TypeFullName}!");
             GenerateGhost(context, bufferTypeTree);
         }
 
@@ -493,6 +501,8 @@ namespace Unity.NetCode.Generators
                     //parent class does not aggregate field.
                     if (!parentContainer.TypeInformation.Attribute.aggregateChangeMask)
                     {
+                        parentContainer.m_TargetGenerator.AppendFragment("GHOST_AGGREGATE_WRITE", parentContainer.m_TargetGenerator, "GHOST_WRITE_COMBINED");
+                        parentContainer.m_TargetGenerator.Fragments["__GHOST_AGGREGATE_WRITE__"].Content = "";
                         ++context.changeMaskBitCount;
                         ++context.curChangeMaskBits;
                     }
@@ -503,6 +513,8 @@ namespace Unity.NetCode.Generators
                 generator.AppendTarget(parentContainer);
                 if (!parentContainer.TypeInformation.Attribute.aggregateChangeMask)
                 {
+                    parentContainer.m_TargetGenerator.AppendFragment("GHOST_AGGREGATE_WRITE", parentContainer.m_TargetGenerator, "GHOST_WRITE_COMBINED");
+                    parentContainer.m_TargetGenerator.Fragments["__GHOST_AGGREGATE_WRITE__"].Content = "";
                     ++context.changeMaskBitCount;
                     ++context.curChangeMaskBits;
                 }
@@ -535,6 +547,8 @@ namespace Unity.NetCode.Generators
             //increment the mask bits if the current aggregation scope is completed.
             if (type.Attribute.aggregateChangeMask && !parentContainer.TypeInformation.Attribute.aggregateChangeMask)
             {
+                parentContainer.m_TargetGenerator.AppendFragment("GHOST_AGGREGATE_WRITE", parentContainer.m_TargetGenerator, "GHOST_WRITE_COMBINED");
+                parentContainer.m_TargetGenerator.Fragments["__GHOST_AGGREGATE_WRITE__"].Content = "";
                 ++context.curChangeMaskBits;
                 ++context.changeMaskBitCount;
             }
@@ -622,7 +636,8 @@ namespace Unity.NetCode.Generators
             }
             public readonly List<SerializationStrategyCodeGen> serializationStrategies;
 
-            public string variantType;
+            //Follow the Rolsyn convention for inner classes (so Namespace.ClassName[+DeclaringClass]+Class
+            public string variantTypeFullName;
             public ulong variantHash;
             public string generatorName;
             //Total number of changeMaskBits bits
@@ -637,7 +652,7 @@ namespace Unity.NetCode.Generators
                 changeMaskBitCount = 0;
                 curChangeMaskBits = 0;
                 ghostFieldHash = 0;
-                variantType = null;
+                variantTypeFullName = null;
                 variantHash = 0;
                 imports.Clear();
                 imports.Add("Unity.Entities");

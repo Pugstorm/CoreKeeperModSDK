@@ -30,8 +30,8 @@ MonoBehaviour:
   - VelocityAffectorTrigger
   - CritterCollider
   - PlacementBlocker
-  - 
-  - 
+  - WaterCollider
+  - ShorelineCollider
   - 
   - 
   - 

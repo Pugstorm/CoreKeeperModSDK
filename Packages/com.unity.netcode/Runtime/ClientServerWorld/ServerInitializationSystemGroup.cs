@@ -8,9 +8,7 @@ namespace Unity.NetCode
     /// Used only for DOTSRuntime and tests or other specific use cases.
     /// </summary>
 #if !UNITY_CLIENT || UNITY_SERVER || UNITY_EDITOR
-#if !UNITY_DOTSRUNTIME
     [DisableAutoCreation]
-#endif
     [UpdateInGroup(typeof(InitializationSystemGroup))]
     [WorldSystemFilter(WorldSystemFilterFlags.LocalSimulation)]
     internal partial class TickServerInitializationSystem : TickComponentSystemGroup

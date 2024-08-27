@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Unity.NetCode.Tests
 {
-#if UNITY_EDITOR && NETCODE_ENABLE_PERF_TESTS
+#if UNITY_EDITOR
     public class NetcodeScenarioUtils
     {
         public struct ScenarioDesc
@@ -69,8 +69,7 @@ namespace Unity.NetCode.Tests
                 // create worlds, spawn and connect
                 scenarioWorld.CreateWorlds(true, parameters.NumClients, parameters.UseThinClients);
 
-                var maxSteps = 4;
-                Assert.IsTrue(scenarioWorld.Connect(frameTime, maxSteps));
+                scenarioWorld.Connect(frameTime);
 
                 var ghostSendProxy = scenarioWorld.ServerWorld.GetOrCreateSystemManaged<GhostSendSystemProxy>();
                 // ForcePreSerialize must be set before going in-game or it will not be applied

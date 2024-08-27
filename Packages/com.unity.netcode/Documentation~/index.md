@@ -12,9 +12,14 @@ See our publicly available [Unity Netcode Samples](https://github.com/Unity-Tech
 
 To install this package, follow the [installation](installation.md) instructions.
 
+## Supported Unity Versions
+
+* 2022.3 (LTS)
+* 2023.3 (Latest Beta and beyond)
+
 ## Requirements
 
-Netcode for Entities requires you to have Unity version __2022.2.0f1__ or higher.
+To use the Netcode for Entities package, you must have a supported version of Unity installed.
 
 This package uses Unity’s [Entity Component System (ECS)](https://docs.unity3d.com/Packages/com.unity.entities@latest) as a foundation. As such, you must know how to use ECS to use this package.
 

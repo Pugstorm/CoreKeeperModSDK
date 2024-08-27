@@ -36,12 +36,17 @@ namespace Unity.NetCode
 
     internal struct GhostSystemConstants
     {
+        /// <summary>
+        /// The number of ghost snapshots stored internally by the server in
+        /// the <see cref="GhostChunkSerializationState"/> and by the client in the <see cref="SnapshotDataBuffer"/>
+        /// ring buffer.
+        /// Reducing the SnapshotHistorySize would reduce the cost of storage on both server and client but will
+        /// affect the server ability to delta compress data. This because, based on the client latency, by the time
+        /// the server receive the snapshot acks (inside the client command stream), the slot in which the acked data
+        /// was stored could have been overwritten.
+        /// The default size is designed to work with a round trip time of about 500ms at 60hz network tick rate.
+        /// </summary>
         public const int SnapshotHistorySize = 32;
-        // Dynamic Buffer have a special entry in the snapshot data:
-        // uint Offset: the position in bytes from the beginning of the dynamic data store history slot
-        // uint Capacity: the slot capacity
-        public const int DynamicBufferComponentSnapshotSize = sizeof(uint) + sizeof(uint);
-        public const int DynamicBufferComponentMaskBits = 2;
         public const uint MaxNewPrefabsPerSnapshot = 32u; // At most around half the snapshot can consist of new prefabs to use
         public const int MaxDespawnsPerSnapshot = 100; // At most around one quarter the snapshot can consist of despawns
         /// <summary>
@@ -81,6 +86,7 @@ namespace Unity.NetCode
     /// <summary>
     /// Singleton entity that contains all the tweakable settings for the <see cref="GhostSendSystem"/>.
     /// </summary>
+    [Serializable]
     public struct GhostSendSystemData : IComponentData
     {
         /// <summary>
@@ -105,6 +111,13 @@ namespace Unity.NetCode
                 m_FirstSendImportanceMultiplier = value;
             }
         }
+
+        /// <summary>
+        /// If not 0, denotes the desired size of an individual snapshot (unless clobbered by <see cref="NetworkStreamSnapshotTargetSize"/>).
+        /// If zero, <see cref="NetworkParameterConstants.MTU"/> is used (minus headers).
+        /// </summary>
+        public int DefaultSnapshotPacketSize;
+
         /// <summary>
         /// The minimum importance considered for inclusion in a snapshot. Any ghost importance lower
         /// than this value will not be send every frame even if there is enough space in the packet.
@@ -214,6 +227,45 @@ namespace Unity.NetCode
         uint m_FirstSendImportanceMultiplier;
         int m_IrrelevantImportanceDownScale;
 
+        /// <summary>
+        /// Value used to set the initial size of the internal temporary stream in which
+        /// ghost data is serialized. The default value is 8kb;
+        /// <para>
+        /// Using a small size will incur in extra serialization costs (because
+        /// of multiple round of serialization), while using a larger size provide better performance (overall).
+        /// The initial size of the temporary stream is set to be equals to the capacity of the outgoing data
+        /// stream (usually an MTU or larger for fragmented payloads).
+        /// The suggested default (8kb), while extremely large in respect to the packet size, would allow in general
+        /// to be able to to write a large range of mid/small ghost entities type, with varying size (up to hundreds of bytes
+        /// each) without incurring in extra serialization overhead.
+        /// </para>
+        /// </summary>
+        public int TempStreamInitialSize
+        {
+            get => m_TempStreamSize;
+            set
+            {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+                if (value < 1)
+                    throw new ArgumentOutOfRangeException(nameof(m_TempStreamSize));
+#endif
+                m_TempStreamSize = value;
+            }
+        }
+
+        /// <summary>
+        /// When set, enable using any registered <see cref="GhostPrefabCustomSerializer"/> for
+        /// serializing ghost chunks.
+        /// </summary>
+        public int UseCustomSerializer
+        {
+            get => m_UseCustomSerializer;
+            set => m_UseCustomSerializer = value;
+        }
+        internal int m_TempStreamSize;
+        internal int m_UseCustomSerializer;
+
+
         internal void Initialize()
         {
             MinSendImportance = 0;
@@ -227,6 +279,7 @@ namespace Unity.NetCode
             CleanupConnectionStatePerTick = 1;
             m_FirstSendImportanceMultiplier = 1;
             m_IrrelevantImportanceDownScale = 1;
+            m_TempStreamSize = 8 * 1024;
         }
     }
 
@@ -263,48 +316,49 @@ namespace Unity.NetCode
     [BurstCompile]
     public partial struct GhostSendSystem : ISystem
     {
-        private NativeParallelHashMap<RelevantGhostForConnection, int> m_GhostRelevancySet;
+        NativeParallelHashMap<RelevantGhostForConnection, int> m_GhostRelevancySet;
 
-        private EntityQuery ghostQuery;
-        private EntityQuery ghostSpawnQuery;
-        private EntityQuery ghostDespawnQuery;
-        private EntityQuery prespawnSharedComponents;
+        EntityQuery ghostQuery;
+        EntityQuery ghostSpawnQuery;
+        EntityQuery ghostDespawnQuery;
+        EntityQuery prespawnSharedComponents;
 
-        private EntityQuery connectionQuery;
+        EntityQueryMask internalGlobalRelevantQueryMask;
+        EntityQueryMask netcodeEmptyQuery;
 
-        private NativeQueue<int> m_FreeGhostIds;
-        private NativeArray<int> m_AllocatedGhostIds;
-        private NativeList<int> m_DestroyedPrespawns;
-        private NativeQueue<int> m_DestroyedPrespawnsQueue;
-        private NativeReference<NetworkTick> m_DespawnAckedByAllTick;
+        EntityQuery connectionQuery;
+
+        NativeQueue<int> m_FreeGhostIds;
+        NativeArray<int> m_AllocatedGhostIds;
+        NativeList<int> m_DestroyedPrespawns;
+        NativeQueue<int> m_DestroyedPrespawnsQueue;
+        NativeReference<NetworkTick> m_DespawnAckedByAllTick;
 #if UNITY_EDITOR
         NativeArray<uint> m_UpdateLen;
         NativeArray<uint> m_UpdateCounts;
 #endif
 
-        private NativeList<ConnectionStateData> m_ConnectionStates;
-        private NativeParallelHashMap<Entity, int> m_ConnectionStateLookup;
-        private StreamCompressionModel m_CompressionModel;
-        private NativeParallelHashMap<int, ulong> m_SceneSectionHashLookup;
+        NativeList<ConnectionStateData> m_ConnectionStates;
+        NativeParallelHashMap<Entity, int> m_ConnectionStateLookup;
+        StreamCompressionModel m_CompressionModel;
+        NativeParallelHashMap<int, ulong> m_SceneSectionHashLookup;
 
-        private PortableFunctionPointer<GhostImportance.ScaleImportanceDelegate> m_NoScaleFunction;
-
-        private NativeList<int> m_ConnectionRelevantCount;
-        private NativeList<ConnectionStateData> m_ConnectionsToProcess;
+        NativeList<int> m_ConnectionRelevantCount;
+        NativeList<ConnectionStateData> m_ConnectionsToProcess;
 #if NETCODE_DEBUG
         EntityQuery m_PacketLogEnableQuery;
         ComponentLookup<PrefabDebugName> m_PrefabDebugNameFromEntity;
         FixedString512Bytes m_LogFolder;
 #endif
 
-        private NativeParallelHashMap<SpawnedGhost, Entity> m_GhostMap;
-        private NativeQueue<SpawnedGhost> m_FreeSpawnedGhostQueue;
+        NativeParallelHashMap<SpawnedGhost, Entity> m_GhostMap;
+        NativeQueue<SpawnedGhost> m_FreeSpawnedGhostQueue;
 
-        private Unity.Profiling.ProfilerMarker m_PrioritizeChunksMarker;
-        private Unity.Profiling.ProfilerMarker m_GhostGroupMarker;
-        static readonly Unity.Profiling.ProfilerMarker k_Scheduling = new Unity.Profiling.ProfilerMarker("GhostSendSystem_Scheduling");
+        Profiling.ProfilerMarker m_PrioritizeChunksMarker;
+        Profiling.ProfilerMarker m_GhostGroupMarker;
+        static readonly Profiling.ProfilerMarker k_Scheduling = new Profiling.ProfilerMarker("GhostSendSystem_Scheduling");
 
-        private GhostPreSerializer m_GhostPreSerializer;
+        GhostPreSerializer m_GhostPreSerializer;
         ComponentLookup<NetworkId> m_NetworkIdFromEntity;
         ComponentLookup<NetworkSnapshotAck> m_SnapshotAckFromEntity;
         ComponentLookup<GhostType> m_GhostTypeFromEntity;
@@ -334,6 +388,7 @@ namespace Unity.NetCode
         BufferLookup<GhostCollectionComponentIndex> m_GhostComponentIndexFromEntity;
         BufferLookup<PrespawnSectionAck> m_PrespawnAckFromEntity;
         BufferLookup<PrespawnSceneLoaded> m_PrespawnSceneLoadedFromEntity;
+        ComponentLookup<GhostCollectionCustomSerializers> m_CustomSerializerFromEntity;
 
         int m_CurrentCleanupConnectionState;
         uint m_SentSnapshots;
@@ -345,7 +400,6 @@ namespace Unity.NetCode
             m_LogFolder = NetDebug.LogFolderForPlatform();
             NetDebugInterop.Initialize();
 #endif
-            m_NoScaleFunction = GhostImportance.NoScaleFunctionPointer;
             ghostQuery = state.GetEntityQuery(ComponentType.ReadOnly<GhostInstance>(), ComponentType.ReadOnly<GhostCleanup>());
             EntityQueryDesc filterSpawn = new EntityQueryDesc
             {
@@ -360,6 +414,8 @@ namespace Unity.NetCode
             ghostSpawnQuery = state.GetEntityQuery(filterSpawn);
             ghostDespawnQuery = state.GetEntityQuery(filterDespawn);
             prespawnSharedComponents = state.GetEntityQuery(ComponentType.ReadOnly<SubSceneGhostComponentHash>());
+            internalGlobalRelevantQueryMask = state.GetEntityQuery(ComponentType.ReadOnly<PrespawnSceneLoaded>()).GetEntityQueryMask();
+            netcodeEmptyQuery = state.GetEntityQuery(new EntityQueryDesc { None = new ComponentType[] { typeof(GhostInstance) } }).GetEntityQueryMask(); // "default" just matches everything so we need to specify None to have a real "no query is set"
 
             m_FreeGhostIds = new NativeQueue<int>(Allocator.Persistent);
             m_AllocatedGhostIds = new NativeArray<int>(2, Allocator.Persistent);
@@ -403,8 +459,8 @@ namespace Unity.NetCode
             state.EntityManager.SetName(spawnedGhostMap, "SpawnedGhostEntityMapSingleton");
             SystemAPI.SetSingleton(new SpawnedGhostEntityMap{Value = m_GhostMap.AsReadOnly(), SpawnedGhostMapRW = m_GhostMap, ServerDestroyedPrespawns = m_DestroyedPrespawns, m_ServerAllocatedGhostIds = m_AllocatedGhostIds});
 
-            m_PrioritizeChunksMarker = new Unity.Profiling.ProfilerMarker("PrioritizeChunks");
-            m_GhostGroupMarker = new Unity.Profiling.ProfilerMarker("GhostGroup");
+            m_PrioritizeChunksMarker = new Profiling.ProfilerMarker("PrioritizeChunks");
+            m_GhostGroupMarker = new Profiling.ProfilerMarker("GhostGroup");
 
 #if NETCODE_DEBUG
             m_PacketLogEnableQuery = state.GetEntityQuery(ComponentType.ReadOnly<EnablePacketLogging>());
@@ -423,7 +479,7 @@ namespace Unity.NetCode
 #endif
 
             m_NetworkIdFromEntity = state.GetComponentLookup<NetworkId>();
-            m_SnapshotAckFromEntity = state.GetComponentLookup<NetworkSnapshotAck>(true);
+            m_SnapshotAckFromEntity = state.GetComponentLookup<NetworkSnapshotAck>(false);
             m_GhostTypeFromEntity = state.GetComponentLookup<GhostType>(true);
 #if NETCODE_DEBUG
             m_PrefabDebugNameFromEntity = state.GetComponentLookup<PrefabDebugName>(true);
@@ -453,6 +509,7 @@ namespace Unity.NetCode
             m_GhostCollectionFromEntity = state.GetBufferLookup<GhostCollectionPrefab>(true);
             m_GhostComponentCollectionFromEntity = state.GetBufferLookup<GhostComponentSerializer.State>(true);
             m_GhostComponentIndexFromEntity = state.GetBufferLookup<GhostCollectionComponentIndex>(true);
+            m_CustomSerializerFromEntity = state.GetComponentLookup<GhostCollectionCustomSerializers>(true);
             m_PrespawnAckFromEntity = state.GetBufferLookup<PrespawnSectionAck>(true);
             m_PrespawnSceneLoadedFromEntity = state.GetBufferLookup<PrespawnSceneLoaded>(true);
         }
@@ -582,7 +639,7 @@ namespace Unity.NetCode
 #if NETCODE_DEBUG
                         FixedString64Bytes prefabNameString = default;
                         if (prefabNames.HasComponent(GhostCollection[ghostType].GhostPrefab))
-                            prefabNameString.Append(prefabNames[GhostCollection[ghostType].GhostPrefab].Name);
+                            prefabNameString.Append(prefabNames[GhostCollection[ghostType].GhostPrefab].PrefabName);
                         netDebug.DebugLog(FixedString.Format("[Spawn] GID:{0} Prefab:{1} TypeID:{2} spawnTick:{3}", newId, prefabNameString, ghostType, serverTick.ToFixedString()));
 #endif
                     }
@@ -622,15 +679,15 @@ namespace Unity.NetCode
             [ReadOnly] public BufferLookup<GhostCollectionPrefabSerializer> GhostTypeCollectionFromEntity;
             [ReadOnly] public BufferLookup<GhostCollectionComponentIndex> GhostComponentIndexFromEntity;
             [ReadOnly] public BufferLookup<GhostCollectionPrefab> GhostCollectionFromEntity;
-            [NativeDisableContainerSafetyRestriction] private DynamicBuffer<GhostComponentSerializer.State> GhostComponentCollection;
-            [NativeDisableContainerSafetyRestriction] private DynamicBuffer<GhostCollectionPrefabSerializer> GhostTypeCollection;
-            [NativeDisableContainerSafetyRestriction] private DynamicBuffer<GhostCollectionComponentIndex> GhostComponentIndex;
+            [NativeDisableContainerSafetyRestriction] DynamicBuffer<GhostComponentSerializer.State> GhostComponentCollection;
+            [NativeDisableContainerSafetyRestriction] DynamicBuffer<GhostCollectionPrefabSerializer> GhostTypeCollection;
+            [NativeDisableContainerSafetyRestriction] DynamicBuffer<GhostCollectionComponentIndex> GhostComponentIndex;
             public ConcurrentDriverStore concurrentDriverStore;
             [ReadOnly] public NativeList<ArchetypeChunk> despawnChunks;
             [ReadOnly] public NativeList<ArchetypeChunk> ghostChunks;
 
             [ReadOnly] public NativeArray<ConnectionStateData> connectionState;
-            [ReadOnly] public ComponentLookup<NetworkSnapshotAck> ackFromEntity;
+            [NativeDisableParallelForRestriction] public ComponentLookup<NetworkSnapshotAck> ackFromEntity;
             [ReadOnly] public ComponentLookup<NetworkStreamConnection> connectionFromEntity;
             [ReadOnly] public ComponentLookup<NetworkId> networkIdFromEntity;
 
@@ -646,6 +703,8 @@ namespace Unity.NetCode
             public GhostRelevancyMode relevancyMode;
             [ReadOnly] public NativeParallelHashMap<RelevantGhostForConnection, int> relevantGhostForConnection;
             [ReadOnly] public NativeArray<int> relevantGhostCountForConnection;
+            [ReadOnly] public EntityQueryMask userGlobalRelevantMask;
+            [ReadOnly] public EntityQueryMask internalGlobalRelevantMask;
 
 #if UNITY_EDITOR || NETCODE_DEBUG
             [NativeDisableParallelForRestriction] public NativeArray<uint> netStatsBuffer;
@@ -662,7 +721,8 @@ namespace Unity.NetCode
             public NetworkTick currentTick;
             public uint localTime;
 
-            public PortableFunctionPointer<GhostImportance.ScaleImportanceDelegate> scaleGhostImportance;
+            public PortableFunctionPointer<GhostImportance.BatchScaleImportanceDelegate> BatchScaleImportance;
+            public PortableFunctionPointer<GhostImportance.ScaleImportanceDelegate> ScaleGhostImportance;
 
             [ReadOnly] public DynamicSharedComponentTypeHandle ghostImportancePerChunkTypeHandle;
             [NativeDisableUnsafePtrRestriction] [ReadOnly] public IntPtr ghostImportanceDataIntPtr;
@@ -680,7 +740,7 @@ namespace Unity.NetCode
             public uint CurrentSystemVersion;
             public NetDebug netDebug;
 #if NETCODE_DEBUG
-            public NetDebugPacket netDebugPacket;
+            public PacketDumpLogger netDebugPacket;
             [ReadOnly] public ComponentLookup<PrefabDebugName> prefabNamesFromEntity;
             [ReadOnly] public ComponentLookup<EnablePacketLogging> enableLoggingFromEntity;
             public FixedString32Bytes timestamp;
@@ -693,13 +753,12 @@ namespace Unity.NetCode
             [ReadOnly] public BufferLookup<PrespawnSceneLoaded> prespawnSceneLoadedFromEntity;
 
             Entity connectionEntity;
-            UnsafeParallelHashMap<ArchetypeChunk, GhostChunkSerializationState> chunkSerializationData;
             UnsafeParallelHashMap<int, NetworkTick> clearHistoryData;
             ConnectionStateData.GhostStateList ghostStateData;
             int connectionIdx;
 
-            public Unity.Profiling.ProfilerMarker prioritizeChunksMarker;
-            public Unity.Profiling.ProfilerMarker ghostGroupMarker;
+            public Profiling.ProfilerMarker prioritizeChunksMarker;
+            public Profiling.ProfilerMarker ghostGroupMarker;
 
             public uint FirstSendImportanceMultiplier;
             public int MinSendImportance;
@@ -707,9 +766,12 @@ namespace Unity.NetCode
             public int MaxSendChunks;
             public int MaxSendEntities;
             public int IrrelevantImportanceDownScale;
+            public int useCustomSerializer;
             public byte forceSingleBaseline;
             public byte keepSnapshotHistoryOnStructuralChange;
             public byte snaphostHasCompressedGhostSize;
+            public int defaultSnapshotPacketSize;
+            public int initialTempWriterCapacity;
 
             [ReadOnly] public NativeParallelHashMap<ArchetypeChunk, SnapshotPreSerializeData> SnapshotPreSerializeData;
 #if UNITY_EDITOR
@@ -728,7 +790,6 @@ namespace Unity.NetCode
                 connectionIdx = idx;
                 var curConnectionState = connectionState[connectionIdx];
                 connectionEntity = curConnectionState.Entity;
-                chunkSerializationData = curConnectionState.SerializationState;
                 clearHistoryData = curConnectionState.ClearHistory;
 
                 curConnectionState.EnsureGhostStateCapacity(allocatedGhostIds[0], allocatedGhostIds[1]);
@@ -750,10 +811,16 @@ namespace Unity.NetCode
                 if (driver.GetConnectionState(connectionId) != NetworkConnection.State.Connected)
                     return;
                 int maxSnapshotSizeWithoutFragmentation = NetworkParameterConstants.MTU - driver.MaxHeaderSize(unreliablePipeline);
+
+
                 int targetSnapshotSize = maxSnapshotSizeWithoutFragmentation;
                 if (snapshotTargetSizeFromEntity.HasComponent(connectionEntity))
                 {
                     targetSnapshotSize = snapshotTargetSizeFromEntity[connectionEntity].Value;
+                }
+                else if (defaultSnapshotPacketSize > 0)
+                {
+                    targetSnapshotSize = math.min(defaultSnapshotPacketSize, targetSnapshotSize);
                 }
 
                 if (prespawnSceneLoadedEntity != Entity.Null)
@@ -774,13 +841,17 @@ namespace Unity.NetCode
                         serializeResult = SerializeEnitiesResult.Unknown;
                         try
                         {
-                            serializeResult = sendEntities(ref driver, ref dataStream, ghostChunkComponentTypesPtr, ghostChunkComponentTypesLength);
+                            ref var snapshotAck = ref ackFromEntity.GetRefRW(connectionEntity).ValueRW;
+                            serializeResult = sendEntities(ref dataStream, snapshotAck, ghostChunkComponentTypesPtr, ghostChunkComponentTypesLength);
                             if (serializeResult == SerializeEnitiesResult.Ok)
                             {
-                                result = 0;
-                                if ((result = driver.EndSend(dataStream)) < (int)Networking.Transport.Error.StatusCode.Success)
+                                if ((result = driver.EndSend(dataStream)) >= (int) Networking.Transport.Error.StatusCode.Success)
                                 {
-                                    netDebug.LogWarning(FixedString.Format("An error occurred during EndSend. ErrorCode: {0}", result));
+                                    snapshotAck.CurrentSnapshotSequenceId++;
+                                }
+                                else
+                                {
+                                    netDebug.LogWarning($"Failed to send a snapshot to a client with EndSend error: {result}!");
                                 }
                             }
                             else
@@ -808,14 +879,13 @@ namespace Unity.NetCode
                     }
                     else
                     {
-                        netDebug.LogError(FixedString.Format("Failed to send a snapshot to a client with error {0}", result));
+                        netDebug.LogError($"Failed to send a snapshot to a client with BeginSend error: {result}!");
                     }
-
                     targetSnapshotSize += targetSnapshotSize;
                 }
             }
 
-            private unsafe SerializeEnitiesResult sendEntities(ref NetworkDriver.Concurrent driver, ref DataStreamWriter dataStream, DynamicComponentTypeHandle* ghostChunkComponentTypesPtr, int ghostChunkComponentTypesLength)
+            unsafe SerializeEnitiesResult sendEntities(ref DataStreamWriter dataStream, NetworkSnapshotAck snapshotAckCopy, DynamicComponentTypeHandle* ghostChunkComponentTypesPtr, int ghostChunkComponentTypesLength)
             {
 #if NETCODE_DEBUG
                 FixedString512Bytes debugLog = default;
@@ -827,36 +897,36 @@ namespace Unity.NetCode
                     GhostFromEntity = ghostFromEntity
                 };
                 var NetworkId = networkIdFromEntity[connectionEntity].Value;
-                var snapshotAck = ackFromEntity[connectionEntity];
-                var ackTick = snapshotAck.LastReceivedSnapshotByRemote;
+                var ackTick = snapshotAckCopy.LastReceivedSnapshotByRemote;
 
                 dataStream.WriteByte((byte) NetworkStreamProtocol.Snapshot);
 
                 dataStream.WriteUInt(localTime);
-                uint returnTime = snapshotAck.LastReceivedRemoteTime;
+                uint returnTime = snapshotAckCopy.LastReceivedRemoteTime;
                 if (returnTime != 0)
-                    returnTime += (localTime - snapshotAck.LastReceiveTimestamp);
+                    returnTime += (localTime - snapshotAckCopy.LastReceiveTimestamp);
                 dataStream.WriteUInt(returnTime);
-                dataStream.WriteInt(snapshotAck.ServerCommandAge);
+                dataStream.WriteInt(snapshotAckCopy.ServerCommandAge);
+                dataStream.WriteByte(snapshotAckCopy.CurrentSnapshotSequenceId);
                 dataStream.WriteUInt(currentTick.SerializedData);
 #if NETCODE_DEBUG
                 if (enablePacketLogging == 1)
                 {
                     debugLog.Append(FixedString.Format(" Protocol:{0} LocalTime:{1} ReturnTime:{2} CommandAge:{3}",
-                        (byte) NetworkStreamProtocol.Snapshot, localTime, returnTime, snapshotAck.ServerCommandAge));
-                    debugLog.Append(FixedString.Format(" Tick: {0}\n", currentTick.ToFixedString()));
+                        (byte) NetworkStreamProtocol.Snapshot, localTime, returnTime, snapshotAckCopy.ServerCommandAge));
+                    debugLog.Append(FixedString.Format(" Tick: {0}, SSId: {1}\n", currentTick.ToFixedString(), snapshotAckCopy.CurrentSnapshotSequenceId));
                 }
 #endif
 
                 // Write the list of ghost snapshots the client has not acked yet
                 var GhostCollection = GhostCollectionFromEntity[GhostCollectionSingleton];
-                uint numLoadedPrefabs = snapshotAck.NumLoadedPrefabs;
+                uint numLoadedPrefabs = snapshotAckCopy.NumLoadedPrefabs;
                 if (numLoadedPrefabs > (uint)GhostCollection.Length)
                 {
                     // The received ghosts by remote might not have been updated yet
                     numLoadedPrefabs = 0;
                     // Override the copy of the snapshot ack so the GhostChunkSerializer can skip this check
-                    snapshotAck.NumLoadedPrefabs = 0;
+                    snapshotAckCopy.NumLoadedPrefabs = 0;
                 }
                 uint numNewPrefabs = math.min((uint)GhostCollection.Length - numLoadedPrefabs, GhostSystemConstants.MaxNewPrefabsPerSnapshot);
                 dataStream.WritePackedUInt(numNewPrefabs, compressionModel);
@@ -895,9 +965,22 @@ namespace Unity.NetCode
                     }
                 }
 
-                prioritizeChunksMarker.Begin();
-                var serialChunks = GatherGhostChunks(out var maxCount, out var totalCount);
-                prioritizeChunksMarker.End();
+
+                NativeList<PrioChunk> serialChunks;
+                int totalCount, maxCount;
+                if (BatchScaleImportance.Ptr.IsCreated)
+                {
+                    prioritizeChunksMarker.Begin();
+                    serialChunks = GatherGhostChunksBatch(out maxCount, out totalCount);
+                    prioritizeChunksMarker.End();
+                }
+                else
+                {
+                    prioritizeChunksMarker.Begin();
+                    serialChunks = GatherGhostChunks(out maxCount, out totalCount);
+                    prioritizeChunksMarker.End();
+                }
+
                 switch (relevancyMode)
                 {
                 case GhostRelevancyMode.SetIsRelevant:
@@ -923,7 +1006,7 @@ namespace Unity.NetCode
 #if UNITY_EDITOR || NETCODE_DEBUG
                 int startPos = dataStream.LengthInBits;
 #endif
-                uint despawnLen = WriteDespawnGhosts(ref dataStream, ackTick);
+                uint despawnLen = WriteDespawnGhosts(ref dataStream, ackTick, in snapshotAckCopy);
                 if (dataStream.HasFailedWrites)
                 {
                     RevertDespawnGhostState(ackTick);
@@ -959,8 +1042,8 @@ namespace Unity.NetCode
                     preSerializedGhostType = preSerializedGhostType,
                     ghostChildEntityComponentType = ghostChildEntityComponentType,
                     ghostGroupType = ghostGroupType,
-                    snapshotAck = snapshotAck,
-                    chunkSerializationData = chunkSerializationData,
+                    snapshotAck = snapshotAckCopy,
+                    chunkSerializationData = *connectionState[connectionIdx].SerializationState,
                     ghostChunkComponentTypesPtr = ghostChunkComponentTypesPtr,
                     ghostChunkComponentTypesLength = ghostChunkComponentTypesLength,
                     currentTick = currentTick,
@@ -969,6 +1052,8 @@ namespace Unity.NetCode
                     NetworkId = NetworkId,
                     relevantGhostForConnection = relevantGhostForConnection,
                     relevancyMode = relevancyMode,
+                    userGlobalRelevantMask = userGlobalRelevantMask,
+                    internalGlobalRelevantMask = internalGlobalRelevantMask,
                     clearHistoryData = clearHistoryData,
                     ghostStateData = ghostStateData,
                     CurrentSystemVersion = CurrentSystemVersion,
@@ -982,9 +1067,25 @@ namespace Unity.NetCode
                     SnapshotPreSerializeData = SnapshotPreSerializeData,
                     forceSingleBaseline = forceSingleBaseline,
                     keepSnapshotHistoryOnStructuralChange = keepSnapshotHistoryOnStructuralChange,
-                    snaphostHasCompressedGhostSize = snaphostHasCompressedGhostSize
+                    snaphostHasCompressedGhostSize = snaphostHasCompressedGhostSize,
+                    useCustomSerializer = (byte)useCustomSerializer,
                 };
-                serializerData.AllocateTempData(maxCount, dataStream.Capacity);
+                //usa a better initial size for the temp stream. There is one big of a problem with the current
+                //serialization logic: multiple full serialization loops in case the chunk does not fit into the current
+                //temp stream. That can happen if either:
+                //There are big ghosts (large components or buffers)
+                //Lots of small/mid size ghosts (so > 30/40 per chunks) and because of the serialized size
+                //(all components termp data are aligned to 32 bits) we can end up in the sitation we are consuming up to 2/3x the size
+                //of the temp stream.
+                //When that happen, we re-fetch and all data (again and again, also for child) and we retry again.
+                //This is EXTREMELY SLOW. By allocating at leat 8/16kb (instead of 1MTU) we ensure that does not happen (or at least quite rarely)
+                //gaining already a 2/3 perf out of the box in many cases. I choose a 8 kb buffer, that is a little large, but
+                //give overall a very good boost in many scenario.
+                //The parameter is tunable though via GhostSendSystemData, so you can tailor that to the game as necessary.
+                var streamCapacity = useCustomSerializer == 0
+                    ? math.max(initialTempWriterCapacity, dataStream.Capacity)
+                    : dataStream.Capacity;
+                serializerData.AllocateTempData(maxCount, streamCapacity);
                 var numChunks = serialChunks.Length;
                 if (MaxSendChunks > 0 && numChunks > MaxSendChunks)
                     numChunks = MaxSendChunks;
@@ -1000,7 +1101,7 @@ namespace Unity.NetCode
                     {
                         if (prefabNamesFromEntity.HasComponent(GhostCollection[ghostType].GhostPrefab))
                             serializerData.ghostTypeName.Append(
-                                prefabNamesFromEntity[GhostCollection[ghostType].GhostPrefab].Name);
+                                prefabNamesFromEntity[GhostCollection[ghostType].GhostPrefab].PrefabName);
                     }
 #endif
 
@@ -1118,7 +1219,7 @@ namespace Unity.NetCode
             }
 
             /// Write a list of all ghosts which have been despawned after the last acked packet. Return the number of ghost ids written
-            uint WriteDespawnGhosts(ref DataStreamWriter dataStream, NetworkTick ackTick)
+            uint WriteDespawnGhosts(ref DataStreamWriter dataStream, NetworkTick ackTick, in NetworkSnapshotAck snapshotAck)
             {
                 //For despawns we use a custom ghost id encoding.
                 //We left shift the ghost id by one bit and exchange the LSB <> MSB.
@@ -1131,11 +1232,10 @@ namespace Unity.NetCode
                 }
 #if NETCODE_DEBUG
                 FixedString512Bytes debugLog = default;
-                FixedString32Bytes msg = "\t[Despawn IDs]\n";
+                FixedString64Bytes msg = "\t[Despawn IDs]\n";
 #endif
                 uint despawnLen = 0;
                 ghostStateData.AckedDespawnTick = ackTick;
-                var snapshotAck = ackFromEntity[connectionEntity];
                 uint despawnRepeatTicks = 5u;
                 uint repeatNextFrame = 0;
                 uint repeatThisFrame = ghostStateData.DespawnRepeatCount;
@@ -1341,7 +1441,8 @@ namespace Unity.NetCode
 #endif
                 return despawnLen;
             }
-            private int FindGhostTypeIndex(Entity ent)
+
+            int FindGhostTypeIndex(Entity ent)
             {
                 var GhostCollection = GhostCollectionFromEntity[GhostCollectionSingleton];
                 int ghostType;
@@ -1358,9 +1459,10 @@ namespace Unity.NetCode
                 }
                 return ghostType;
             }
+
             /// Collect a list of all chunks which could be serialized and sent. Sort the list so other systems get it in priority order.
             /// Also cleanup any stale ghost state in the map and create new storage buffers for new chunks so all chunks are in a valid state after this has executed
-            NativeList<PrioChunk> GatherGhostChunks(out int maxCount, out int totalCount)
+            unsafe NativeList<PrioChunk> GatherGhostChunks(out int maxCount, out int totalCount)
             {
                 var serialChunks = new NativeList<PrioChunk>(ghostChunks.Length, Allocator.Temp);
                 maxCount = 0;
@@ -1368,15 +1470,19 @@ namespace Unity.NetCode
 
                 var connectionChunkInfo = childEntityLookup[connectionEntity];
                 var connectionHasConnectionData = TryGetComponentPtrInChunk(connectionChunkInfo, ghostConnectionDataTypeHandle, ghostConnectionDataTypeSize, out var connectionDataPtr);
+                var chunkStates = connectionState[connectionIdx].SerializationState;
+                var scalePriorities = connectionHasConnectionData && ScaleGhostImportance.Ptr.IsCreated;
+
                 for (int chunk = 0; chunk < ghostChunks.Length; ++chunk)
                 {
                     var ghostChunk = ghostChunks[chunk];
-                    if (!TryGetChunkStateOrNew(ghostChunk, out var chunkState))
+                    if (!TryGetChunkStateOrNew(ghostChunk, ref *chunkStates, out var chunkState))
                     {
                         continue;
                     }
 
                     chunkState.SetLastValidTick(currentTick);
+
                     totalCount += ghostChunk.Count;
                     maxCount = math.max(maxCount, ghostChunk.Count);
 
@@ -1402,18 +1508,19 @@ namespace Unity.NetCode
                         continue;
 
                     var ghostType = chunkState.ghostType;
-                    var chunkPriority = GhostTypeCollection[ghostType].BaseImportance *
+                    var chunkPriority = chunkState.baseImportance *
                                         currentTick.TicksSince(chunkState.GetLastUpdate());
                     if (chunkState.GetAllIrrelevant())
                         chunkPriority /= IrrelevantImportanceDownScale;
                     if (chunkPriority < MinSendImportance)
                         continue;
-                    if (connectionHasConnectionData && ghostChunk.Has(ref ghostImportancePerChunkTypeHandle))
+                    if (scalePriorities && ghostChunk.Has(ref ghostImportancePerChunkTypeHandle))
                     {
                         unsafe
                         {
                             IntPtr chunkTile = new IntPtr(ghostChunk.GetDynamicSharedComponentDataAddress(ref ghostImportancePerChunkTypeHandle));
-                            chunkPriority = scaleGhostImportance.Ptr.Invoke(connectionDataPtr, ghostImportanceDataIntPtr, chunkTile, chunkPriority);
+                            var func = (delegate *unmanaged[Cdecl]<IntPtr, IntPtr, IntPtr, int, int>)ScaleGhostImportance.Ptr.Value;
+                            chunkPriority = func(connectionDataPtr, ghostImportanceDataIntPtr, chunkTile, chunkPriority);
                         }
 
                         if (chunkPriority < MinDistanceScaledSendImportance)
@@ -1427,19 +1534,21 @@ namespace Unity.NetCode
                         startIndex = chunkState.GetStartIndex(),
                         ghostType = ghostType
                     };
+
+                    //Using AddNoResize, while tecnically better because does 0 checks, internally use atomics.
+                    //That make that slower.
                     serialChunks.Add(pc);
 #if NETCODE_DEBUG
                     if (enablePacketLogging == 1)
                         netDebugPacket.Log(FixedString.Format("Adding chunk ID:{0} TypeID:{1} Priority:{2}\n", chunk, ghostType, chunkPriority));
 #endif
                 }
-
                 NativeArray<PrioChunk> serialChunkArray = serialChunks.AsArray();
                 serialChunkArray.Sort();
                 return serialChunks;
             }
 
-            private static unsafe IntPtr GetComponentPtrInChunk(
+            static unsafe IntPtr GetComponentPtrInChunk(
                 EntityStorageInfo storageInfo,
                 DynamicComponentTypeHandle connectionDataTypeHandle,
                 int typeSize)
@@ -1449,44 +1558,38 @@ namespace Unity.NetCode
                 return (IntPtr)ptr;
             }
 
-            private bool TryGetChunkStateOrNew(ArchetypeChunk ghostChunk, out GhostChunkSerializationState chunkState)
+            unsafe bool TryGetChunkStateOrNew(ArchetypeChunk ghostChunk,
+                ref UnsafeHashMap<ArchetypeChunk, GhostChunkSerializationState> chunkStates,
+                out GhostChunkSerializationState chunkState)
             {
-                if (chunkSerializationData.TryGetValue(ghostChunk, out chunkState))
+                if (chunkStates.TryGetValue(ghostChunk, out chunkState))
                 {
                     if (chunkState.sequenceNumber == ghostChunk.SequenceNumber)
                     {
                         return true;
                     }
 
-                    RemoveGhostChunk(ghostChunk, chunkState);
+                    chunkState.FreeSnapshotData();
+                    chunkStates.Remove(ghostChunk);
                 }
 
-                return AddNewChunk(ghostChunk, ref chunkState);
-            }
-
-            private void RemoveGhostChunk(ArchetypeChunk ghostChunk, GhostChunkSerializationState chunkState)
-            {
-                chunkState.FreeSnapshotData();
-                chunkSerializationData.Remove(ghostChunk);
-            }
-
-            private bool AddNewChunk(ArchetypeChunk ghostChunk, ref GhostChunkSerializationState chunkState)
-            {
-                var ghosts = ghostChunk.GetNativeArray(ref ghostComponentType);
-                if (!TryGetChunkGhostType(ghostChunk, ghosts, out var chunkGhostType))
+                var ghosts = ghostChunk.GetComponentDataPtrRO(ref ghostComponentType);
+                if (!TryGetChunkGhostType(ghostChunk, ghosts[0], out var chunkGhostType))
                 {
                     return false;
                 }
+
                 chunkState.ghostType = chunkGhostType;
                 chunkState.sequenceNumber = ghostChunk.SequenceNumber;
-
-                int serializerDataSize = GhostTypeCollection[chunkState.ghostType].SnapshotSize;
+                ref readonly var prefabSerializer = ref GhostTypeCollection.ElementAtRO(chunkState.ghostType);
+                int serializerDataSize = prefabSerializer.SnapshotSize;
+                chunkState.baseImportance = prefabSerializer.BaseImportance;
                 chunkState.AllocateSnapshotData(serializerDataSize, ghostChunk.Capacity);
                 var importanceTick = currentTick;
                 importanceTick.Subtract(FirstSendImportanceMultiplier);
                 chunkState.SetLastUpdate(importanceTick);
 
-                chunkSerializationData.TryAdd(ghostChunk, chunkState);
+                chunkStates.TryAdd(ghostChunk, chunkState);
 #if NETCODE_DEBUG
                 if (enablePacketLogging == 1)
                 {
@@ -1498,9 +1601,9 @@ namespace Unity.NetCode
                 return true;
             }
 
-            private bool TryGetChunkGhostType(ArchetypeChunk ghostChunk, NativeArray<GhostInstance> ghosts, out int chunkGhostType)
+            bool TryGetChunkGhostType(ArchetypeChunk ghostChunk, in GhostInstance ghost, out int chunkGhostType)
             {
-                chunkGhostType = ghosts[0].ghostType;
+                chunkGhostType = ghost.ghostType;
                 // Pre spawned ghosts might not have a proper ghost type index yet, we calculate it here for pre spawns
                 if (chunkGhostType < 0)
                 {
@@ -1515,11 +1618,110 @@ namespace Unity.NetCode
                 return chunkGhostType < GhostTypeCollection.Length;
             }
 
-            private static bool TryGetComponentPtrInChunk(EntityStorageInfo connectionChunkInfo, DynamicComponentTypeHandle typeHandle, int typeSize, out IntPtr componentPtrInChunk)
+            static bool TryGetComponentPtrInChunk(EntityStorageInfo connectionChunkInfo, DynamicComponentTypeHandle typeHandle, int typeSize, out IntPtr componentPtrInChunk)
             {
                 var connectionHasType = connectionChunkInfo.Chunk.Has(ref typeHandle);
                 componentPtrInChunk = connectionHasType ? GetComponentPtrInChunk(connectionChunkInfo, typeHandle, typeSize) : default;
                 return connectionHasType;
+            }
+
+            /// Collect a list of all chunks which could be serialized and sent. Sort the list so other systems get it in priority order.
+            /// Also cleanup any stale ghost state in the map and create new storage buffers for new chunks so all chunks are in a valid state after this has executed
+            unsafe NativeList<PrioChunk> GatherGhostChunksBatch(out int maxCount, out int totalCount)
+            {
+                var serialChunks = new NativeList<PrioChunk>(ghostChunks.Length, Allocator.Temp);
+                maxCount = 0;
+                totalCount = 0;
+                var connectionChunkInfo = childEntityLookup[connectionEntity];
+                var connectionHasConnectionData = TryGetComponentPtrInChunk(connectionChunkInfo, ghostConnectionDataTypeHandle, ghostConnectionDataTypeSize, out var connectionDataPtr);
+                var chunkStates = connectionState[connectionIdx].SerializationState;
+
+                for (int chunk = 0; chunk < ghostChunks.Length; ++chunk)
+                {
+                    var ghostChunk = ghostChunks[chunk];
+                    if (!TryGetChunkStateOrNew(ghostChunk, ref *chunkStates, out var chunkState))
+                    {
+                        continue;
+                    }
+
+                    chunkState.SetLastValidTick(currentTick);
+                    totalCount += ghostChunk.Count;
+                    maxCount = math.max(maxCount, ghostChunk.Count);
+
+                    //Prespawn ghost chunk should be considered only if the subscene wich they belong to as been loaded (acked) by the client.
+                    if (ghostChunk.Has(ref prespawnGhostIdType))
+                    {
+                        var ackedPrespawnSceneMap = connectionState[connectionIdx].AckedPrespawnSceneMap;
+                        //Retrieve the subscene hash from the shared component index.
+                        var sharedComponentIndex = ghostChunk.GetSharedComponentIndex(subsceneHashSharedTypeHandle);
+                        var hash = SubSceneHashSharedIndexMap[sharedComponentIndex];
+                        //Skip the chunk if the client hasn't acked/requested streaming that subscene
+                        if (!ackedPrespawnSceneMap.ContainsKey(hash))
+                        {
+#if NETCODE_DEBUG
+                            if (enablePacketLogging == 1)
+                                netDebugPacket.Log(FixedString.Format(
+                                    "Skipping prespawn chunk with TypeID:{0} for scene {1} not acked by the client\n",
+                                    chunkState.ghostType, NetDebug.PrintHex(hash)));
+#endif
+                            continue;
+                        }
+                    }
+
+                    if (ghostChunk.Has(ref ghostChildEntityComponentType))
+                        continue;
+
+                    var chunkPriority = chunkState.baseImportance *
+                                        currentTick.TicksSince(chunkState.GetLastUpdate());
+                    if (chunkState.GetAllIrrelevant())
+                        chunkPriority /= IrrelevantImportanceDownScale;
+                    if (chunkPriority < MinSendImportance)
+                        continue;
+
+                    var pc = new PrioChunk
+                    {
+                        chunk = ghostChunk,
+                        priority = chunkPriority,
+                        startIndex = chunkState.GetStartIndex(),
+                        ghostType = chunkState.ghostType
+                    };
+                    serialChunks.Add(pc);
+                }
+                if (connectionHasConnectionData)
+                {
+                    ref var unsafeList = ref (*serialChunks.GetUnsafeList());
+                    var func = (delegate *unmanaged[Cdecl]<IntPtr, IntPtr, IntPtr, ref UnsafeList<PrioChunk>, void>)BatchScaleImportance.Ptr.Value;
+                    func(connectionDataPtr, ghostImportanceDataIntPtr,
+                        GhostComponentSerializer.IntPtrCast(ref ghostImportancePerChunkTypeHandle),
+                        ref unsafeList);
+                    if (MinDistanceScaledSendImportance > 0)
+                    {
+                        var chunk = 0;
+                        while(chunk < serialChunks.Length)
+                        {
+                            if (serialChunks.ElementAt(chunk).priority < MinDistanceScaledSendImportance)
+                            {
+                                serialChunks.RemoveAtSwapBack(chunk);
+                            }
+                            else
+                            {
+                                ++chunk;
+                            }
+                        }
+                    }
+                }
+#if NETCODE_DEBUG
+                if (enablePacketLogging == 1)
+                {
+                    for (int i = 0; i < serialChunks.Length; ++i)
+                    {
+                        netDebugPacket.Log(FixedString.Format("Adding chunk TypeID:{0} Priority:{1}\n", serialChunks[i].ghostType, serialChunks[i].priority));
+                    }
+                }
+#endif
+                var arr = serialChunks.AsArray();
+                arr.Sort();
+                return serialChunks;
             }
         }
 
@@ -1544,7 +1746,12 @@ namespace Unity.NetCode
             // Make sure the list of connections and connection state is up to date
             var connections = connectionQuery.ToEntityListAsync(state.WorldUpdateAllocator, out var connectionHandle);
 
-            var relevancyMode = SystemAPI.GetSingleton<GhostRelevancy>().GhostRelevancyMode;
+            var relevancySingleton = SystemAPI.GetSingleton<GhostRelevancy>();
+            var relevancyMode = relevancySingleton.GhostRelevancyMode;
+            EntityQueryMask userGlobalRelevantQueryMask = netcodeEmptyQuery;
+            if (relevancySingleton.DefaultRelevancyQuery != default)
+                userGlobalRelevantQueryMask = relevancySingleton.DefaultRelevancyQuery.GetEntityQueryMask();
+
             bool relevancyEnabled = (relevancyMode != GhostRelevancyMode.Disabled);
             // Find the latest tick which has been acknowledged by all clients and cleanup all ghosts destroyed before that
             var currentTick = networkTime.ServerTick;
@@ -1596,8 +1803,7 @@ namespace Unity.NetCode
                     if (conState.NetDebugPacket.IsCreated)
                         continue;
 
-                    NetDebugInterop.InitDebugPacketIfNotCreated(ref conState.NetDebugPacket, ref m_LogFolder, ref worldNameFixed, packet.Id.ValueRO.Value);
-
+                    NetDebugInterop.InitDebugPacketIfNotCreated(ref conState.NetDebugPacket, m_LogFolder, worldNameFixed, packet.Id.ValueRO.Value);
                     m_ConnectionStates[m_ConnectionStateLookup[packet.Entity]] = conState;
                     // Find connection state in the list sent to the serialize job and replace with this updated version
                     for (int i = 0; i < connectionsToProcess.Length; ++i)
@@ -1668,6 +1874,12 @@ namespace Unity.NetCode
             m_EntityType.Update(ref state);
             m_GhostTypeCollectionFromEntity.Update(ref state);
             m_GhostCollectionFromEntity.Update(ref state);
+            //The spawnjob assign the ghost id, tick and track the ghost with a cleanup component. If the
+            //ghost chunk has a GhostType that has not been processed yet by the GhostCollectionSystem,
+            //the chunk is skipped. However, this leave the entities in a limbo state where the data is not setup
+            //yet.
+            //It is necessary to check always for the cleanup component being added to the chunk in general in the serialization
+            //job to ensure the data has been appropriately set.
             var spawnJob = new SpawnGhostJob
             {
                 connectionState = m_ConnectionsToProcess.AsDeferredJobArray(),
@@ -1707,6 +1919,7 @@ namespace Unity.NetCode
             ref readonly var networkStreamDriver = ref SystemAPI.GetSingletonRW<NetworkStreamDriver>().ValueRO;
             // If there are any connections to send data to, serialize the data for them in parallel
             UpdateSerializeJobDependencies(ref state);
+            var customSerializers = m_CustomSerializerFromEntity[ghostCollectionSingleton];
             var serializeJob = new SerializeJob
             {
                 GhostCollectionSingleton = ghostCollectionSingleton,
@@ -1730,6 +1943,8 @@ namespace Unity.NetCode
                 ghostGroupType = m_GhostGroupType,
                 ghostChildEntityComponentType = m_GhostChildEntityComponentType,
                 relevantGhostForConnection = m_GhostRelevancySet,
+                userGlobalRelevantMask = userGlobalRelevantQueryMask,
+                internalGlobalRelevantMask = internalGlobalRelevantQueryMask,
                 relevancyMode = relevancyMode,
                 relevantGhostCountForConnection = m_ConnectionRelevantCount.AsDeferredJobArray(),
 #if UNITY_EDITOR || NETCODE_DEBUG
@@ -1741,7 +1956,6 @@ namespace Unity.NetCode
                 ghostFromEntity = m_GhostFromEntity,
                 currentTick = currentTick,
                 localTime = NetworkTimeSystem.TimestampMS,
-                scaleGhostImportance = GetScaleFunction(),
                 snapshotTargetSizeFromEntity = m_SnapshotTargetFromEntity,
 
                 ghostTypeFromEntity = m_GhostTypeFromEntity,
@@ -1772,15 +1986,28 @@ namespace Unity.NetCode
                 MaxSendChunks = systemData.MaxSendChunks,
                 MaxSendEntities = systemData.MaxSendEntities,
                 IrrelevantImportanceDownScale = systemData.IrrelevantImportanceDownScale,
+                useCustomSerializer = systemData.UseCustomSerializer,
                 forceSingleBaseline = systemData.m_ForceSingleBaseline,
                 keepSnapshotHistoryOnStructuralChange = systemData.m_KeepSnapshotHistoryOnStructuralChange,
                 snaphostHasCompressedGhostSize = GhostSystemConstants.SnaphostHasCompressedGhostSize ? (byte)1u :(byte)0u,
+                defaultSnapshotPacketSize = systemData.DefaultSnapshotPacketSize,
+                initialTempWriterCapacity = systemData.TempStreamInitialSize,
 
 #if UNITY_EDITOR
                 UpdateLen = m_UpdateLen,
                 UpdateCounts = m_UpdateCounts,
 #endif
             };
+            if (!SystemAPI.TryGetSingleton<GhostImportance>(out var importance))
+            {
+                serializeJob.BatchScaleImportance = default;
+                serializeJob.ScaleGhostImportance = default;
+            }
+            else
+            {
+                serializeJob.BatchScaleImportance = importance.BatchScaleImportanceFunction;
+                serializeJob.ScaleGhostImportance = importance.ScaleImportanceFunction;
+            }
 
             // We don't want to assign default value to type handles as this would lead to a safety error
             if (SystemAPI.TryGetSingletonEntity<GhostImportance>(out var singletonEntity))
@@ -1794,7 +2021,7 @@ namespace Unity.NetCode
                 GhostImportance config;
                 unsafe
                 {
-                    config = ((GhostImportance*) entityStorageInfo.Chunk.GetComponentDataPtrRO(ref ghostImportanceTypeHandle))[entityStorageInfo.IndexInChunk];
+                    config = entityStorageInfo.Chunk.GetComponentDataPtrRO(ref ghostImportanceTypeHandle)[entityStorageInfo.IndexInChunk];
                 }
                 var ghostConnectionDataTypeRO = config.GhostConnectionComponentType;
                 var ghostImportancePerChunkDataTypeRO = config.GhostImportancePerChunkDataType;
@@ -1851,8 +2078,10 @@ namespace Unity.NetCode
                 m_GhostTypeComponentType,
                 serializeJob.entityType,
                 serializeJob.ghostFromEntity,
+                serializeJob.connectionState,
                 serializeJob.netDebug,
                 currentTick,
+                systemData.m_UseCustomSerializer,
                 ref state,
                 ghostComponentCollection);
             k_Scheduling.End();
@@ -1877,6 +2106,13 @@ namespace Unity.NetCode
             var flushHandle = networkStreamDriver.DriverStore.ScheduleFlushSendAllDrivers(serializeHandle);
             k_Scheduling.End();
             state.Dependency = JobHandle.CombineDependencies(flushHandle, cleanupHandle);
+#if NETCODE_DEBUG && !USING_UNITY_LOGGING
+            state.Dependency = new FlushNetDebugPacket
+            {
+                EnablePacketLogging = m_EnablePacketLoggingFromEntity,
+                ConnectionStates = m_ConnectionsToProcess.AsDeferredJobArray(),
+            }.Schedule(m_ConnectionsToProcess, 1, state.Dependency);
+#endif
         }
 
         void UpdateSerializeJobDependencies(ref SystemState state)
@@ -1907,6 +2143,7 @@ namespace Unity.NetCode
             m_SubsceneGhostComponentType.Update(ref state);
             m_GhostComponentCollectionFromEntity.Update(ref state);
             m_GhostComponentIndexFromEntity.Update(ref state);
+            m_CustomSerializerFromEntity.Update(ref state);
             m_PrespawnAckFromEntity.Update(ref state);
             m_PrespawnSceneLoadedFromEntity.Update(ref state);
         }
@@ -1997,6 +2234,22 @@ namespace Unity.NetCode
             }
         }
 
+#if NETCODE_DEBUG && !USING_UNITY_LOGGING
+        struct FlushNetDebugPacket : IJobParallelForDefer
+        {
+            [ReadOnly] public ComponentLookup<EnablePacketLogging> EnablePacketLogging;
+            [ReadOnly] public NativeArray<ConnectionStateData> ConnectionStates;
+            public void Execute(int index)
+            {
+                var state = ConnectionStates[index];
+                if (EnablePacketLogging.HasComponent(state.Entity))
+                {
+                    state.NetDebugPacket.Flush();
+                }
+            }
+        }
+#endif
+
         [BurstCompile]
         struct CleanupGhostSerializationStateJob : IJob
         {
@@ -2005,10 +2258,10 @@ namespace Unity.NetCode
             [ReadOnly] public NativeList<ConnectionStateData> ConnectionStates;
             [ReadOnly] public NativeList<ArchetypeChunk> GhostChunks;
 
-            public void Execute()
+            public unsafe void Execute()
             {
                 var conCount = math.min(CleanupConnectionStatePerTick, ConnectionStates.Length);
-                var existingChunks = new NativeParallelHashMap<ArchetypeChunk, int>(GhostChunks.Length, Allocator.Temp);
+                var existingChunks = new UnsafeHashMap<ArchetypeChunk, int>(GhostChunks.Length, Allocator.Temp);
                 foreach (var chunk in GhostChunks)
                 {
                     existingChunks.TryAdd(chunk, 1);
@@ -2017,7 +2270,7 @@ namespace Unity.NetCode
                 {
                     var conIdx = (con + CurrentCleanupConnectionState) % ConnectionStates.Length;
                     var chunkSerializationData = ConnectionStates[conIdx].SerializationState;
-                    var oldChunks = chunkSerializationData.GetKeyArray(Allocator.Temp);
+                    var oldChunks = chunkSerializationData->GetKeyArray(Allocator.Temp);
                     foreach (var oldChunk in oldChunks)
                     {
                         if (existingChunks.ContainsKey(oldChunk))
@@ -2025,9 +2278,9 @@ namespace Unity.NetCode
                             continue;
                         }
                         GhostChunkSerializationState chunkState;
-                        chunkSerializationData.TryGetValue(oldChunk, out chunkState);
+                        chunkSerializationData->TryGetValue(oldChunk, out chunkState);
                         chunkState.FreeSnapshotData();
-                        chunkSerializationData.Remove(oldChunk);
+                        chunkSerializationData->Remove(oldChunk);
                     }
                 }
             }
@@ -2092,13 +2345,13 @@ namespace Unity.NetCode
                 FreeSpawnedGhosts.Enqueue(spawnedGhost);
                 //If there is no allocated range, do not add to the queue. That means the subscene the
                 //prespawn belongs to has been unloaded
-                if (PrespawnHelper.IsPrespawGhostId(ghost.ghostId) && PrespawnIdRanges.GhostIdRangeIndex(ghost.ghostId) >= 0)
+                if (PrespawnHelper.IsPrespawnGhostId(ghost.ghostId) && PrespawnIdRanges.GhostIdRangeIndex(ghost.ghostId) >= 0)
                     PrespawnDespawn.Enqueue(ghost.ghostId);
             }
         }
 
 #if UNITY_EDITOR || NETCODE_DEBUG
-        private void UpdateNetStats(ref GhostStatsCollectionSnapshot netStats, NetworkTick serverTick)
+        void UpdateNetStats(ref GhostStatsCollectionSnapshot netStats, NetworkTick serverTick)
         {
 #if UNITY_2022_2_14F1_OR_NEWER
             int maxThreadCount = JobsUtility.ThreadIndexCount;
@@ -2116,26 +2369,5 @@ namespace Unity.NetCode
             netStats.Data[0] = serverTick.SerializedData;
         }
 #endif
-
-        PortableFunctionPointer<GhostImportance.ScaleImportanceDelegate> GetScaleFunction()
-        {
-            return SystemAPI.HasSingleton<GhostImportance>()
-                ? SystemAPI.GetSingleton<GhostImportance>().ScaleImportanceFunction
-                : m_NoScaleFunction;
-        }
-
-        internal struct PrioChunk : IComparable<PrioChunk>
-        {
-            public ArchetypeChunk chunk;
-            public int priority;
-            public int startIndex;
-            public int ghostType;
-
-            public int CompareTo(PrioChunk other)
-            {
-                // Reverse priority for sorting
-                return other.priority - priority;
-            }
-        }
     }
 }

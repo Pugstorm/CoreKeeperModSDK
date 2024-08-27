@@ -254,7 +254,7 @@ namespace Unity.NetCode.Tests
                 CheckComponent(testWorld.ServerWorld, ComponentType.ReadOnly<AllPredictedComponentData>(), 3);
 
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
                 for (int i = 0; i < 64; ++i)
                     testWorld.Tick(frameTime);

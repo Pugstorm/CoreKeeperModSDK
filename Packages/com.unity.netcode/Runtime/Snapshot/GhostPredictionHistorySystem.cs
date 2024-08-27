@@ -1,15 +1,11 @@
 using System;
 using Unity.Assertions;
 using Unity.Entities;
-using Unity.NetCode;
-using Unity.Mathematics;
-using Unity.Transforms;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
 using Unity.NetCode.LowLevel.Unsafe;
 using Unity.Burst;
 using Unity.Burst.Intrinsics;
-using Unity.Entities.LowLevel.Unsafe;
 using Unity.Jobs;
 
 namespace Unity.NetCode
@@ -18,6 +14,7 @@ namespace Unity.NetCode
     // The header is followed by:
     // Entity[Capacity] the entity this history applies to (to prevent errors on structural changes)
     // ulong[Capacity*enabledBits] each enabled bit is stored as a contiguous array of all entities, aligned to ulong
+    // int[root components + Capacity * num_child_component] chunk (and child chunk) version numbers.
     // byte*[Capacity * sizeof(IComponentData)] the raw backup data for all replicated components in this ghost type. For buffers an uint pair (size, offset) is stored instead.
     // [Opt]byte*[BuffersDataSize] the raw buffers element data present in the chunk if present. The total buffers size is computed at runtime and the
     // backup state resized accordingly. All buffers contents start to a 16 bytes aligned offset: Align(b1Elem*b1ElemSize, 16), Align(b2Elem*b2ElemSize, 16) ...
@@ -34,24 +31,31 @@ namespace Unity.NetCode
         //the ghost component serialized size
         public int dataOffset;
         public int dataSize;
+        //chunk versions
+        public int chunkVersionsOffset;
+        public int chunkVersionsSize;
         //the capacity for the dynamic data. Dynamic Buffers are store after the component backup
         public int bufferDataCapacity;
         public int bufferDataOffset;
 
-        public static IntPtr AllocNew(int ghostTypeId, int enabledBits, int dataSize, int entityCapacity, int buffersDataCapacity, int predictionOwnerOffset)
+        public static IntPtr AllocNew(int ghostTypeId, int enabledBits,
+            int numComponents, int dataSize, int entityCapacity, int buffersDataCapacity, int predictionOwnerOffset)
         {
             var entitiesSize = (ushort)GetEntitiesSize(entityCapacity, out var _);
             var headerSize = GetHeaderSize();
             // each enabled bit is a unique array big enough to fit all entities
             var enabledBitSize = (((entityCapacity+63)&(~63))/8 * enabledBits + 15) & (~15);
-            var state = (PredictionBackupState*)UnsafeUtility.Malloc(headerSize + enabledBitSize + entitiesSize + dataSize + buffersDataCapacity, 16, Allocator.Persistent);
+            var versionSize = (sizeof(int) * numComponents * entityCapacity + 15) & ~15;
+            var state = (PredictionBackupState*)UnsafeUtility.Malloc(headerSize + enabledBitSize + entitiesSize + versionSize + dataSize + buffersDataCapacity, 16, Allocator.Persistent);
             state->ghostType = ghostTypeId;
             state->entityCapacity = entityCapacity;
             state->entitiesOffset = headerSize;
             state->enabledBitOffset = headerSize + entitiesSize;
             state->ghostOwnerOffset = predictionOwnerOffset;
             state->enabledBits = enabledBits;
-            state->dataOffset = headerSize + entitiesSize + enabledBitSize;
+            state->chunkVersionsOffset = headerSize + entitiesSize + enabledBitSize;
+            state->chunkVersionsSize = versionSize;
+            state->dataOffset = state->chunkVersionsOffset + versionSize;
             state->dataSize = dataSize;
             state->bufferDataCapacity = buffersDataCapacity;
             state->bufferDataOffset = state->dataOffset + dataSize;
@@ -75,10 +79,21 @@ namespace Unity.NetCode
             var ps = ((PredictionBackupState*) state);
             return (Entity*)(((byte*)state) + ps->entitiesOffset);
         }
+        public static bool MatchEntity(IntPtr state, int ent, in Entity entity)
+        {
+            var ps = ((PredictionBackupState*) state);
+            return ((Entity*)(((byte*)state) + ps->entitiesOffset))[ent] == entity;
+        }
         public static byte* GetData(IntPtr state)
         {
             var ps = ((PredictionBackupState*) state);
             return ((byte*) state) + ps->dataOffset;
+        }
+
+        public static uint* GetChunkVersion(IntPtr state)
+        {
+            var ps = ((PredictionBackupState*) state);
+            return (uint*)((byte*)state + ps->chunkVersionsOffset);
         }
 
         public static int GetBufferDataCapacity(IntPtr state)
@@ -110,6 +125,11 @@ namespace Unity.NetCode
                 return *(((byte*)state) + ps->dataOffset + ps->ghostOwnerOffset);
             //return an invalid owner (0)
             return 0;
+        }
+
+        public static uint* GetNextChildChunkVersion(uint* changeVersionPtr, int chunkCapacity)
+        {
+            return changeVersionPtr + chunkCapacity;
         }
     }
 
@@ -337,7 +357,7 @@ namespace Unity.NetCode
             [ReadOnly] public EntityStorageInfoLookup childEntityLookup;
             [ReadOnly] public BufferTypeHandle<LinkedEntityGroup> linkedEntityGroupType;
 
-            const GhostComponentSerializer.SendMask requiredSendMask = GhostComponentSerializer.SendMask.Predicted;
+            const GhostSendType requiredSendMask = GhostSendType.OnlyPredictedClients;
 
             //Sum up all the dynamic buffers raw data content size. Each buffer content size is aligned to 16 bytes
             private int GetChunkBuffersDataSize(GhostCollectionPrefabSerializer typeData, ArchetypeChunk chunk,
@@ -357,7 +377,8 @@ namespace Unity.NetCode
                     if ((GhostComponentIndex[baseOffset + comp].SendMask & requiredSendMask) == 0)
                         continue;
 
-                    if (!GhostComponentCollection[serializerIdx].ComponentType.IsBuffer)
+                    ref readonly var ghostSerializer = ref GhostComponentCollection.ElementAtRO(serializerIdx);
+                    if (!ghostSerializer.ComponentType.IsBuffer)
                         continue;
 
                     if (chunk.Has(ref ghostChunkComponentTypesPtr[compIdx]))
@@ -365,7 +386,7 @@ namespace Unity.NetCode
                         var bufferData = chunk.GetUntypedBufferAccessor(ref ghostChunkComponentTypesPtr[compIdx]);
                         for (int i = 0; i < bufferData.Length; ++i)
                         {
-                            bufferTotalSize += bufferData.GetBufferCapacity(i) * GhostComponentCollection[serializerIdx].ComponentSize;
+                            bufferTotalSize += bufferData.GetBufferCapacity(i) * ghostSerializer.ComponentSize;
                         }
                         bufferTotalSize = GhostComponentSerializer.SnapshotSizeAligned(bufferTotalSize);
                     }
@@ -385,7 +406,8 @@ namespace Unity.NetCode
                         if ((GhostComponentIndex[baseOffset + comp].SendMask & requiredSendMask) == 0)
                             continue;
 
-                        if (!GhostComponentCollection[serializerIdx].ComponentType.IsBuffer)
+                        ref readonly var ghostSerializer = ref GhostComponentCollection.ElementAtRO(serializerIdx);
+                        if (!ghostSerializer.ComponentType.IsBuffer)
                             continue;
 
                         for (int ent = 0, chunkEntityCount = chunk.Count; ent < chunkEntityCount; ++ent)
@@ -395,7 +417,7 @@ namespace Unity.NetCode
                             if (childEntityLookup.TryGetValue(childEnt, out var childChunk) && childChunk.Chunk.Has(ref ghostChunkComponentTypesPtr[compIdx]))
                             {
                                 var bufferData = childChunk.Chunk.GetUntypedBufferAccessor(ref ghostChunkComponentTypesPtr[compIdx]);
-                                bufferTotalSize += bufferData.GetBufferCapacity(childChunk.IndexInChunk) * GhostComponentCollection[serializerIdx].ComponentSize;
+                                bufferTotalSize += bufferData.GetBufferCapacity(childChunk.IndexInChunk) * ghostSerializer.ComponentSize;
                             }
                             bufferTotalSize = GhostComponentSerializer.SnapshotSizeAligned(bufferTotalSize);
                         }
@@ -451,6 +473,11 @@ namespace Unity.NetCode
                     int dataSize = 0;
                     int enabledBits = 0;
                     // Sum up the size of all components rounded up
+                    // RULES:
+                    // - if the component/buffer send mask not match PredictedClient neither the data, nor the enable bits are present in the backup.
+                    // - if the component/buffer replicated enablebits, the bits are present in the backup
+                    // - if the component has no ghost fields the data not present in the backup
+
                     for (int comp = 0; comp < typeData.NumComponents; ++comp)
                     {
                         int compIdx = GhostComponentIndex[baseOffset + comp].ComponentIndex;
@@ -462,23 +489,24 @@ namespace Unity.NetCode
                         if ((GhostComponentIndex[baseOffset + comp].SendMask&requiredSendMask) == 0)
                             continue;
 
-                        if (GhostComponentCollection[serializerIdx].SerializesEnabledBit != 0)
+                        ref readonly var ghostSerializer = ref GhostComponentCollection.ElementAtRO(serializerIdx);
+                        if (ghostSerializer.SerializesEnabledBit != 0)
                             ++enabledBits;
 
-                        if (!GhostComponentCollection[serializerIdx].HasGhostFields)
+                        if (!ghostSerializer.HasGhostFields)
                             continue;
 
-                        if (GhostComponentCollection[serializerIdx].ComponentType.TypeIndex == ghostOwnerTypeIndex)
+                        if (ghostSerializer.ComponentType.TypeIndex == ghostOwnerTypeIndex)
                             predictionOwnerOffset = dataSize;
 
                         //for buffers we store a a pair of uint:
                         // uint length: the num of elements
                         // uint backupDataOffset: the start position in the backup buffer
-                        if (!GhostComponentCollection[serializerIdx].ComponentType.IsBuffer)
+                        if (!ghostSerializer.ComponentType.IsBuffer)
                             dataSize += PredictionBackupState.GetDataSize(
-                                GhostComponentCollection[serializerIdx].ComponentSize, chunk.Capacity);
+                                ghostSerializer.ComponentSize, chunk.Capacity);
                         else
-                            dataSize += PredictionBackupState.GetDataSize(GhostSystemConstants.DynamicBufferComponentSnapshotSize, chunk.Capacity);
+                            dataSize += PredictionBackupState.GetDataSize(GhostComponentSerializer.DynamicBufferComponentSnapshotSize, chunk.Capacity);
                     }
 
                     //compute the space necessary to store the dynamic buffers data for the chunk
@@ -487,7 +515,7 @@ namespace Unity.NetCode
                         buffersDataCapacity = GetChunkBuffersDataSize(typeData, chunk, ghostChunkComponentTypesPtr, ghostChunkComponentTypesLength, GhostComponentIndex, GhostComponentCollection);
 
                     // Chunk does not exist in the history, or has changed ghost type in which case we need to create a new one
-                    state = PredictionBackupState.AllocNew(ghostTypeId, enabledBits, dataSize, chunk.Capacity, buffersDataCapacity, predictionOwnerOffset);
+                    state = PredictionBackupState.AllocNew(ghostTypeId, enabledBits, typeData.NumComponents, dataSize, chunk.Capacity, buffersDataCapacity, predictionOwnerOffset);
                     newPredictionState.Enqueue(new PredictionStateEntry{chunk = chunk, data = state});
                 }
                 else
@@ -503,7 +531,7 @@ namespace Unity.NetCode
                             var dataSize = ((PredictionBackupState*)state)->dataSize;
                             var enabledBits = ((PredictionBackupState*)state)->enabledBits;
                             var ghostOwnerOffset = ((PredictionBackupState*)state)->ghostOwnerOffset;
-                            var newState =  PredictionBackupState.AllocNew(ghostTypeId, enabledBits, dataSize, chunk.Capacity, buffersDataCapacity, ghostOwnerOffset);
+                            var newState =  PredictionBackupState.AllocNew(ghostTypeId, enabledBits, typeData.NumComponents, dataSize, chunk.Capacity, buffersDataCapacity, ghostOwnerOffset);
                             UnsafeUtility.Free((void*) state, Allocator.Persistent);
                             state = newState;
                             updatedPredictionState.Enqueue(new PredictionStateEntry{chunk = chunk, data = newState});
@@ -519,6 +547,7 @@ namespace Unity.NetCode
                 byte* dataPtr = PredictionBackupState.GetData(state);
                 byte* bufferBackupDataPtr = PredictionBackupState.GetBufferDataPtr(state);
                 ulong* enabledBitPtr = PredictionBackupState.GetEnabledBits(state);
+                uint* changeVersionPtr = PredictionBackupState.GetChunkVersion(state);
 
                 int numBaseComponents = typeData.NumComponents - typeData.NumChildComponents;
                 int bufferBackupDataOffset = 0;
@@ -532,12 +561,17 @@ namespace Unity.NetCode
 #endif
                     if ((GhostComponentIndex[baseOffset + comp].SendMask&requiredSendMask) == 0)
                         continue;
+                    uint chunkVersion = chunk.GetChangeVersion(ref ghostChunkComponentTypesPtr[compIdx]);
+                    ref readonly var ghostSerializer = ref GhostComponentCollection.ElementAtRO(serializerIdx);
+                    var compSize = ghostSerializer.ComponentType.IsBuffer
+                        ? GhostComponentSerializer.DynamicBufferComponentSnapshotSize
+                        : ghostSerializer.ComponentSize;
 
-                    var compSize = GhostComponentCollection[serializerIdx].ComponentType.IsBuffer
-                        ? GhostSystemConstants.DynamicBufferComponentSnapshotSize
-                        : GhostComponentCollection[serializerIdx].ComponentSize;
+                    //store the change version for this component for the root entity. There is only one entry
+                    //per component for this chunk for root entities.
+                    changeVersionPtr[comp] = chunkVersion;
 
-                    if (GhostComponentCollection[serializerIdx].SerializesEnabledBit != 0)
+                    if (ghostSerializer.SerializesEnabledBit != 0)
                     {
                         var handle = ghostChunkComponentTypesPtr[compIdx];
                         var bitArray = chunk.GetEnableableBits(ref handle);
@@ -549,14 +583,17 @@ namespace Unity.NetCode
                     // Note that `HasGhostFields` reads the `SnapshotSize` of this type, BUT we're saving the entire component.
                     // The reason we use this is: Why bother memcopy-ing the entire component state, if we're never actually going to be writing any data back?
                     // I.e. Only the GhostFields will be written back anyway.
-                    if (!GhostComponentCollection[serializerIdx].HasGhostFields)
+                    if (!ghostSerializer.HasGhostFields)
                         continue;
 
                     if (!chunk.Has(ref ghostChunkComponentTypesPtr[compIdx]))
                     {
                         UnsafeUtility.MemClear(dataPtr, chunk.Count * compSize);
+                        //reset the change version to 0. The component data is not present. And it case it will, it must
+                        //considered changed
+                        changeVersionPtr[comp] = 0;
                     }
-                    else if (!GhostComponentCollection[serializerIdx].ComponentType.IsBuffer)
+                    else if (!ghostSerializer.ComponentType.IsBuffer)
                     {
                         var compData = (byte*) chunk.GetDynamicComponentDataArrayReinterpret<byte>(ref ghostChunkComponentTypesPtr[compIdx], compSize).GetUnsafeReadOnlyPtr();
                         UnsafeUtility.MemCpy(dataPtr, compData, chunk.Count * compSize);
@@ -564,7 +601,7 @@ namespace Unity.NetCode
                     else
                     {
                         var bufferData = chunk.GetUntypedBufferAccessor(ref ghostChunkComponentTypesPtr[compIdx]);
-                        var bufElemSize = GhostComponentCollection[serializerIdx].ComponentSize;
+                        var bufElemSize = ghostSerializer.ComponentSize;
                         //Use local variable to iterate and set the buffer offset and length. The dataptr must be
                         //advanced "per chunk" to the next correct position
                         var tempDataPtr = dataPtr;
@@ -587,6 +624,11 @@ namespace Unity.NetCode
                 if (typeData.NumChildComponents > 0)
                 {
                     var linkedEntityGroupAccessor = chunk.GetBufferAccessor(ref linkedEntityGroupType);
+                    //for child component we store a one version entry, per component type for each entity in the chunk
+                    //the layout looks like
+                    //ChildComp1     ChildComp2
+                    //e1, e2 .. en | e1, e2 .. en
+                    var childChangeVersions = changeVersionPtr + numBaseComponents;
                     for (int comp = numBaseComponents; comp < typeData.NumComponents; ++comp)
                     {
                         int compIdx = GhostComponentIndex[baseOffset + comp].ComponentIndex;
@@ -599,57 +641,67 @@ namespace Unity.NetCode
                         if ((GhostComponentIndex[baseOffset + comp].SendMask&requiredSendMask) == 0)
                             continue;
 
-                        if (GhostComponentCollection[serializerIdx].SerializesEnabledBit != 0)
+                        ref readonly var ghostSerializer = ref GhostComponentCollection.ElementAtRO(serializerIdx);
+                        if (ghostSerializer.SerializesEnabledBit != 0)
                         {
-                            for (int ent = 0, chunkEntityCount = chunk.Count; ent < chunkEntityCount; ++ent)
+                            for (int rootEnt = 0, chunkEntityCount = chunk.Count; rootEnt < chunkEntityCount; ++rootEnt)
                             {
                                 ulong isSet = 0;
-                                var linkedEntityGroup = linkedEntityGroupAccessor[ent];
+                                var linkedEntityGroup = linkedEntityGroupAccessor[rootEnt];
                                 var childEnt = linkedEntityGroup[GhostComponentIndex[baseOffset + comp].EntityIndex].Value;
                                 if (childEntityLookup.TryGetValue(childEnt, out var childChunk))
                                 {
                                     var arr = childChunk.Chunk.GetEnableableBits(ref handle);
                                     var bits = new UnsafeBitArray(&arr, sizeof(v128));
                                     isSet = bits.IsSet(childChunk.IndexInChunk) ? 1u : 0u;
+                                    childChangeVersions[rootEnt] = childChunk.Chunk.GetChangeVersion(ref ghostChunkComponentTypesPtr[compIdx]);
                                 }
-                                enabledBitPtr[ent>>6] &= ~(1ul<<(ent&0x3f));
-                                enabledBitPtr[ent>>6] |= (isSet<<(ent&0x3f));
+                                enabledBitPtr[rootEnt>>6] &= ~(1ul<<(rootEnt&0x3f));
+                                enabledBitPtr[rootEnt>>6] |= (isSet<<(rootEnt&0x3f));
                             }
                             enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity);
                         }
-                        var isBuffer = GhostComponentCollection[serializerIdx].ComponentType.IsBuffer;
-                        var compSize = isBuffer ? GhostSystemConstants.DynamicBufferComponentSnapshotSize : GhostComponentCollection[serializerIdx].ComponentSize;
+                        var isBuffer = ghostSerializer.ComponentType.IsBuffer;
+                        var compSize = isBuffer ? GhostComponentSerializer.DynamicBufferComponentSnapshotSize : ghostSerializer.ComponentSize;
 
-                        if (!GhostComponentCollection[serializerIdx].HasGhostFields)
+                        if (!ghostSerializer.HasGhostFields)
                             continue;
 
-                        if (!GhostComponentCollection[serializerIdx].ComponentType.IsBuffer)
+                        if (!ghostSerializer.ComponentType.IsBuffer)
                         {
                             //use a temporary for the iteration here. Otherwise when the dataptr is offset for the chunk, we
                             //end up in the wrong position
                             var tempDataPtr = dataPtr;
-                            for (int ent = 0, chunkEntityCount = chunk.Count; ent < chunkEntityCount; ++ent)
+
+                            for (int rootEnt = 0, chunkEntityCount = chunk.Count; rootEnt < chunkEntityCount; ++rootEnt)
                             {
-                                var linkedEntityGroup = linkedEntityGroupAccessor[ent];
+                                var linkedEntityGroup = linkedEntityGroupAccessor[rootEnt];
                                 var childEnt = linkedEntityGroup[GhostComponentIndex[baseOffset + comp].EntityIndex].Value;
                                 if (childEntityLookup.TryGetValue(childEnt, out var childChunk) && childChunk.Chunk.Has(ref ghostChunkComponentTypesPtr[compIdx]))
                                 {
                                     var compData = (byte*) childChunk.Chunk.GetDynamicComponentDataArrayReinterpret<byte>(ref ghostChunkComponentTypesPtr[compIdx], compSize).GetUnsafeReadOnlyPtr();
                                     UnsafeUtility.MemCpy(tempDataPtr, compData + childChunk.IndexInChunk * compSize, compSize);
+                                    //store the change version for the component
+                                    childChangeVersions[rootEnt] = childChunk.Chunk.GetChangeVersion(ref ghostChunkComponentTypesPtr[compIdx]);
                                 }
                                 else
+                                {
                                     UnsafeUtility.MemClear(tempDataPtr, compSize);
-
+                                    //reset the change version to 0. The component data is not present. And it case it will, it must
+                                    //considered changed
+                                    childChangeVersions[rootEnt] = 0;
+                                }
                                 tempDataPtr += compSize;
                             }
                         }
                         else
                         {
-                            var bufElemSize = GhostComponentCollection[serializerIdx].ComponentSize;
+                            var bufElemSize = ghostSerializer.ComponentSize;
                             var tempDataPtr = dataPtr;
-                            for (int ent = 0, chunkEntityCount = chunk.Count; ent < chunkEntityCount; ++ent)
+
+                            for (int rootEnt = 0, chunkEntityCount = chunk.Count; rootEnt < chunkEntityCount; ++rootEnt)
                             {
-                                var linkedEntityGroup = linkedEntityGroupAccessor[ent];
+                                var linkedEntityGroup = linkedEntityGroupAccessor[rootEnt];
                                 var childEnt = linkedEntityGroup[GhostComponentIndex[baseOffset + comp].EntityIndex].Value;
                                 if (childEntityLookup.TryGetValue(childEnt, out var childChunk) && childChunk.Chunk.Has(ref ghostChunkComponentTypesPtr[compIdx]))
                                 {
@@ -661,11 +713,17 @@ namespace Unity.NetCode
                                     if (size > 0)
                                         UnsafeUtility.MemCpy(bufferBackupDataPtr + bufferBackupDataOffset, (byte*) bufferPtr, size * bufElemSize);
                                     bufferBackupDataOffset += size * bufElemSize;
+                                    //store the change version for the component. Will be used by GhostSendSystem when restoring
+                                    //components from the backup.
+                                    childChangeVersions[rootEnt] = childChunk.Chunk.GetChangeVersion(ref ghostChunkComponentTypesPtr[compIdx]);
                                 }
                                 else
                                 {
                                     //reset the entry to 0. Don't use memcpy in this case (is faster this way)
                                     ((long*) tempDataPtr)[0] = 0;
+                                    //reset the change version to 0. The component data is not present. And it case it will, it must
+                                    //considered changed
+                                    childChangeVersions[rootEnt] = 0;
                                 }
 
                                 tempDataPtr += compSize;
@@ -675,6 +733,7 @@ namespace Unity.NetCode
                         }
 
                         dataPtr = PredictionBackupState.GetNextData(dataPtr, compSize, chunk.Capacity);
+                        childChangeVersions = PredictionBackupState.GetNextChildChunkVersion(childChangeVersions, chunk.Capacity);
                     }
                 }
             }

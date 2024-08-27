@@ -20,5 +20,20 @@ namespace Unity.NetCode.Hybrid
         /// The entity owning this GameObject.
         /// </summary>
         public Entity Entity {get; internal set;}
+
+        /// <summary>
+        /// Convenience method to initialize the debug mesh bounds.
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="world"></param>
+        public void Initialize(Entity entity, World world)
+        {
+            Entity = entity;
+            World = world;
+#if UNITY_EDITOR
+            var ghostBounds = new GhostDebugMeshBounds().Initialize(gameObject, entity, world);
+            world.EntityManager.AddComponentData(entity, ghostBounds);
+#endif
+        }
     }
 }

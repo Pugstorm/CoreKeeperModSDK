@@ -51,6 +51,10 @@ SO_TEXTURE2D(_SpriteNormalTex);
 SO_SAMPLER(_SpriteTex);
 float4 _SpriteTex_TexelSize;
 
+StructuredBuffer<float4> _CompressedColorsBuffer;
+StructuredBuffer<float4> _CompressedEmissiveColorsBuffer;
+StructuredBuffer<float4> _CompressedNormalColorsBuffer;
+
 SO_TEXTURE2D(_TransformAnimationTexture);
 float4 _TransformAnimationTexture_TexelSize;
 SO_SAMPLER(_transform_linear_clamp);
@@ -64,6 +68,8 @@ float4 _FlashColor;
 float4 _OutlineColor;
 float3 _GradientIndices;
 float3 _TransformAnimParams;
+
+float _TransformAnimationTime;
 float _EditorTime;
 
 SO_SAMPLER(_gradient_point_clamp_sampler);
@@ -108,12 +114,33 @@ void ApplyTransformAnimation(inout float4 vertex, float3 transformAnimParams, fl
 }
 
 float2 GetUV(float2 uv, float4 rect) { return uv = (rect.xy + rect.zw * uv) * TEXEL_SIZE.xy; }
-float4 GetColor(float2 uv) { return SO_SAMPLE_TEXTURE2D(COLOR_TEXTURE, COLOR_SAMPLER, uv); }
-float4 GetEmissive(float2 uv) { return SO_SAMPLE_TEXTURE2D(EMISSIVE_TEXTURE, EMISSIVE_SAMPLER, uv); }
-float3 GetNormal(float2 uv) { return UnpackNormal(SO_SAMPLE_TEXTURE2D(NORMAL_TEXTURE, NORMAL_SAMPLER, uv)); }
+float4 GetColor(float2 uv)
+{
+	float4 color = SO_SAMPLE_TEXTURE2D(COLOR_TEXTURE, COLOR_SAMPLER, uv);
+#if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
+	color = _CompressedColorsBuffer[color.r * 65535];
+#endif
+	return color;
+}
+float4 GetEmissive(float2 uv)
+{
+	float4 color = SO_SAMPLE_TEXTURE2D(EMISSIVE_TEXTURE, EMISSIVE_SAMPLER, uv);
+#if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
+	color = _CompressedEmissiveColorsBuffer[color.r * 65535];
+#endif
+	return color;
+}
+float3 GetNormal(float2 uv)
+{
+	float4 color = SO_SAMPLE_TEXTURE2D(NORMAL_TEXTURE, NORMAL_SAMPLER, uv);
+#if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
+	color = _CompressedNormalColorsBuffer[color.r * 65535];
+#endif
+	return UnpackNormal(color);
+}
 float GetAlpha(float2 uv) { return GetColor(uv).a; }
 
-#if INSTANCING_ENABLED && defined(UNITY_INSTANCING_ENABLED)
+#if INSTANCING_ENABLED && defined(UNITY_INSTANCING_ENABLED) || defined(SINGLE_RENDERER)
 SO_TEXTURE2D(_GradientMapAtlas);
 float4 _GradientMapAtlas_TexelSize;
 #else
@@ -138,7 +165,7 @@ float3 SampleGradients(float3 color, float3 indices)
 	{
 		color = 0.0;
 	}
-#if INSTANCING_ENABLED && defined(UNITY_INSTANCING_ENABLED)
+#if INSTANCING_ENABLED && defined(UNITY_INSTANCING_ENABLED) || defined(SINGLE_RENDERER)
 	if (indices.x >= 0)
 	{
 		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMapAtlas, _gradient_point_clamp_sampler, float2(key.r, (indices.x + 0.5) * _GradientMapAtlas_TexelSize.y), 0).rgb;
@@ -168,10 +195,11 @@ float3 SampleGradients(float3 color, float3 indices)
 	return color;
 }
 
-float GetOutline(float2 uv, float4 rect)
+float GetOutline(float2 uv, float4 rect, out float outlineSum)
 {
 	float result = 0.0;
 	float2 pixel = uv * rect.zw;
+	outlineSum = 0.0;
 #if THICK_OUTLINE
 	for (int x = -1; x <= 1; x++)
 	{
@@ -180,15 +208,18 @@ float GetOutline(float2 uv, float4 rect)
 			float2 localPixel = pixel + float2(x, y);
 			float2 localUV = (rect.xy + localPixel) * TEXEL_SIZE.xy;
 			float localAlpha = GetAlpha(localUV) * all(localPixel > 0 && localPixel < rect.zw);
+			outlineSum += localAlpha;
 			result = max(result, localAlpha);
 		}
 	}
+	outlineSum /= 9;
 #else
 	for (int x = -1; x <= 1; x += 2)
 	{
 		float2 localPixel = pixel + float2(x, 0);
 		float2 localUV = (rect.xy + localPixel) * TEXEL_SIZE.xy;
 		float localAlpha = GetAlpha(localUV) * all(localPixel > 0 && localPixel < rect.zw);
+		outlineSum += localAlpha;
 		result = max(result, localAlpha);
 	}
 	for (int y = -1; y <= 1; y += 2)
@@ -196,10 +227,18 @@ float GetOutline(float2 uv, float4 rect)
 		float2 localPixel = pixel + float2(0, y);
 		float2 localUV = (rect.xy + localPixel) * TEXEL_SIZE.xy;
 		float localAlpha = GetAlpha(localUV) * all(localPixel > 0 && localPixel < rect.zw);
+		outlineSum += localAlpha;
 		result = max(result, localAlpha);
 	}
+	outlineSum /= 4;
 #endif
 	return result;
+}
+
+float GetOutline(float2 uv, float4 rect)
+{
+	float outlineSum;
+	return GetOutline(uv, rect, outlineSum);
 }
 
 #endif // SPRITE_INSTANCING_INCLUDED

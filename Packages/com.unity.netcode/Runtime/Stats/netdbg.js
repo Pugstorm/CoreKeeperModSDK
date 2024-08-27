@@ -671,6 +671,21 @@ NetDbg.prototype.present = function() {
 				content.ctx.fillRect(xpos, 0, this.SnapshotWidth, content.frames[i].discardedPackets * 10);
 			}
 
+			// Vertical timeline lines, one for each snapshot tick.
+			{
+				content.ctx.strokeStyle = "gray";
+				var xpos = i*this.SnapshotWidth - currentOffset;
+				var ypos = snapshotHeight;
+				// TODO: I'd like to show larger lines for the TickRate markers here (e.g. 60Hz), but it's not currently sent.
+				var isHundredMarker = content.frames[i].serverTick % 100 === 0;
+				var isTenTickMarker = content.frames[i].serverTick % 10 === 0;
+				content.ctx.beginPath();
+				content.ctx.lineTo(xpos, ypos);
+				ypos += isHundredMarker ? 60 : (isTenTickMarker ? 30 : 20);
+				content.ctx.lineTo(xpos, ypos);
+				content.ctx.stroke();
+			}
+
 			if (showPredictionErrors) {
 				var predictionErrorBase = snapshotContentHeight + predictionErrorHeight;
 				if (content.frames[i].predictionError != undefined) {

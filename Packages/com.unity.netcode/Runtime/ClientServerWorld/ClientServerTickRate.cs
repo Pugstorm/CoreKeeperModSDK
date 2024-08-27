@@ -1,23 +1,76 @@
+using System;
+using System.Diagnostics;
 using Unity.Entities;
+using Unity.Mathematics;
 
 namespace Unity.NetCode
 {
     /// <summary>
-    /// Create a ClientServerTickRate singleton to configure the client and server simulation simulation time step,
-    /// and the server packet send rate.
-    /// The singleton can be created at runtime or by adding the component to a singleton entity in sub-scene.
-    /// It is not mandatory to create the singleton in the client worlds (while it is considered best practice), since the
-    /// relevant settings for the client (the <see cref="SimulationTickRate"/> and <see cref="NetworkTickRate"/>) are synced
-    /// as part of the initial handshake (<see cref="ClientServerTickRateRefreshRequest"/>).
+    /// The ClientServerTickRate singleton is used to configure the client and server simulation time step,
+    /// server packet send rate and other related settings.
+    /// The singleton entity is automatically created for the clients in the <see cref="Unity.NetCode.NetworkStreamReceiveSystem"/>
+    /// first update if not present.
+    /// On the server, by countrary, the entity is never automatically created and it is up to the user to create the singletong instance if
+    /// they need to.
+    /// <remarks>
+    /// This behaviour is asymmetric because the client need to have this singleton data synced with the server one. It is like
+    /// this for compatibility reason and It may be changed in the future.
+    /// </remarks>
+    /// In order to configure these settings you can either:
+    /// <list>
+    /// <item>- Create the entity in a custom <see cref="Unity.NetCode.ClientServerBootstrap"/> after the worlds has been created.</item>
+    /// <item>- On a system, in either the OnCreate or OnUpdate.</item>
+    /// </list>
+    /// It is not mandatory to set all the fields to a proper value when creating the singleton. It is sufficient to change only the relevant setting, and call the <see cref="ResolveDefaults"/> method to
+    /// configure the fields that does not have a value set.
+    /// <example>
+    /// class MyCustomClientServerBootstrap : ClientServerBootstrap
+    /// {
+    ///    override public void Initialize(string defaultWorld)
+    ///    {
+    ///        base.Initialise(defaultWorld);
+    ///        var customTickRate = new ClientServerTickRate();
+    ///        //run at 30hz
+    ///        customTickRate.simulationTickRate = 30;
+    ///        customTickRate.ResolveDefault();
+    ///        foreach(var world in World.All)
+    ///        {
+    ///            if(world.IsServer())
+    ///            {
+    ///               //In this case we only create on the server, but we can do the same also for the client world
+    ///               var tickRateEntity = world.EntityManager.CreateSingleton(new ClientServerTickRate
+    ///               {
+    ///                   SimulationTickRate = 30;
+    ///               });
+    ///            }
+    ///        }
+    ///    }
+    /// }
+    /// </example>
+    /// The <see cref="ClientServerTickRate"/> settings are synced as part of the of the initial client connection handshake.
+    /// (<see cref="Unity.NetCode.ClientServerTickRateRefreshRequest"/> data).
     /// The ClientServerTickRate should also be used to customise other server only timing settings, such as
-    /// the maximum number of tick per frame, tick batching (<see cref="MaxSimulationStepBatchSize"/> and others. See the
-    /// individual fields documentation for more information.
+    /// <list type="bullet">
+    /// <item>the maximum number of tick per frame</item>
+    /// <item>the maximum number of tick per frame</item>
+    /// <item>tick batching (<see cref="MaxSimulationStepBatchSize"/> and others.</item>
+    /// </list>
+    /// See the individual fields documentation for more information.
     /// </summary>
     /// <remarks>
-    /// It is not mandatory to set all the fields to a proper value when creating the singleton.
-    /// It is sufficient to change only the relevant setting, and call the <see cref="ResolveDefaults"/> method to
-    /// configure the fields that does not have a value set.
+    /// <list>
+    /// <item>
+    /// Once the client is connected, changes to the <see cref="ClientServerTickRate"/> are not replicated. If you change the settings are runtime, the same change must
+    /// be done on both client and server.
+    /// </item>
+    /// <item>
+    /// The ClientServerTickRate <b>should never be added to sub-scene with a baker</b>. In case you want to setup the ClientServerTickRate
+    /// based on some scene settings, we suggest to implement your own component and change the ClientServerTickRate inside a system in
+    /// your game.
+    /// </item>
+    /// </list>
     /// </remarks>
+    [Serializable]
     public struct ClientServerTickRate : IComponentData
     {
         /// <summary>
@@ -45,8 +98,23 @@ namespace Unity.NetCode
         /// </summary>
         public int SimulationTickRate;
 
+        /// <summary>
+        /// Multiplier used to calculate the tick rate/frequency for the <see cref="PredictedFixedStepSimulationSystemGroup"/>.
+        /// The group rate must be an integer multiple of the <see cref="SimulationTickRate"/>.
+        /// Default value is 1, meaning that the <see cref="PredictedFixedStepSimulationSystemGroup"/> run at the same frequency
+        /// of the prediction loop.
+        /// The calculated frequency is 1.0/(SimulationTickRate*PredictedFixedStepSimulationTickRatio)
+        /// </summary>
+        public int PredictedFixedStepSimulationTickRatio;
+
         /// <summary>1f / <see cref="SimulationTickRate"/>. Think of this as the netcode version of `fixedDeltaTime`.</summary>
         public float SimulationFixedTimeStep => 1f / SimulationTickRate;
+
+        /// <summary>
+        /// The fixed time used to run the physics simulation. Is always an integer multiple of the SimulationFixedTimeStep. <br/>
+        /// The value is equal to 1f / (<see cref="SimulationTickRate"/> * <see cref="PredictedFixedStepSimulationTickRatio"/>).
+        /// </summary>
+        public float PredictedFixedStepSimulationTimeStep => 1f / (PredictedFixedStepSimulationTickRatio*SimulationTickRate);
 
         /// <summary>
         /// The rate at which the server sends snapshots to the clients. This can be lower than than
@@ -88,8 +156,19 @@ namespace Unity.NetCode
             get { return m_SendSnapshotsForCatchUpTicks == 1; }
             set { m_SendSnapshotsForCatchUpTicks = value ? (byte)1 : (byte)0; }
         }
+
         private byte m_SendSnapshotsForCatchUpTicks;
 
+        /// <summary>
+        /// On the client, Netcode attempts to align its own fixed step with the render refresh rate, with the goal of
+        /// reducing Partial ticks, and increasing stability.
+        /// Defaults to 5 (5%), which is applied each way: I.e. If you're within 5% of the last full tick, or if you're
+        /// within 5% of the next full tick, we'll clamp.
+        /// -1 is 'turn clamping off', 0 is 'use default'.
+        /// Max value is 50 (i.e. 50% each way, leading to full clamping, as it's applied in both directions).
+        /// </summary>
+        /// <remarks>High values will lead to more aggressive alignment, which may be perceivable (as we'll need to shift time further).</remarks>
+        public int ClampPartialTicksThreshold { get; set; }
 
         /// <summary>
         /// Set all the properties that hasn't been changed by the user or that have invalid ranges to a proper default value.
@@ -99,12 +178,37 @@ namespace Unity.NetCode
         {
             if (SimulationTickRate <= 0)
                 SimulationTickRate = 60;
+            if (PredictedFixedStepSimulationTickRatio <= 0)
+                PredictedFixedStepSimulationTickRatio = 1;
             if (NetworkTickRate <= 0)
+                NetworkTickRate = SimulationTickRate;
+            if (NetworkTickRate > SimulationTickRate)
                 NetworkTickRate = SimulationTickRate;
             if (MaxSimulationStepsPerFrame <= 0)
                 MaxSimulationStepsPerFrame = 1;
             if (MaxSimulationStepBatchSize <= 0)
                 MaxSimulationStepBatchSize = 4;
+            if (ClampPartialTicksThreshold == 0)
+                ClampPartialTicksThreshold = 5;
+        }
+
+        [Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS")]
+        internal readonly void Validate()
+        {
+            if (SimulationTickRate <= 0)
+                throw new ArgumentException($"The {nameof(SimulationTickRate)} must be always > 0");
+            if (PredictedFixedStepSimulationTickRatio <= 0)
+                throw new ArgumentException($"The {nameof(PredictedFixedStepSimulationTickRatio)} must be always > 0");
+            if (NetworkTickRate <= 0)
+                throw new ArgumentException($"The {nameof(NetworkTickRate)} must be always > 0");
+            if (NetworkTickRate > SimulationTickRate)
+                throw new ArgumentException($"The {nameof(NetworkTickRate)} must be always less or equal");
+            if (MaxSimulationStepsPerFrame <= 0)
+                throw new ArgumentException($"The {nameof(MaxSimulationStepsPerFrame)} must be always > 0");
+            if (MaxSimulationStepBatchSize <= 0)
+                throw new ArgumentException($"The {nameof(MaxSimulationStepBatchSize)} must be always > 0");
+            if (ClampPartialTicksThreshold > 50)
+                throw new ArgumentException($"The {nameof(ClampPartialTicksThreshold)} must always be within [-1, 50]");
         }
     }
 
@@ -119,6 +223,10 @@ namespace Unity.NetCode
         /// </summary>
         public int SimulationTickRate;
         /// <summary>
+        /// The ratio between the <see cref="PredictedFixedStepSimulationSystemGroup"/> and the <see cref="SimulationTickRate"/>.
+        /// </summary>
+        public int PredictedFixedStepSimulationTickRatio;
+        /// <summary>
         /// The rate at which the packet are sent to the client
         /// </summary>
         public int NetworkTickRate;
@@ -132,6 +240,15 @@ namespace Unity.NetCode
         /// frame rate. See <see cref="ClientServerTickRate.MaxSimulationStepBatchSize"/>
         /// </summary>
         public int MaxSimulationStepBatchSize;
+
+        public void ApplyTo(ref ClientServerTickRate tickRate)
+        {
+            tickRate.MaxSimulationStepsPerFrame = MaxSimulationStepsPerFrame;
+            tickRate.NetworkTickRate = NetworkTickRate;
+            tickRate.SimulationTickRate = SimulationTickRate;
+            tickRate.MaxSimulationStepBatchSize = MaxSimulationStepBatchSize;
+            tickRate.PredictedFixedStepSimulationTickRatio = PredictedFixedStepSimulationTickRatio;
+        }
     }
 
     /// <summary>
@@ -139,6 +256,7 @@ namespace Unity.NetCode
     /// to configure all the network time synchronization, interpolation delay, prediction batching and other setting for the client.
     /// See the individual fields for more information about the individual properties.
     /// </summary>
+    [Serializable]
     public struct ClientTickRate : IComponentData
     {
         /// <summary>

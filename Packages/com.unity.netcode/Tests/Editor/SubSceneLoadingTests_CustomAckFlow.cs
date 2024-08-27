@@ -132,7 +132,7 @@ namespace Unity.NetCode.Tests
                 float frameTime = 1.0f / 60.0f;
                 //Server load all the scenes
                 SubSceneHelper.LoadSubScene(testWorld.ServerWorld, subScenes);
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 //Disable the automatic reporting
                 testWorld.ServerWorld.EntityManager.CreateEntity(typeof(DisableAutomaticPrespawnSectionReporting));
                 testWorld.ClientWorlds[0].EntityManager.CreateEntity(typeof(DisableAutomaticPrespawnSectionReporting));

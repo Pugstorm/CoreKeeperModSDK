@@ -108,7 +108,7 @@ namespace Unity.NetCode.Tests
                 ghostConfig.DefaultGhostMode = mode;
                 Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObject));
                 testWorld.CreateWorlds(true, 1);
-                Assert.IsTrue(testWorld.Connect(deltaTime, 64));
+                testWorld.Connect(deltaTime);
                 testWorld.GoInGame();
 
                 var serverEnt = SpawnEntityAndAssignOwnerOnServer(testWorld, ghostGameObject, 0);
@@ -166,7 +166,7 @@ namespace Unity.NetCode.Tests
                 Assert.IsTrue(testWorld.CreateGhostCollection(ghostGameObject));
 
                 testWorld.CreateWorlds(true, 2);
-                Assert.IsTrue(testWorld.Connect(deltaTime, 64));
+                testWorld.Connect(deltaTime);
                 testWorld.GoInGame();
 
                 var serverEnt = SpawnEntityAndAssignOwnerOnServer(testWorld, ghostGameObject, 0);
@@ -224,7 +224,7 @@ namespace Unity.NetCode.Tests
                 int numClients = 2;
 
                 testWorld.CreateWorlds(true, numClients);
-                Assert.IsTrue(testWorld.Connect(deltaTime, 64));
+                testWorld.Connect(deltaTime);
                 testWorld.GoInGame();
 
                 var serverEnt = SpawnEntityAndAssignOwnerOnServer(testWorld, ghostGameObject, 0);
@@ -265,7 +265,7 @@ namespace Unity.NetCode.Tests
                 int numClients = 3;
 
                 testWorld.CreateWorlds(true, numClients);
-                Assert.IsTrue(testWorld.Connect(deltaTime, 64));
+                testWorld.Connect(deltaTime);
                 testWorld.GoInGame();
 
                 var serverEnt1 = SpawnEntityAndAssignOwnerOnServer(testWorld, ghostGameObject, 0);

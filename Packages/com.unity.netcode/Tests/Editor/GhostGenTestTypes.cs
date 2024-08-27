@@ -43,7 +43,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -126,7 +126,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -212,7 +212,7 @@ namespace Unity.NetCode.Tests
                 // Connect and make sure the connection could be established
                 float frameTime = 1.0f / 60.0f;
                 testWorld.CreateWorlds(true, 2);
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
 
                 // Spawn ghost and set owner
@@ -267,7 +267,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -336,7 +336,7 @@ namespace Unity.NetCode.Tests
 
                 // Connect and make sure the connection could be established
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -519,7 +519,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();

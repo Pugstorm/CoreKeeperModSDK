@@ -89,11 +89,11 @@ For a component to support serialization, the following conditions must be met:
 * `GhostField` `MaxSmoothingDistance` allows you to disable interpolation when the values change more than the specified limit between two snapshots. This is useful for dealing with teleportation, for example.
 * Finally the `GhostField` has a `SubType` property which can be set to an integer value to use special serialization rules supplied for that specific field.
 
->![NOTE] Speaking of teleportation: To support _short range_ teleportation, you'd need some other replicated bit to distinguish a teleport from a move (lerp).
+>[!NOTE] Speaking of teleportation: To support _short range_ teleportation, you'd need some other replicated bit to distinguish a teleport from a move (lerp).
 
 ## Authoring dynamic buffer serialization
 Dynamic buffers serialization is natively supported. **Unlike components, to replicate a buffer, all public fields must be marked with at `[GhostField]` attribute.**
->![NOTE] This restriction has been added to guarantee that: In the case where an element is added to the buffer, when it is replicated to the client, all fields on said element will have meaningful values. 
+>[!NOTE] This restriction has been added to guarantee that: In the case where an element is added to the buffer, when it is replicated to the client, all fields on said element will have meaningful values. 
 > This restriction may be removed in the future (e.g. by instead, defaulting this undefined behaviour to `default(T)`).
 
 ```csharp
@@ -210,8 +210,7 @@ A component can also set __SendToOwner__ in the __GhostComponentAttribute__ to s
 * __SendToNonOwner__ - the component is sent to all clients except the one who owns the ghost
 * __All__ - the component is sent to all clients.
 
->![NOTE] By setting either the `SendTypeOptimisation` and/or `SendToOwner` (to specify to which types of client(s) the component should be replicated to), will not
-> affect the presence of the component on the prefab, nor modify the component on the clients which did not receive it.
+>[!NOTE] By setting either the `SendTypeOptimisation` and/or `SendToOwner` (to specify to which types of client(s) the component should be replicated to), will not affect the presence of the component on the prefab, nor modify the component on the clients which did not receive it.
 
 ---
 
@@ -223,15 +222,15 @@ In addition to the default out-of-the-box types you can also:
 
 Please check how to [use and write templates](ghost-types-templates.md#Defining additional templates) for more information on the topic.
 
->![NOTE] Writing templates is non-trivial. If it is possible to replicate the type simply by adding GhostFields, it's often easier to just do so.
-> If you do not have access to a type, create a Variant instead (see section below).
+>[!NOTE] Writing templates is non-trivial. If it is possible to replicate the type simply by adding GhostFields, it's often easier to just do so. If you do not have access to a type, create a Variant instead (see section below).
  
 ## Ghost Component Variants
 The [GhostComponentVariationAttribute](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.GhostComponentVariationAttribute.html) is special attribute tha can be used to declare at compile time
 a "replication schema" for a type, without the need to markup the fields in the original type, or the original type itself. <br/>
->![NOTE]This new declared type act as proxy from a code-generation perspective. Instead of using the original type, the code-generation system use the declared "variant" to generate a specific
-> version of the serialization code.
-> ![NOTE] **Ghost components variants for `IBufferElementData` are not fully supported.**
+
+>[!NOTE]This new declared type act as proxy from a code-generation perspective. Instead of using the original type, the code-generation system use the declared "variant" to generate a specific version of the serialization code.
+
+>[!NOTE] **Ghost components variants for `IBufferElementData` are not fully supported.**
 
 The `GhostComponentVariationAttribute` has some specific use-cases in mind:
 - Variants allow user-code (you) to declare serialization rules for a component that you don't have direct write access too (_i.e. components in a package or external assembly_). _Example: Making `Unity.Entities.LocalTransform` replicated._
@@ -257,7 +256,7 @@ The attribute constructor takes a few arguments:
 * The user-friendly `string variantName`, which will allow you to better interpret `GhostAuthoringInspectionComponent` UI.
 
 Then, for each field in the original struct (in this case, `LocalTransform`) that you wish to replicate, you should add a `GhostField` attribute like you usually do, and define the field identically to that of the base struct.
->~[NOTE] Only members that are present in the component type are allowed. Validation occurs at compile time, and exceptions are thrown in case this rule is not respected.
+>[!NOTE] Only members that are present in the component type are allowed. Validation occurs at compile time, and exceptions are thrown in case this rule is not respected.
 
 An optional `GhostComponentAttribute` attribute can be added to the variant to further specify the component serialization properties.
 
@@ -364,8 +363,7 @@ When present, the component can't be customized in the inspector, nor can a prog
 For example: The Netcode for Entities package requires the [GhostOwner](https://docs.unity3d.com/Packages/com.unity.netcode@latest/index.html?subfolder=/api/Unity.NetCode.GhostOwner.html)
 to be added to all ghost types, sent for all ghost types, and serialized using the default variant. Thus, we add the `[DontSupportPrefabOverride]` attribute to it.
 
->![NOTE] Components on child entities are not serialised by default, thus by default when you look to `GhostAuthoringInspectionComponent` on a child GameObject you will
-> see that the selected variant for the type is the `DontSerializeVariant`.
+>[!NOTE] Components on child entities are not serialised by default, thus by default when you look to `GhostAuthoringInspectionComponent` on a child GameObject you will see that the selected variant for the type is the `DontSerializeVariant`.
 
 <img src="images/dontserialize-variant.png" alt="DontSerializeVariant" width=600/>
 
@@ -380,5 +378,5 @@ To understand what is being put on the wire in the Netcode, you can use the snap
 To open the tool, go to menu: __Multiplayer &gt; Open NetDbg__, and the tool opens in a browser window. It displays a vertical bar for each received snapshot, with a breakdown of the snapshot’s ghost types, size etc. 
 
 To see more detailed information about the snapshot, click on one of the bars.
-> [!NOTE]
-> This tool is a prototype. In future versions of the package, it will integrate with the Unity Profiler so you can easily correlate network traffic with memory usage and CPU performance.
+
+>[!NOTE] This tool is a prototype. In future versions of the package, it will integrate with the Unity Profiler so you can easily correlate network traffic with memory usage and CPU performance.

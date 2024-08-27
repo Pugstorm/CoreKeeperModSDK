@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using Unity.Entities;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.NetCode.LowLevel.Unsafe;
 
 /// <summary>
 /// Specify for which type of world the entity should be converted to. Based on the conversion setting, some components
@@ -139,6 +141,13 @@ namespace Unity.NetCode
             /// Enable pre-serialization for this ghost. Pre-serialization makes it possible to share part of the serialization cpu cost between connections, but it also has that cost when the ghost is not sent.
             /// </summary>
             public bool UsePreSerialization;
+            /// <summary>
+            /// Optional, custom deterministic function that retrieve all no-backing and serializable component types for this ghost. By serializable,
+            /// we means components that either have ghost fields (fields with a <see cref="GhostFieldAttribute"/> attribute)
+            /// or a <see cref="GhostComponentAttribute"/>.
+            /// </summary>
+            /// <returns></returns>
+            public PortableFunctionPointer<GhostPrefabCustomSerializer.CollectComponentDelegate> CollectComponentFunc;
         }
         /// <summary>
         /// Identifier for a specific component type on a specific child of a ghost prefab.
@@ -799,18 +808,38 @@ namespace Unity.NetCode
             if (!overrides.IsCreated)
                 overrides = new NativeParallelHashMap<Component, ComponentOverride>(1, Allocator.Temp);
 
-            entityManager.AddComponent<Prefab>(prefab);
+#if !DOTS_DISABLE_DEBUG_NAMES
+            entityManager.GetName(prefab, out var name);
+            if(name.IsEmpty)
+                entityManager.SetName(prefab, config.Name);
+#endif
+
+            //the prefab tag must be added also to the child entities
             if (!entityManager.HasComponent<LinkedEntityGroup>(prefab))
             {
-                var linkedEntities = entityManager.AddBuffer<LinkedEntityGroup>(prefab);
-                linkedEntities.Add(prefab);
+                var buffer = entityManager.AddBuffer<LinkedEntityGroup>(prefab);
+                buffer.Add(prefab);
             }
             var linkedEntityBuffer = entityManager.GetBuffer<LinkedEntityGroup>(prefab);
             var linkedEntitiesArray = new NativeArray<Entity>(linkedEntityBuffer.Length, Allocator.Temp);
             for (int i = 0; i < linkedEntityBuffer.Length; ++i)
                 linkedEntitiesArray[i] = linkedEntityBuffer[i].Value;
+            //added here as second pass to avoid invalidating the buffer safety handle
+            for (int i = 0; i < linkedEntitiesArray.Length; ++i)
+                entityManager.AddComponent<Prefab>(linkedEntitiesArray[i]);
 
-            CollectAllComponents(entityManager, linkedEntitiesArray, out var allComponents, out var componentCounts);
+            var allComponents = default(NativeList<ComponentType>);
+            var componentCounts = default(NativeArray<int>);
+            if (!config.CollectComponentFunc.Ptr.IsCreated)
+            {
+                CollectAllComponents(entityManager, linkedEntitiesArray, out allComponents, out componentCounts);
+            }
+            else
+            {
+                allComponents = new NativeList<ComponentType>(256, Allocator.Temp);
+                componentCounts = new NativeArray<int>(linkedEntitiesArray.Length, Allocator.Temp);
+                config.CollectComponentFunc.Ptr.Invoke(GhostComponentSerializer.IntPtrCast(ref allComponents), GhostComponentSerializer.IntPtrCast(ref componentCounts));
+            }
 
             var prefabTypes = new NativeArray<GhostPrefabType>(allComponents.Length, Allocator.Temp);
             var sendMasksOverride = new NativeArray<int>(allComponents.Length, Allocator.Temp);
@@ -841,7 +870,7 @@ namespace Unity.NetCode
                 if (hasOverrides && (compOverride.OverrideType & ComponentOverrideType.Variant) != 0)
                     variant = compOverride.Variant;
 
-                var variantType = collectionData.GetCurrentSerializationStrategyForComponent(allComponents[i], variant, true);
+                var variantType = collectionData.GetCurrentSerializationStrategyForComponent(allComponents[i], variant, childIndex == 0);
                 prefabTypes[i] = variantType.PrefabType;
                 sendMasksOverride[i] = -1;
                 variants[i] = variantType.Hash;
@@ -915,7 +944,9 @@ namespace Unity.NetCode
             NetcodeConversionTarget target, NativeArray<GhostPrefabType> prefabTypes,
             NativeArray<int> sendMasksOverride, NativeArray<ulong> variants)
         {
-            var builder = new BlobBuilder(Allocator.Temp);
+			// As of 2024-03-29, almost all ghost prefabs result in a blob size of less than 2KB, with only a handful
+			// reaching 4KB. Reducing the chunk size avoids a 100MB memory spike from Allocator.Temp during conversion.
+            var builder = new BlobBuilder(Allocator.Temp, chunkSize: 2048);
             ref var root = ref builder.ConstructRoot<GhostPrefabBlobMetaData>();
 
             // Store importance, supported modes, default mode and name in the meta data blob asset
@@ -1281,7 +1312,7 @@ namespace Unity.NetCode
         }
 		
         public static void ConvertToGhostPrefab(IEntityManagerWrapper entityManager, Entity prefab, GhostType ghostType,
-            Config config, GhostComponentSerializerCollectionData collectionData, BlobAssetStore blobAssetStore,
+            NetcodeConversionTarget target, Config config, GhostComponentSerializerCollectionData collectionData, BlobAssetStore blobAssetStore,
             NativeParallelHashMap<Component, ComponentOverride> overrides = default)
         {
             // Make sure there is a valid overrides map to make the rest of this function easier
@@ -1295,8 +1326,19 @@ namespace Unity.NetCode
             var linkedEntitiesArray = new NativeArray<Entity>(linkedEntityBuffer.Length, Allocator.Temp);
             for (int i = 0; i < linkedEntityBuffer.Length; ++i)
                 linkedEntitiesArray[i] = linkedEntityBuffer[i].Value;
-
-            CollectAllComponents(entityManager, linkedEntitiesArray, out var allComponents, out var componentCounts);
+            
+            var allComponents = default(NativeList<ComponentType>);
+            var componentCounts = default(NativeArray<int>);
+            if (!config.CollectComponentFunc.Ptr.IsCreated)
+            {
+                CollectAllComponents(entityManager, linkedEntitiesArray, out allComponents, out componentCounts);
+            }
+            else
+            {
+                allComponents = new NativeList<ComponentType>(256, Allocator.Temp);
+                componentCounts = new NativeArray<int>(linkedEntitiesArray.Length, Allocator.Temp);
+                config.CollectComponentFunc.Ptr.Invoke(GhostComponentSerializer.IntPtrCast(ref allComponents), GhostComponentSerializer.IntPtrCast(ref componentCounts));
+            }
 
             var prefabTypes = new NativeArray<GhostPrefabType>(allComponents.Length, Allocator.Temp);
             var sendMasksOverride = new NativeArray<int>(allComponents.Length, Allocator.Temp);
@@ -1335,8 +1377,6 @@ namespace Unity.NetCode
                 }
             }
 
-            NetcodeConversionTarget target = NetcodeConversionTarget.ClientAndServer;
-			
 			if (target == NetcodeConversionTarget.ClientAndServer)
 				entityManager.AddComponent<GhostPrefabRuntimeStrip>(prefab);
 

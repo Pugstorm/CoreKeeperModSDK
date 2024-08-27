@@ -81,19 +81,20 @@ namespace Unity.NetCode.Generators
                         continue;
                     }
 
-                    if (!string.Equals(foundMatch.Template, templateId, StringComparison.Ordinal))
+                    if (!string.Equals(templateId, foundMatch.Template, StringComparison.Ordinal) &&
+                        !string.Equals(templateId, foundMatch.TemplateOverride, StringComparison.Ordinal))
                     {
                         diagnostic.LogError($"NetCode AdditionalFile '{additionalText.Path}' (named '{templateId}') is a valid Template, but the Template definition in 'UserDefinedTemplates' ({foundMatch.Template}, of type {foundMatch.Type}) does not match the #templateID!");
                         continue;
                     }
 
-                    diagnostic.LogInfo($"NetCode AdditionalFile '{additionalText.Path}' (named '{templateId}') is a valid Template ({foundMatch.Template}, {foundMatch.Type}).");
+                    diagnostic.LogDebug($"NetCode AdditionalFile '{additionalText.Path}' (named '{templateId}') is a valid Template ({foundMatch.Template}, {foundMatch.Type}).");
 
                     customTemplates.Add(templateId, additionalText.GetText());
                 }
                 else
                 {
-                    diagnostic.LogInfo($"Ignoring AdditionalFile '{additionalText.Path}' as it is not a NetCode type!");
+                    diagnostic.LogDebug($"Ignoring AdditionalFile '{additionalText.Path}' as it is not a NetCode type!");
                 }
             }
 
@@ -101,19 +102,35 @@ namespace Unity.NetCode.Generators
             foreach (var typeRegistryEntry in missingUserTypes)
             {
                 var message = $"Unable to find the Template associated with '{typeRegistryEntry}'. Looking for '{typeRegistryEntry.Template}'. There are {additionalFiles.Length} additionalFiles:[{string.Join(",", additionalFiles.Select(x => x.Path))}]!";
-                // DotsRuntime is not passing the correct additional file set to the generator, so we cannot assert here.
-                if (!Helpers.IsDotsRuntime)
-                    diagnostic.LogError(message);
-                else
-                {
-                    message = "IsDotsRuntime_SpecialCase: " + message;
-                    diagnostic.LogInfo(message);
-                }
+                diagnostic.LogError(message);
+
             }
 
             string GetKnownCustomUserTemplates()
             {
                 return string.Join(",", customUserTypes.Select(x => $"{x.Type}[{x.Template}]"));
+            }
+        }
+
+        public void PerformAdditionalTypeRegistryValidation(List<TypeRegistryEntry> customUserTypes)
+        {
+
+            string GetKnownCustomUserTemplates()
+            {
+                return string.Join(",", customTemplates.Keys);
+            }
+
+            // Ensure all of the users `TypeRegistryEntry.TemplateOverride`s are linked.
+            foreach (var typeRegistryEntry in customUserTypes)
+            {
+                var hasDefinedTemplateOverride = !string.IsNullOrWhiteSpace(typeRegistryEntry.TemplateOverride);
+                if (hasDefinedTemplateOverride)
+                {
+                    if (!customTemplates.ContainsKey(typeRegistryEntry.TemplateOverride))
+                    {
+                        diagnostic.LogError($"Unable to find the `TemplateOverride` associated with '{typeRegistryEntry}'. Known templates are {GetKnownCustomUserTemplates()}.");
+                    }
+                }
             }
         }
 
@@ -123,7 +140,16 @@ namespace Unity.NetCode.Generators
             for (var i = 0; i < typeRegistryEntries.Count; i++)
             {
                 var x = typeRegistryEntries[i];
-                if (string.Equals(x.Template, templateId, StringComparison.Ordinal) || x.Template.EndsWith(templateId + NetCodeSourceGenerator.NETCODE_ADDITIONAL_FILE, StringComparison.Ordinal))
+                if (string.Equals(x.Template, templateId, StringComparison.Ordinal) ||
+                    x.Template.EndsWith(templateId + NetCodeSourceGenerator.NETCODE_ADDITIONAL_FILE, StringComparison.Ordinal))
+                {
+                    foundMatch = x;
+                    typeRegistryEntries.RemoveAt(i);
+                    break;
+                }
+                if (!string.IsNullOrEmpty(x.TemplateOverride) &&
+                    (string.Equals(x.TemplateOverride, templateId, StringComparison.Ordinal) ||
+                     x.TemplateOverride.EndsWith(templateId + NetCodeSourceGenerator.NETCODE_ADDITIONAL_FILE, StringComparison.Ordinal)))
                 {
                     foundMatch = x;
                     typeRegistryEntries.RemoveAt(i);

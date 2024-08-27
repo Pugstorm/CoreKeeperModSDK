@@ -85,7 +85,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Check the clients network id
                 var serverCon = testWorld.TryGetSingletonEntity<NetworkId>(testWorld.ServerWorld);

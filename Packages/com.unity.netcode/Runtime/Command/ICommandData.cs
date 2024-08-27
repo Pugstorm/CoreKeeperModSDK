@@ -1,6 +1,7 @@
 using System;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.NetCode.LowLevel.Unsafe;
 
 namespace Unity.NetCode
 {
@@ -128,10 +129,10 @@ namespace Unity.NetCode
         /// it will return tick 5 (latest without going over). If the command buffer is
         /// 1,2,3 and targetTick is 5 it will return tick 3.
         /// </summary>
-        /// <param name="commandArray"></param>
-        /// <param name="targetTick"></param>
-        /// <param name="commandData"></param>
-        /// <typeparam name="T"></typeparam>
+        /// <param name="commandArray">Command input buffer.</param>
+        /// <param name="targetTick">Target tick to fetch from.</param>
+        /// <param name="commandData">The last-received input.</param>
+        /// <typeparam name="T">Command input buffer type.</typeparam>
         /// <returns>Returns true if any data was found, false when no tick data is equal or older to the target tick in the buffer.</returns>
         public static bool GetDataAtTick<T>(this DynamicBuffer<T> commandArray, NetworkTick targetTick, out T commandData)
             where T : unmanaged, ICommandData
@@ -162,6 +163,20 @@ namespace Unity.NetCode
 
             commandData = commandArray[beforeIdx];
             return true;
+        }
+
+        /// <summary>
+        /// Get a readonly reference to the input at the given index. Need to be used in safe context, where you know
+        /// the buffer is not going to be modified. That would invalidate the reference in that case and we can't guaratee
+        /// the data you are reading is going to be valid anymore.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="index"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns>A readonly reference to the element</returns>
+        public static ref readonly T GetInputAtIndex<T>(this DynamicBuffer<T> buffer, int index) where T: unmanaged, ICommandData
+        {
+            return ref buffer.ElementAtRO(index);
         }
 
         /// <summary>

@@ -71,9 +71,9 @@ namespace Unity.NetCode.Generators
             instance.Stop();
         }
 
-        static public string PrintStats()
+        static public string PrintStats(bool fullTiming=false)
         {
-            return instance.CollectStats();
+            return instance.CollectStats(fullTiming);
         }
 
         int GetChildId(string name)
@@ -136,20 +136,22 @@ namespace Unity.NetCode.Generators
             currentId = marker.parent;
         }
 
-        string CollectStats()
+        string CollectStats(bool fullTiming)
         {
             timers[0].ticks = Stopwatch.GetTimestamp() - timers[0].ticks;
             var builder = new System.Text.StringBuilder();
             builder.AppendLine("Timing:");
             //Timers is a tree stored in depth first order
             builder.Append($"{timers[0].name}: {(1000.0*(timers[0].ticks - timers[0].overheadTicks))/Stopwatch.Frequency} msec\n");
-            for (int i = 1; i < timers.Count; ++i)
+            if (fullTiming)
             {
-                var node = timers[i];
-                var s = $"{node.name}: {(1000.0*node.ticks)/Stopwatch.Frequency} msec ({node.count}) [{(1000.0*node.overheadTicks)/Stopwatch.Frequency}]\n";
-                builder.Append(s.PadLeft(node.depth*2 + s.Length));
+                for (int i = 1; i < timers.Count; ++i)
+                {
+                    var node = timers[i];
+                    var s = $"{node.name}: {(1000.0*node.ticks)/Stopwatch.Frequency} msec ({node.count}) [{(1000.0*node.overheadTicks)/Stopwatch.Frequency}]\n";
+                    builder.Append(s.PadLeft(node.depth*2 + s.Length));
+                }
             }
-
             timers[0].ticks = Stopwatch.GetTimestamp();
             return builder.ToString();
         }

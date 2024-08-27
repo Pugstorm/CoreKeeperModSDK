@@ -15,7 +15,9 @@ namespace Unity.NetCode.Tests
             {
                 NetworkDriverStore driverStore = new NetworkDriverStore();
                 NetworkEndpoint.TryParse("111.111.111.111", 1, out var invalid);
-                var streamDriver = new NetworkStreamDriver(&driverStore, new NativeReference<int>(Allocator.Temp), new NativeQueue<int>(Allocator.Temp), invalid);
+                var connectionEvents = new NativeList<NetCodeConnectionEvent>(0, Allocator.Temp);
+                var streamDriver = new NetworkStreamDriver(&driverStore, new NativeReference<int>(Allocator.Temp), new NativeQueue<int>(Allocator.Temp), invalid, connectionEvents, connectionEvents.AsReadOnly());
+
                 var netDebug = new NetDebug();
                 netDebug.Initialize();
 
@@ -131,7 +133,7 @@ namespace Unity.NetCode.Tests
 
                 testWorld.UseMultipleDrivers = 1;
                 testWorld.CreateWorlds(true, 2);
-                Assert.IsTrue(testWorld.Connect(1f/60f, 8));
+                testWorld.Connect(1f/60f);
                 testWorld.GoInGame();
 
                 var clientConnectionEnt = new[]

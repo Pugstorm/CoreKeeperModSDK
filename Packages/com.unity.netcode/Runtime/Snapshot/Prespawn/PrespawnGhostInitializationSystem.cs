@@ -110,11 +110,11 @@ namespace Unity.NetCode
             if (m_UninitializedScenes.IsEmptyIgnoreFilter)
                 return;
             var collectionEntity = SystemAPI.GetSingletonEntity<GhostCollection>();
-            var GhostPrefabTypes = state.EntityManager.GetBuffer<GhostCollectionPrefab>(collectionEntity);
+            var ghostPrefabTypes = state.EntityManager.GetBuffer<GhostCollectionPrefab>(collectionEntity);
             //No data loaded yet. This condition can be true for both client and server.
             //Server in particular can be in this state until at least one connection enter the in-game state.
-            //Client can hit this until the receive the prefab to process from the Server.
-            if(GhostPrefabTypes.Length == 0)
+            //Client can hit this until it receives the prefabs to process from the Server.
+            if(ghostPrefabTypes.Length == 0)
                 return;
 
             var processedPrefabs = new NativeParallelHashMap<GhostType, Entity>(256, state.WorldUpdateAllocator);
@@ -122,11 +122,11 @@ namespace Unity.NetCode
             var subScenesSections = m_UninitializedScenes.ToEntityArray(Allocator.Temp);
             var readySections = new NativeList<int>(subScenesSections.Length, Allocator.Temp);
 
-            //Populate a map for faster retrival and used also by component stripping job
-            for (int i = 0; i < GhostPrefabTypes.Length; ++i)
+            //Populate a map for faster retrieval and used also by component stripping job
+            for (int i = 0; i < ghostPrefabTypes.Length; ++i)
             {
-                if(GhostPrefabTypes[i].GhostPrefab != Entity.Null)
-                    processedPrefabs.Add(GhostPrefabTypes[i].GhostType, GhostPrefabTypes[i].GhostPrefab);
+                if(ghostPrefabTypes[i].GhostPrefab != Entity.Null)
+                    processedPrefabs.Add(ghostPrefabTypes[i].GhostType, ghostPrefabTypes[i].GhostPrefab);
             }
 
             //Find out all the scenes that have all their prespawn ghost type resolved by the ghost collection.

@@ -244,7 +244,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -279,7 +279,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -327,7 +327,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -458,7 +458,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -537,7 +537,7 @@ namespace Unity.NetCode.Tests
                 //sending partial contents
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 // Go in-game
                 testWorld.GoInGame();
                 // Let the game run for a bit so the ghosts are spawned on the client
@@ -572,7 +572,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -673,7 +673,7 @@ namespace Unity.NetCode.Tests
 
                 float frameTime = 1.0f / 60.0f;
                 // Connect and make sure the connection could be established
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
 
                 // Go in-game
                 testWorld.GoInGame();
@@ -691,7 +691,7 @@ namespace Unity.NetCode.Tests
                 Assert.AreEqual(2, serverEntityGroup.Length);
 
                 //Verify that the client snapshot data contains the right things
-                var shouldChildReceiveData = GhostSerializationTestsForEnableableBits.IsExpectedToBeReplicated<GhostGenTest_Buffer>(sendForChildrenTestCase, false);
+                var shouldChildReceiveData = GhostSerializationTestsForEnableableBits.IsExpectedToReplicateBuffer<GhostGenTest_Buffer>(sendForChildrenTestCase, false);
                 var dynamicBuffer = testWorld.ClientWorlds[0].EntityManager.GetBuffer<NetCode.SnapshotDynamicDataBuffer>(clientEntities[0]);
                 if(shouldChildReceiveData)
                     BufferTestHelper.ValidateMultiBufferSnapshotDataContents(dynamicBuffer, 3, 0, 10, 10);
@@ -780,7 +780,7 @@ namespace Unity.NetCode.Tests
                 BufferTestHelper.SetByteBufferValues(testWorld.ServerWorld, serverChild, 10, 10);
 
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
                 for (int i = 0; i < 32; ++i)
                     testWorld.Tick(frameTime);
@@ -848,7 +848,7 @@ namespace Unity.NetCode.Tests
                 testWorld.CreateWorlds(true, 1);
 
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
 
                 var serverEntity = testWorld.SpawnOnServer(ghostGameObject);
@@ -924,7 +924,7 @@ namespace Unity.NetCode.Tests
                 testWorld.CreateWorlds(true, 1);
 
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
 
                 //Disable the prediction logic
@@ -1045,7 +1045,7 @@ namespace Unity.NetCode.Tests
             }
         }
 
-        [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
+        [UpdateInGroup(typeof(GhostSpawnClassificationSystemGroup))]
         [UpdateAfter(typeof(GhostSpawnClassificationSystem))]
         [DisableAutoCreation]
         [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
@@ -1146,7 +1146,7 @@ namespace Unity.NetCode.Tests
                 testWorld.CreateWorlds(true, 1);
 
                 float frameTime = 1.0f / 60.0f;
-                Assert.IsTrue(testWorld.Connect(frameTime, 4));
+                testWorld.Connect(frameTime);
                 testWorld.GoInGame();
 
                 //run for a bit to sync server time and ghost collections

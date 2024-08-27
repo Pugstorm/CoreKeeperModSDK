@@ -58,10 +58,28 @@ You communicate with Netcode for Entities by using `RPC`s. So to continue create
 Create a file called *GoInGame.cs* in your __Assets__ folder and add the following code to the file.
 
 ```c#
+using UnityEngine;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.NetCode;
 using Unity.Burst;
+
+/// <summary>
+/// This allows sending RPCs between a stand alone build and the editor for testing purposes in the event when you finish this example
+/// you want to connect a server-client stand alone build to a client configured editor instance. 
+/// </summary>
+[BurstCompile]
+[WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ServerSimulation | WorldSystemFilterFlags.ThinClientSimulation)]
+[UpdateInGroup(typeof(InitializationSystemGroup))]
+[CreateAfter(typeof(RpcSystem))]
+public partial struct SetRpcSystemDynamicAssemblyListSystem : ISystem
+{
+    public void OnCreate(ref SystemState state)
+    {
+        SystemAPI.GetSingletonRW<RpcCollection>().ValueRW.DynamicAssemblyList = true;
+        state.Enabled = false;
+    }
+}
 
 // RPC request from client to server for game to go "in game" and send snapshots / inputs
 public struct GoInGameRequest : IRpcCommand
@@ -167,8 +185,8 @@ public class CubeAuthoring : MonoBehaviour
     {
         public override void Bake(CubeAuthoring authoring)
         {
-            Cube component = default(Cube);
-            AddComponent(component);
+            var entity = GetEntity(TransformUsageFlags.Dynamic);
+            AddComponent<Cube>(entity);
         }
     }
 }
@@ -208,8 +226,9 @@ public class CubeSpawnerAuthoring : MonoBehaviour
         public override void Bake(CubeSpawnerAuthoring authoring)
         {
             CubeSpawner component = default(CubeSpawner);
-            component.Cube = GetEntity(authoring.Cube);
-            AddComponent(component);
+            component.Cube = GetEntity(authoring.Cube, TransformUsageFlags.Dynamic);
+            var entity = GetEntity(TransformUsageFlags.Dynamic);
+            AddComponent(entity, component);
         }
     }
 }
@@ -222,16 +241,120 @@ public class CubeSpawnerAuthoring : MonoBehaviour
 
 ![Ghost Spawner settings](images/ghost-spawner.png)<br/>_Ghost Spawner settings_
 
-### Spawning our prefab
+## Spawning our prefab
 
 To spawn the prefab, you need to update the _GoInGame.cs_ file. If you recall from earlier, you must send a __GoInGame__ `RPC` when you are ready to tell the server to start synchronizing. You can update that code to actually spawn our cube as well.
 
-```diff
+### Update GoInGameClientSystem and GoInGameServerSystem
+We want the `GoInGameClientSystem` and `GoInGameServerSystem` to only run on the entities that have `CubeSpawner` component data associated with them. In order to do this we will add a call to [`SystemState.RequireForUpdate`](https://docs.unity3d.com/Packages/com.unity.entities@1.0/api/Unity.Entities.SystemState.RequireForUpdate.html) in both systems' `OnCreate` method:
+
+```C#
+state.RequireForUpdate<CubeSpawner>();
+```
+
+Your `GoInGameClientSystem.OnCreate` method should look like this now:
+
+```C#
+    [BurstCompile]
+    public void OnCreate(ref SystemState state)
+    {
+        // Run only on entities with a CubeSpawner component data 
+        state.RequireForUpdate<CubeSpawner>();
+
+        var builder = new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<NetworkId>()
+            .WithNone<NetworkStreamInGame>();
+        state.RequireForUpdate(state.GetEntityQuery(builder));
+    }
+```
+
+Your `GoInGameServerSystem.OnCreate` method should look like this now:
+
+```C#
+    [BurstCompile]
+    public void OnCreate(ref SystemState state)
+    {
+        state.RequireForUpdate<CubeSpawner>();
+        var builder = new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<GoInGameRequest>()
+            .WithAll<ReceiveRpcCommandRequest>();
+        state.RequireForUpdate(state.GetEntityQuery(builder));
+        networkIdFromEntity = state.GetComponentLookup<NetworkId>(true);
+    }
+```
+Additionally, for the `GoInGameServerSystem.OnUpdate` method we want to:
+- Get the prefab to spawn
+  - As an added example, get the name of the prefab being spawned to add to the log message
+- For each inbound `ReceiveRpcCommandRequest` message, we will instantiate an instance of the prefab.
+  - For each prefab instance we will set the `GhostOwner.NetworkId` value to the NetworkId of the requesting client.
+- Finally we will add the newly instantiated instance to the `LinkedEntityGroup` so when the client disconnects the entity will be destroyed.
+
+Update your `GoInGameServerSystem.OnUpdate` method to this:
+
+```C#
+    [BurstCompile]
+    public void OnUpdate(ref SystemState state)
+    {
+        // Get the prefab to instantiate
+        var prefab = SystemAPI.GetSingleton<CubeSpawner>().Cube;
+        
+        // Ge the name of the prefab being instantiated
+        state.EntityManager.GetName(prefab, out var prefabName);
+        var worldName = new FixedString32Bytes(state.WorldUnmanaged.Name);
+
+        var commandBuffer = new EntityCommandBuffer(Allocator.Temp);
+        networkIdFromEntity.Update(ref state);
+
+        foreach (var (reqSrc, reqEntity) in SystemAPI.Query<RefRO<ReceiveRpcCommandRequest>>().WithAll<GoInGameRequest>().WithEntityAccess())
+        {
+            commandBuffer.AddComponent<NetworkStreamInGame>(reqSrc.ValueRO.SourceConnection);
+            // Get the NetworkId for the requesting client
+            var networkId = networkIdFromEntity[reqSrc.ValueRO.SourceConnection];
+
+            // Log information about the connection request that includes the client's assigned NetworkId and the name of the prefab spawned.
+            UnityEngine.Debug.Log($"'{worldName}' setting connection '{networkId.Value}' to in game, spawning a Ghost '{prefabName}' for them!");
+
+            // Instantiate the prefab
+            var player = commandBuffer.Instantiate(prefab);
+            // Associate the instantiated prefab with the connected client's assigned NetworkId
+            commandBuffer.SetComponent(player, new GhostOwner { NetworkId = networkId.Value});
+
+            // Add the player to the linked entity group so it is destroyed automatically on disconnect
+            commandBuffer.AppendToBuffer(reqSrc.ValueRO.SourceConnection, new LinkedEntityGroup{Value = player});
+            commandBuffer.DestroyEntity(reqEntity);
+        }
+        commandBuffer.Playback(state.EntityManager);
+    }
+```
+
+
+Your **GoInGame.cs** file should now look like this:
+
+```C#
+using UnityEngine;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.NetCode;
 using Unity.Burst;
 
+/// <summary>
+/// This allows sending RPCs between a stand alone build and the editor for testing purposes in the event when you finish this example
+/// you want to connect a server-client stand alone build to a client configured editor instance. 
+/// </summary>
+[BurstCompile]
+[WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ServerSimulation | WorldSystemFilterFlags.ThinClientSimulation)]
+[UpdateInGroup(typeof(InitializationSystemGroup))]
+[CreateAfter(typeof(RpcSystem))]
+public partial struct SetRpcSystemDynamicAssemblyListSystem : ISystem
+{
+    public void OnCreate(ref SystemState state)
+    {
+        SystemAPI.GetSingletonRW<RpcCollection>().ValueRW.DynamicAssemblyList = true;
+        state.Enabled = false;
+    }
+}
+
+// RPC request from client to server for game to go "in game" and send snapshots / inputs
 public struct GoInGameRequest : IRpcCommand
 {
 }
@@ -243,7 +366,9 @@ public partial struct GoInGameClientSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-+       state.RequireForUpdate<CubeSpawner>();
+        // Run only on entities with a CubeSpawner component data 
+        state.RequireForUpdate<CubeSpawner>();
+
         var builder = new EntityQueryBuilder(Allocator.Temp)
             .WithAll<NetworkId>()
             .WithNone<NetworkStreamInGame>();
@@ -275,7 +400,7 @@ public partial struct GoInGameServerSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-+       state.RequireForUpdate<CubeSpawner>();
+        state.RequireForUpdate<CubeSpawner>();
         var builder = new EntityQueryBuilder(Allocator.Temp)
             .WithAll<GoInGameRequest>()
             .WithAll<ReceiveRpcCommandRequest>();
@@ -286,8 +411,11 @@ public partial struct GoInGameServerSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-+       var prefab = SystemAPI.GetSingleton<CubeSpawner>().Cube;
-+       state.EntityManager.GetName(prefab, out var prefabName);
+        // Get the prefab to instantiate
+        var prefab = SystemAPI.GetSingleton<CubeSpawner>().Cube;
+        
+        // Ge the name of the prefab being instantiated
+        state.EntityManager.GetName(prefab, out var prefabName);
         var worldName = new FixedString32Bytes(state.WorldUnmanaged.Name);
 
         var commandBuffer = new EntityCommandBuffer(Allocator.Temp);
@@ -296,16 +424,19 @@ public partial struct GoInGameServerSystem : ISystem
         foreach (var (reqSrc, reqEntity) in SystemAPI.Query<RefRO<ReceiveRpcCommandRequest>>().WithAll<GoInGameRequest>().WithEntityAccess())
         {
             commandBuffer.AddComponent<NetworkStreamInGame>(reqSrc.ValueRO.SourceConnection);
+            // Get the NetworkId for the requesting client
             var networkId = networkIdFromEntity[reqSrc.ValueRO.SourceConnection];
 
--           UnityEngine.Debug.Log($"'{worldName}' setting connection '{networkId.Value}' to in game");
-+           UnityEngine.Debug.Log($"'{worldName}' setting connection '{networkId.Value}' to in game, spawning a Ghost '{prefabName}' for them!");
+            // Log information about the connection request that includes the client's assigned NetworkId and the name of the prefab spawned.
+            UnityEngine.Debug.Log($"'{worldName}' setting connection '{networkId.Value}' to in game, spawning a Ghost '{prefabName}' for them!");
 
-+           var player = commandBuffer.Instantiate(prefab);
-+           commandBuffer.SetComponent(player, new GhostOwner { NetworkId = networkId.Value});
+            // Instantiate the prefab
+            var player = commandBuffer.Instantiate(prefab);
+            // Associate the instantiated prefab with the connected client's assigned NetworkId
+            commandBuffer.SetComponent(player, new GhostOwner { NetworkId = networkId.Value});
 
-+           // Add the player to the linked entity group so it is destroyed automatically on disconnect
-+           commandBuffer.AppendToBuffer(reqSrc.ValueRO.SourceConnection, new LinkedEntityGroup{Value = player});
+            // Add the player to the linked entity group so it is destroyed automatically on disconnect
+            commandBuffer.AppendToBuffer(reqSrc.ValueRO.SourceConnection, new LinkedEntityGroup{Value = player});
             commandBuffer.DestroyEntity(reqEntity);
         }
         commandBuffer.Playback(state.EntityManager);
@@ -328,7 +459,6 @@ using Unity.Entities;
 using Unity.NetCode;
 using UnityEngine;
 
-[GhostComponent(PrefabType=GhostPrefabType.AllPredicted)]
 public struct CubeInput : IInputComponentData
 {
     public int Horizontal;
@@ -338,11 +468,12 @@ public struct CubeInput : IInputComponentData
 [DisallowMultipleComponent]
 public class CubeInputAuthoring : MonoBehaviour
 {
-    class Baking : Unity.Entities.Baker<CubeInputAuthoring>
+    class Baking : Baker<CubeInputAuthoring >
     {
         public override void Bake(CubeInputAuthoring authoring)
         {
-            AddComponent<CubeInput>();
+            var entity = GetEntity(TransformUsageFlags.Dynamic);
+            AddComponent<CubeInput>(entity);
         }
     }
 }
@@ -406,3 +537,17 @@ public partial struct CubeMovementSystem : ISystem
 ## Test the code
 
 Now you have set up your code, open __Multiplayer &gt; PlayMode Tools__ and set the __PlayMode Type__ to __Client & Server__. Enter Play Mode, and the Cube spawns. Press the __Arrow__ keys to move the Cube around.
+
+
+## Build Stand Alone Build & Connect an Editor-Based Client
+Now that you have the server-client instance running in the editor, you might want to see what it would be like to test connecting another client. In order to do this follow these steps:
+- Verify that your Project Settings --> Entities --> Build --> NetCode Client Target is set to *ClientAndServer*.
+- Make a development build and run that stand alone build.
+- Select the Multiplayer menu bar option and select the editor play mode tools window.
+  - Set the **PlayMode Type** to: Client
+  - Set the **Auto Connect Port** to: 7979
+  - Optionally you can dock or close this window at this point.
+- Enter into PlayMode
+
+You should now see on your server-client stand alone build the editor-based client's cube and be able to see both cubes move around!
+

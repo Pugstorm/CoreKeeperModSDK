@@ -59,7 +59,7 @@ namespace Unity.NetCode.Tests
             }
 
             // Connect and make sure the connection could be established
-            Assert.IsTrue(testWorld.Connect(frameTime, 4));
+            testWorld.Connect(frameTime);
 
             // Go in-game
             testWorld.GoInGame();

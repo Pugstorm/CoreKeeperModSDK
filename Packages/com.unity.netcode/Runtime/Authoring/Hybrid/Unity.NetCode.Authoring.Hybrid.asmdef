@@ -21,15 +21,7 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [
-        "!UNITY_DOTSRUNTIME"
-    ],
-    "versionDefines": [
-      {
-        "name": "com.unity.platforms",
-        "expression": "",
-        "define": "USING_PLATFORMS_PACKAGE"
-      }
-    ],
+    "defineConstraints": [],
+    "versionDefines": [],
     "noEngineReferences": false
 }
