@@ -62,8 +62,8 @@ namespace CK_QOL_Collection.Core
             
             // NoDeathPenalty settings
             ConfigFile.Bind(Sections.NoDeathPenalty.Options.Enabled.Definition, 
-                Sections.QuickStash.Options.Enabled.Default,
-                Sections.QuickStash.Options.Enabled.Description);
+                Sections.NoDeathPenalty.Options.Enabled.Default,
+                Sections.NoDeathPenalty.Options.Enabled.Description);
 
             return ConfigFile;
         }
@@ -426,7 +426,7 @@ namespace CK_QOL_Collection.Core
                         /// <summary>
                         ///     The default value for the enabled setting.
                         /// </summary>
-                        internal const bool Default = true;
+                        internal const bool Default = false;
 
                         private const string Text = "Should the 'No Death Penalty' feature be enabled?";
 

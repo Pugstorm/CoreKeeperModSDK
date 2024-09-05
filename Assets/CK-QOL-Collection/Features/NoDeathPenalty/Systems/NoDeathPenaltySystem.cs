@@ -33,11 +33,10 @@ namespace CK_QOL_Collection.Features.NoDeathPenalty.Systems
         [BurstCompile]
         protected override void OnUpdate()
         {
-            // TODO: DOTS can't access the configuration. Find a workaround.
-            // if (!Configuration.Sections.NoDeathPenalty.IsEnabled)
-            // {
-            //     return;
-            // }
+            if (!Entry.IsNoDeathPenaltyEnabled)
+            {
+                return;
+            }
 
             var initialMoveInventoryFromLookup = GetComponentLookup<InitialMoveInventoryFromCD>();
 

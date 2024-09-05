@@ -23,7 +23,7 @@ namespace CK_QOL_Collection
         /// <summary>
         ///     The version of the mod.
         /// </summary>
-        public const string Version = "1.0.1";
+        public const string Version = "1.2.0";
 
         /// <summary>
         ///     The name of the mod.
@@ -40,6 +40,8 @@ namespace CK_QOL_Collection
         internal static LoadedMod ModInfo;
 
         internal static Player RewiredPlayer { get; private set; }
+        
+        internal static bool IsNoDeathPenaltyEnabled { get; private set; }
 
         #region IMod
 
@@ -83,8 +85,12 @@ namespace CK_QOL_Collection
         /// <inheritdoc />
         public void Init()
         {
-            API.Server.OnWorldCreated += () => FeatureManager.Instance.NoDeathPenalty.Execute();
-            
+            IsNoDeathPenaltyEnabled = Configuration.Sections.NoDeathPenalty.IsEnabled;
+            if (IsNoDeathPenaltyEnabled)
+            {
+                API.Server.OnWorldCreated += () => FeatureManager.Instance.NoDeathPenalty.Execute();
+            }
+
             Logger.Info("Loaded successfully.");
         }
 
