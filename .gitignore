@@ -76,3 +76,13 @@ crashlytics-build.properties
 
 # Jetbrains
 .idea/
+/[Aa]ssets/dotPeek/
+/[Aa]ssets/dotPeek.meta
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
