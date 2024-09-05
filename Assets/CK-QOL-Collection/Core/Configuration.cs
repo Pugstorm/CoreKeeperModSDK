@@ -59,6 +59,11 @@ namespace CK_QOL_Collection.Core
                 Sections.QuickStash.KeyBinds.QuickStashKeyBindingDescription,
                 Sections.QuickStash.KeyBinds.DefaultQuickStashKey,
                 Sections.QuickStash.KeyBinds.DefaultQuickStashKModifier);
+            
+            // NoDeathPenalty settings
+            ConfigFile.Bind(Sections.NoDeathPenalty.Options.Enabled.Definition, 
+                Sections.QuickStash.Options.Enabled.Default,
+                Sections.QuickStash.Options.Enabled.Description);
 
             return ConfigFile;
         }
@@ -385,6 +390,66 @@ namespace CK_QOL_Collection.Core
                     ///     Gets the default modifier key for the Quick Stash action.
                     /// </summary>
                     internal static ModifierKey DefaultQuickStashKModifier => ModifierKey.Control;
+                }
+            }
+            
+            /// <summary>
+            ///     Configuration settings for the Crafting Range feature.
+            /// </summary>
+            internal static class NoDeathPenalty
+            {
+                /// <summary>
+                ///     The name of the No Death Penalty section.
+                /// </summary>
+                internal const string Name = nameof(NoDeathPenalty);
+
+                /// <summary>
+                ///     Determines whether the No Death Penalty feature is enabled.
+                /// </summary>
+                internal static bool IsEnabled => Options.Enabled.Value;
+
+                /// <summary>
+                ///     Options for the No Death Penalty feature.
+                /// </summary>
+                internal static class Options
+                {
+                    /// <summary>
+                    ///     Configuration setting that determines if the No Death Penalty feature is enabled.
+                    /// </summary>
+                    internal static class Enabled
+                    {
+                        /// <summary>
+                        ///     The key for the enabled setting in the configuration file.
+                        /// </summary>
+                        internal const string Key = nameof(Enabled);
+
+                        /// <summary>
+                        ///     The default value for the enabled setting.
+                        /// </summary>
+                        internal const bool Default = true;
+
+                        private const string Text = "Should the 'No Death Penalty' feature be enabled?";
+
+                        /// <summary>
+                        ///     Gets the acceptable values for the enabled setting.
+                        /// </summary>
+                        private static AcceptableValueList<bool> AcceptableValues => new(true, false);
+
+                        /// <summary>
+                        ///     Gets the configuration definition for the enabled setting.
+                        /// </summary>
+                        internal static ConfigDefinition Definition => new(Name, Key);
+
+                        /// <summary>
+                        ///     Gets the configuration description for the enabled setting.
+                        /// </summary>
+                        internal static ConfigDescription Description => new(Text, AcceptableValues);
+
+                        /// <summary>
+                        ///     Gets the value of the enabled setting.
+                        /// </summary>
+                        internal static bool Value => General.Options.Enabled.Value && ConfigFile.TryGetEntry<bool>(Definition, out var enabled) && enabled.Value;
+                    }
                 }
             }
         }

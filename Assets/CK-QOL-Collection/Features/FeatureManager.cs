@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace CK_QOL_Collection.Features
 {
     /// <summary>
-    ///     Manages the various features within the CK_QOL_Collection.
+    ///     Manages the various features within the CK QOL Collection.
     ///     This class follows the singleton design pattern to ensure only one instance is used throughout the application.
     /// </summary>
     internal class FeatureManager
@@ -42,9 +42,11 @@ namespace CK_QOL_Collection.Features
         {
             _craftingRange = new Lazy<CraftingRange.Feature>(() => new CraftingRange.Feature());
             _quickStash = new Lazy<QuickStash.Feature>(() => new QuickStash.Feature());
+            _noDeathPenalty = new Lazy<NoDeathPenalty.Feature>(() => new NoDeathPenalty.Feature());
 
             _features.Add(CraftingRange);
             _features.Add(QuickStash);
+            _features.Add(NoDeathPenalty);
         }
 
         /// <summary>
@@ -77,6 +79,16 @@ namespace CK_QOL_Collection.Features
         /// </summary>
         internal QuickStash.Feature QuickStash => _quickStash.Value;
 
+        /// <summary>
+        ///     A lazily initialized <see cref="NoDeathPenalty.Feature" /> instance representing the no death penalty feature.
+        /// </summary>
+        private readonly Lazy<NoDeathPenalty.Feature> _noDeathPenalty;
+
+        /// <summary>
+        ///     Gets the <see cref="NoDeathPenalty.Feature" /> instance that manages no death penalty functionality.
+        /// </summary>
+        internal NoDeathPenalty.Feature NoDeathPenalty => _noDeathPenalty.Value;
+        
         #endregion Feature Instances
     }
 }
