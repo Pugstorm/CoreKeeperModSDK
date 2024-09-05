@@ -1,5 +1,6 @@
 ﻿using CK_QOL_Collection.Core;
 using CK_QOL_Collection.Features;
+using CK_QOL_Collection.Features.NoDeathPenalty.Patches;
 using CoreLib;
 using CoreLib.Data.Configuration;
 using CoreLib.Localization;
@@ -36,9 +37,9 @@ namespace CK_QOL_Collection
 
         private ConfigFile _modConfig;
 
-        private LoadedMod _modInfo;
+        internal static LoadedMod ModInfo;
 
-        public static Player RewiredPlayer { get; private set; }
+        internal static Player RewiredPlayer { get; private set; }
 
         #region IMod
 
@@ -50,8 +51,8 @@ namespace CK_QOL_Collection
         {
             Logger.Info($"{Version} - {Author}");
 
-            _modInfo = this.GetModInfo();
-            if (_modInfo is null)
+            ModInfo = this.GetModInfo();
+            if (ModInfo is null)
             {
                 Logger.Error("Failed to load!");
                 Shutdown();
@@ -59,11 +60,11 @@ namespace CK_QOL_Collection
                 return;
             }
 
-            ResourcesModule.RegisterBundles(_modInfo);
+            ResourcesModule.RegisterBundles(ModInfo);
             CoreLibMod.LoadModule(typeof(RewiredExtensionModule));
             CoreLibMod.LoadModules(typeof(LocalizationModule));
 
-            _modConfig = Configuration.Initialize(_modInfo);
+            _modConfig = Configuration.Initialize(ModInfo);
 
             RewiredExtensionModule.rewiredStart += () => RewiredPlayer = ReInput.players.GetPlayer(0);
 
@@ -82,6 +83,8 @@ namespace CK_QOL_Collection
         /// <inheritdoc />
         public void Init()
         {
+            API.Server.OnWorldCreated += () => FeatureManager.Instance.NoDeathPenalty.Execute();
+            
             Logger.Info("Loaded successfully.");
         }
 
