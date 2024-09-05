@@ -23,6 +23,7 @@ namespace CK_QOL_Collection.Features.NoDeathPenalty.Systems
         protected override void OnCreate()
         {
             RequireForUpdate<InventoryChangeBuffer>();
+
             base.OnCreate();
         }
 

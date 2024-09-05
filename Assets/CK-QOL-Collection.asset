@@ -23,6 +23,9 @@ MonoBehaviour:
     files:
     - path: Localization/Localization.csv
     - path: Scripts/Features/QuickStash/Feature.cs
+    - path: Scripts/Features/NoDeathPenalty/Systems/NoDeathPenaltySystem.cs
+    - path: Scripts/Features/NoDeathPenalty/Patches/InventoryCreatePatches.cs
+    - path: Scripts/Features/NoDeathPenalty/Feature.cs
     - path: Scripts/Features/IFeature.cs
     - path: Scripts/Features/FeatureManager.cs
     - path: Scripts/Features/FeatureBase.cs
@@ -34,6 +37,7 @@ MonoBehaviour:
     - path: Scripts/Core/Helpers/MathHelpers.cs
     - path: Scripts/Core/Helpers/ChestHelper.cs
     - path: Scripts/Core/Configuration.cs
+    - path: Scripts/Generated/NoDeathPenaltySystem__System_19510078270.g.cs
     - path: Bundles/CK-QOL-Collection_Windows.assetbundle
     - path: Bundles/CK-QOL-Collection_Linux.assetbundle
     dependencies:
@@ -46,3 +50,5 @@ MonoBehaviour:
     - modName: CoreLib.Localization
       required: 1
   modPath: Assets\CK-QOL-Collection
+  buildBurst: 1
+  buildLinux: 1

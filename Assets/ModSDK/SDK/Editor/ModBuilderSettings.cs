@@ -12,4 +12,6 @@ public class ModBuilderSettings : ScriptableObject
 	};
 	
 	public string modPath = "Assets/Mod";
+	public bool buildBurst = true;
+	public bool buildLinux  = true;
 }
