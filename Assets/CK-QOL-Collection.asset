@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc43e4983a160e543856e5ba0421c9e1, type: 3}
+  m_Name: CK-QOL-Collection
+  m_EditorClassIdentifier: 
+  metadata:
+    guid: d3bac1eb08fc4cd292da4370a06951f9
+    name: CK-QOL-Collection
+    skipSafetyChecks: 0
+    disableScripts: 0
+    accessesExtraAssemblies: 1
+    disableHarmonyPatching: 0
+    requiredOn: 0
+    files:
+    - path: Localization/Localization.csv
+    - path: Scripts/Features/QuickStash/Feature.cs
+    - path: Scripts/Features/IFeature.cs
+    - path: Scripts/Features/FeatureManager.cs
+    - path: Scripts/Features/FeatureBase.cs
+    - path: Scripts/Features/CraftingRange/Patches/UIManagerPatches.cs
+    - path: Scripts/Features/CraftingRange/Patches/CraftingHandlerPatches.cs
+    - path: Scripts/Features/CraftingRange/Feature.cs
+    - path: Scripts/Entry.cs
+    - path: Scripts/Core/Logger.cs
+    - path: Scripts/Core/Helpers/MathHelpers.cs
+    - path: Scripts/Core/Helpers/ChestHelper.cs
+    - path: Scripts/Core/Configuration.cs
+    - path: Bundles/CK-QOL-Collection_Windows.assetbundle
+    - path: Bundles/CK-QOL-Collection_Linux.assetbundle
+    dependencies:
+    - modName: CoreLib
+      required: 1
+    - modName: CoreLib.Resources
+      required: 1
+    - modName: CoreLib.RewiredExtension
+      required: 1
+    - modName: CoreLib.Localization
+      required: 1
+  modPath: Assets\CK-QOL-Collection
