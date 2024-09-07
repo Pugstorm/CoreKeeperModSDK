@@ -9,7 +9,7 @@ namespace CK_QOL_Collection.Core.Helpers
     ///     Provides helper methods for operations related to chests in the game.
     /// </summary>
     internal static class ChestHelper
-    {
+	{
         /// <summary>
         ///     The name of the general pool chest in the game scene.
         /// </summary>
@@ -44,34 +44,27 @@ namespace CK_QOL_Collection.Core.Helpers
         /// <seealso cref="UnityEngine.GameObject" />
         /// <seealso cref="UnityEngine.Transform" />
         internal static IEnumerable<Chest> GetNearbyChests(float maxDistance = float.MaxValue)
-        {
-            // Retrieve the player controller object from the game's main manager.
-            var player = Manager.main.player;
+		{
+			var player = Manager.main.player;
+			if (player?.playerInventoryHandler == null)
+			{
+				return Enumerable.Empty<Chest>();
+			}
 
-            // If the player or their inventory handler is not available, return an empty list.
-            if (player?.playerInventoryHandler == null)
-            {
-                return Enumerable.Empty<Chest>();
-            }
+			var poolChest = GameObject.Find(PoolChestName).transform;
+			var poolBossChest = GameObject.Find(PoolBossChestName).transform;
+			var poolNonPaintableChest = GameObject.Find(PoolNonPaintableChestChestName).transform;
 
-            // Find the chest pools in the game scene by their names.
-            var poolChest = GameObject.Find(PoolChestName).transform;
-            var poolBossChest = GameObject.Find(PoolBossChestName).transform;
-            var poolNonPaintableChest = GameObject.Find(PoolNonPaintableChestChestName).transform;
+			var allChests = poolChest.GetAllChildren().Where(obj => obj.gameObject.activeSelf).ToList();
+			allChests.AddRange(poolBossChest.GetAllChildren().Where(obj => obj.gameObject.activeSelf).ToList());
+			allChests.AddRange(poolNonPaintableChest.GetAllChildren().Where(obj => obj.gameObject.activeSelf).ToList());
 
-            // Retrieve all active child objects from each chest pool.
-            var allChests = poolChest.GetAllChildren().Where(obj => obj.gameObject.activeSelf).ToList();
-            allChests.AddRange(poolBossChest.GetAllChildren().Where(obj => obj.gameObject.activeSelf).ToList());
-            allChests.AddRange(poolNonPaintableChest.GetAllChildren().Where(obj => obj.gameObject.activeSelf).ToList());
+			var playerPosition = player.WorldPosition;
 
-            // Get the player's current world position.
-            var playerPosition = player.WorldPosition;
-
-            // Filter and order the chests based on their distance to the player.
-            return allChests
-                .Select(chestTransform => chestTransform.GetComponent<Chest>())
-                .Where(chestComponent => chestComponent != null && MathHelpers.IsInRange(playerPosition, chestComponent.WorldPosition, maxDistance))
-                .OrderBy(chestComponent => Vector3.Distance(playerPosition, chestComponent.WorldPosition));
-        }
-    }
+			return allChests
+				.Select(chestTransform => chestTransform.GetComponent<Chest>())
+				.Where(chestComponent => chestComponent != null && MathHelpers.IsInRange(playerPosition, chestComponent.WorldPosition, maxDistance))
+				.OrderBy(chestComponent => Vector3.Distance(playerPosition, chestComponent.WorldPosition));
+		}
+	}
 }

@@ -1,23 +1,34 @@
+using CK_QOL_Collection.Core.Configuration;
 using HarmonyLib;
 using Inventory;
 
 namespace CK_QOL_Collection.Features.NoDeathPenalty.Patches
 {
 	/// <summary>
-	///		Contains Harmony patches for the <see cref="Inventory.Create"/> class to modify the inventory behavior after player death.
-	///		Ensures that the player's inventory is preserved by adjusting the inventory movement logic.
+	///     Contains Harmony patches for the <see cref="Inventory.Create" /> class to modify the inventory behavior after
+	///     player death.
+	///     Ensures that the player's inventory is preserved by adjusting the inventory movement logic.
 	/// </summary>
-	[HarmonyPatch(typeof(Inventory.Create))]
+	[HarmonyPatch(typeof(Create))]
 	internal static class InventoryCreatePatches
 	{
 		/// <summary>
-		///		A postfix patch for the <see cref="Create.MoveInventory"/> method.
-		///		Modifies the result to ensure that the inventory is moved correctly, preserving the player's inventory after death.
+		///     A postfix patch for the <see cref="Create.MoveInventory" /> method.
+		///     Modifies the result to ensure that the inventory is moved correctly, preserving the player's inventory after death.
 		/// </summary>
-		/// <param name="__result">The result of the inventory change operation, which is modified to retain the original inventory.</param>
-		[HarmonyPostfix, HarmonyPatch(nameof(Create.MoveInventory))]
+		/// <param name="__result">
+		///     The result of the inventory change operation, which is modified to retain the original
+		///     inventory.
+		/// </param>
+		[HarmonyPostfix]
+		[HarmonyPatch(nameof(Create.MoveInventory))]
 		public static void MoveInventory(ref InventoryChangeData __result)
 		{
+			if (!ConfigurationManager.IsModEnabled)
+			{
+				return;
+			}
+			
 			// inventoryAction = InventoryAction.MoveInventory
 			// inventory1 = inventoryFrom (Entity)
 			// entityOrInventory2 = inventoryTo (Entity)

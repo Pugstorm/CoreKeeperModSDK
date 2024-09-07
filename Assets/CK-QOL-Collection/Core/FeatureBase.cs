@@ -1,4 +1,7 @@
-namespace CK_QOL_Collection.Features
+using System.Collections.Generic;
+using CK_QOL_Collection.Core.Configuration;
+
+namespace CK_QOL_Collection.Core
 {
     /// <summary>
     ///     Provides a base implementation for features within the CK_QOL_Collection mod.
@@ -7,24 +10,36 @@ namespace CK_QOL_Collection.Features
     internal abstract class FeatureBase : IFeature
     {
         /// <summary>
+        ///     Gets the configuration object for this feature.
+        /// </summary>
+        protected IFeatureConfiguration Configuration { get; }
+
+        /// <summary>
+        ///     Gets or sets the list of key bindings for this feature.
+        /// </summary>
+        protected List<IFeatureKeyBind> KeyBinds { get; private set; } = new List<IFeatureKeyBind>();
+
+        /// <summary>
         ///     Initializes a new instance of the <see cref="FeatureBase" /> class.
         /// </summary>
         /// <param name="name">The name of the feature.</param>
-        /// <param name="isEnabled">A value indicating whether the feature is enabled.</param>
-        protected FeatureBase(string name, bool isEnabled)
+        protected FeatureBase(string name)
         {
             Name = name;
-            IsEnabled = isEnabled;
+            Configuration = ConfigurationManager.GetFeatureConfiguration(name);
         }
 
         /// <inheritdoc />
         public string Name { get; }
 
         /// <inheritdoc />
-        public bool IsEnabled { get; }
+        public bool IsEnabled => Configuration is { Enabled: true };
 
         /// <inheritdoc />
-        public virtual bool CanExecute() => IsEnabled;
+        public virtual bool CanExecute()
+        {
+            return IsEnabled;
+        }
 
         /// <inheritdoc />
         public virtual void Execute()

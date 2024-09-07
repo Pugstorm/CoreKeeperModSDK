@@ -19,31 +19,42 @@ MonoBehaviour:
     disableScripts: 0
     accessesExtraAssemblies: 1
     disableHarmonyPatching: 0
-    requiredOn: 0
+    requiredOn: -1
     files:
     - path: Localization/Localization.csv
-    - path: Scripts/Features/QuickStash/Feature.cs
+    - path: Scripts/Features/QuickStash/QuickStashFeature.cs
+    - path: Scripts/Features/QuickStash/QuickStashConfiguration.cs
+    - path: Scripts/Features/QuickStash/KeyBinds/QuickStashKeyBind.cs
     - path: Scripts/Features/NoDeathPenalty/Systems/NoDeathPenaltySystem.cs
     - path: Scripts/Features/NoDeathPenalty/Patches/InventoryCreatePatches.cs
-    - path: Scripts/Features/NoDeathPenalty/Feature.cs
-    - path: Scripts/Features/IFeature.cs
-    - path: Scripts/Features/FeatureManager.cs
-    - path: Scripts/Features/FeatureBase.cs
+    - path: Scripts/Features/NoDeathPenalty/NoDeathPenaltyFeature.cs
+    - path: Scripts/Features/NoDeathPenalty/NoDeathPenaltyConfiguration.cs
+    - path: Scripts/Features/ItemPickUpNotifier/Patches/ItemDiscoveryUIPatches.cs
+    - path: Scripts/Features/ItemPickUpNotifier/Patches/ItemDiscoveryTextUIPatches.cs
+    - path: Scripts/Features/ItemPickUpNotifier/ItemPickUpNotifierFeature.cs
+    - path: Scripts/Features/ItemPickUpNotifier/ItemPickUpNotifierConfiguration.cs
     - path: Scripts/Features/CraftingRange/Patches/UIManagerPatches.cs
     - path: Scripts/Features/CraftingRange/Patches/CraftingHandlerPatches.cs
-    - path: Scripts/Features/CraftingRange/Feature.cs
+    - path: Scripts/Features/CraftingRange/CraftingRangeFeature.cs
+    - path: Scripts/Features/CraftingRange/CraftingRangeConfiguration.cs
     - path: Scripts/Entry.cs
+    - path: Scripts/Core/ModSettings.cs
     - path: Scripts/Core/Logger.cs
+    - path: Scripts/Core/IFeature.cs
     - path: Scripts/Core/Helpers/MathHelpers.cs
     - path: Scripts/Core/Helpers/ChestHelper.cs
-    - path: Scripts/Core/Configuration.cs
+    - path: Scripts/Core/FeatureManager.cs
+    - path: Scripts/Core/FeatureBase.cs
+    - path: Scripts/Core/Configuration/KeyBindManager.cs
+    - path: Scripts/Core/Configuration/IFeatureKeyBind.cs
+    - path: Scripts/Core/Configuration/IFeatureConfiguration.cs
+    - path: Scripts/Core/Configuration/GeneralConfiguration.cs
+    - path: Scripts/Core/Configuration/ConfigurationManager.cs
     - path: Scripts/Generated/NoDeathPenaltySystem__System_19510078270.g.cs
     - path: Bundles/CK-QOL-Collection_Windows.assetbundle
     - path: Bundles/CK-QOL-Collection_Linux.assetbundle
     dependencies:
     - modName: CoreLib
-      required: 1
-    - modName: CoreLib.Resources
       required: 1
     - modName: CoreLib.RewiredExtension
       required: 1

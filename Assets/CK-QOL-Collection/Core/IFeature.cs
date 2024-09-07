@@ -1,11 +1,11 @@
-﻿namespace CK_QOL_Collection.Features
+﻿namespace CK_QOL_Collection.Core
 {
     /// <summary>
     ///     Represents a feature within the CK_QOL_Collection mod.
     ///     Defines common properties and methods that all features should implement.
     /// </summary>
     internal interface IFeature
-    {
+	{
         /// <summary>
         ///     Gets the name of the feature.
         /// </summary>
@@ -35,5 +35,5 @@
         ///     This method is intended to be called periodically to refresh or maintain the feature's state.
         /// </summary>
         void Update();
-    }
+	}
 }
