@@ -5,7 +5,7 @@ using CK_QOL_Collection.Features.ItemPickUpNotifier;
 using CK_QOL_Collection.Features.NoDeathPenalty;
 using CK_QOL_Collection.Features.QuickStash;
 
-namespace CK_QOL_Collection.Core
+namespace CK_QOL_Collection.Core.Feature
 {
     /// <summary>
     ///     Manages the various features within the CK QOL Collection.

@@ -4,7 +4,7 @@ using CoreLib.Data.Configuration;
 namespace CK_QOL_Collection.Features.NoDeathPenalty
 {
 	/// <summary>
-	///     Configuration for the No Death Penalty feature.
+	///     Configuration for the 'No Death Penalty' feature.
 	/// </summary>
 	internal class NoDeathPenaltyConfiguration : IFeatureConfiguration
 	{

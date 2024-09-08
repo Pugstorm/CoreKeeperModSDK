@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using CK_QOL_Collection.Core;
+using CK_QOL_Collection.Core.Feature;
 using CK_QOL_Collection.Core.Helpers;
 
 namespace CK_QOL_Collection.Features.CraftingRange
@@ -11,7 +11,10 @@ namespace CK_QOL_Collection.Features.CraftingRange
     /// </summary>
     internal class CraftingRangeFeature : FeatureBase
 	{
-		private readonly CraftingRangeConfiguration _config;
+		/// <summary>
+		///     Gets the configuration settings for the 'Crafting Range' feature.
+		/// </summary>
+		public CraftingRangeConfiguration Config { get; }
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="CraftingRangeFeature" /> class.
@@ -20,7 +23,7 @@ namespace CK_QOL_Collection.Features.CraftingRange
         public CraftingRangeFeature()
 			: base(nameof(CraftingRange))
 		{
-			_config = (CraftingRangeConfiguration)Configuration;
+			Config = (CraftingRangeConfiguration)Configuration;
 		}
 
         /// <summary>
@@ -44,8 +47,8 @@ namespace CK_QOL_Collection.Features.CraftingRange
 
 			NearbyChests.Clear();
 
-			var maxDistance = _config.Distance;
-			var chestLimit = _config.ChestLimit;
+			var maxDistance = Config.Distance;
+			var chestLimit = Config.ChestLimit;
 
 			var nearbyChests = ChestHelper.GetNearbyChests(maxDistance)
 				.Take(chestLimit)

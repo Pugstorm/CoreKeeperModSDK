@@ -1,5 +1,5 @@
 ﻿using System;
-using CK_QOL_Collection.Core;
+using CK_QOL_Collection.Core.Feature;
 using HarmonyLib;
 
 namespace CK_QOL_Collection.Features.CraftingRange.Patches
@@ -15,8 +15,7 @@ namespace CK_QOL_Collection.Features.CraftingRange.Patches
         ///     A postfix patch for the <see cref="UIManager.OnPlayerInventoryOpen" /> method.
         ///     Searches for nearby chests when the player inventory is opened, if the 'Crafting Range' feature is enabled.
         /// </summary>
-        [HarmonyPostfix]
-		[HarmonyPatch(nameof(UIManager.OnPlayerInventoryOpen), new Type[] { })]
+        [HarmonyPrefix, HarmonyPatch(nameof(UIManager.OnPlayerInventoryOpen), new Type[] { })]
 		private static void OnPlayerInventoryOpenPrefix()
 		{
 			var craftingRangeFeature = FeatureManager.Instance.GetFeature<CraftingRangeFeature>();

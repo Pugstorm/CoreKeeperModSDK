@@ -1,7 +1,7 @@
 using HarmonyLib;
 using UnityEngine;
 
-namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Patches
+namespace CK_QOL_Collection.Core.Patches
 {
     /// <summary>
     ///     Contains Harmony patches for the <see cref="ItemDiscoveryTextUI" /> class to modify how item discovery text is
@@ -25,8 +25,7 @@ namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Patches
         ///     <see langword="false" /> if the patch modifies the behavior to skip the original method execution;
         ///     otherwise, <see langword="true" /> to continue with the original method execution.
         /// </returns>
-        [HarmonyPrefix]
-        [HarmonyPatch(nameof(ItemDiscoveryTextUI.Activate), typeof(string), typeof(Rarity), typeof(ItemDiscoveryUI))]
+        [HarmonyPrefix, HarmonyPatch(nameof(ItemDiscoveryTextUI.Activate), typeof(string), typeof(Rarity), typeof(ItemDiscoveryUI))]
         private static bool Activate(ItemDiscoveryTextUI __instance, ref Color ___color, ref TimerSimple ___activeTimer, string text, Rarity rarity, ItemDiscoveryUI itemDiscoveryUI)
         {
             // Check if the text starts with the custom prefix "-CK-QOL-".

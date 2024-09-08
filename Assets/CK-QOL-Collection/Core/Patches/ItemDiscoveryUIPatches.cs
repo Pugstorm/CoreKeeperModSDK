@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 
-namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Patches
+namespace CK_QOL_Collection.Core.Patches
 {
     /// <summary>
     ///     Contains Harmony patches for the <see cref="ItemDiscoveryUI" /> class to modify how item discoveries are displayed.
@@ -22,8 +22,7 @@ namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Patches
         ///     <see langword="false" /> if the patch modifies the behavior to skip the original method execution;
         ///     otherwise, <see langword="true" /> to continue with the original method execution.
         /// </returns>
-        [HarmonyPrefix]
-        [HarmonyPatch(nameof(ItemDiscoveryUI.ShowDiscoveredItem), typeof(List<string>), typeof(Rarity))]
+        [HarmonyPrefix, HarmonyPatch(nameof(ItemDiscoveryUI.ShowDiscoveredItem), typeof(List<string>), typeof(Rarity))]
         private static bool ShowDiscoveredItem(ItemDiscoveryUI __instance, ref List<string> texts, Rarity rarity)
         {
             // Check if the text list has exactly one item and if it starts with the custom prefix "-CK-QOL-".

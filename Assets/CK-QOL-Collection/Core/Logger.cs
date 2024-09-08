@@ -23,7 +23,7 @@ namespace CK_QOL_Collection.Core
         /// </summary>
         /// <param name="message">The error message to be logged.</param>
         /// <seealso cref="Debug.LogError(object)" />
-        internal static void Error(string message)
+        internal static void Error(object message)
 		{
 			Debug.LogError($"[{ModSettings.Name}] {message}");
 		}

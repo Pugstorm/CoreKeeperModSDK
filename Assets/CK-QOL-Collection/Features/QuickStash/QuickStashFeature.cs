@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
-using CK_QOL_Collection.Core;
-using CK_QOL_Collection.Core.Configuration;
+﻿using CK_QOL_Collection.Core.Configuration;
+using CK_QOL_Collection.Core.Feature;
 using CK_QOL_Collection.Core.Helpers;
 using CK_QOL_Collection.Features.QuickStash.KeyBinds;
 using Rewired;
@@ -13,10 +12,14 @@ namespace CK_QOL_Collection.Features.QuickStash
     /// </summary>
     internal class QuickStashFeature : FeatureBase
     {
-        private readonly QuickStashConfiguration _config;
         private readonly Player _rewiredPlayer;
         private readonly string _keyBindName;
 
+        /// <summary>
+        ///     Gets the configuration settings for the 'Quick Stash' feature.
+        /// </summary>
+        public QuickStashConfiguration Config { get; }
+        
         /// <summary>
         ///     Initializes a new instance of the <see cref="QuickStashFeature" /> class.
         ///     Sets up input handling for the 'Quick Stash' feature.
@@ -24,7 +27,7 @@ namespace CK_QOL_Collection.Features.QuickStash
         public QuickStashFeature()
             : base(nameof(QuickStash))
         {
-            _config = (QuickStashConfiguration)Configuration;
+            Config = (QuickStashConfiguration)Configuration;
             _rewiredPlayer = Entry.RewiredPlayer;
             _keyBindName = KeyBindManager.Instance.GetKeyBind<QuickStashKeyBind>()?.KeyBindName ?? string.Empty;
         }
@@ -45,10 +48,10 @@ namespace CK_QOL_Collection.Features.QuickStash
             }
 
             var player = Manager.main.player;
-            var maxDistance = _config.Distance;
+            var maxDistance = Config.Distance;
             var nearbyChests = ChestHelper.GetNearbyChests(maxDistance);
 
-            // Iterate through the nearby chests and attempt to quick stash items.
+            var stashedIntoChestsCount = 0;
             foreach (var chest in nearbyChests)
             {
                 var inventoryHandler = chest.inventoryHandler;
@@ -59,7 +62,13 @@ namespace CK_QOL_Collection.Features.QuickStash
 
                 // Perform the quick stash action.
                 player.playerInventoryHandler.QuickStack(player, inventoryHandler);
+                stashedIntoChestsCount++;
             }
+
+            //TODO: Get a list of stashed items to display.
+            TextHelper.DisplayText(stashedIntoChestsCount == 0 
+                ? "Nothing stashed!" 
+                : $"Stashed into {stashedIntoChestsCount} chests.", rarity: Rarity.Rare);
         }
 
         /// <inheritdoc />

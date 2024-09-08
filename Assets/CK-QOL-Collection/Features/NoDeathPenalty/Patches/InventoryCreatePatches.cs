@@ -1,4 +1,4 @@
-using CK_QOL_Collection.Core.Configuration;
+using CK_QOL_Collection.Core.Feature;
 using HarmonyLib;
 using Inventory;
 
@@ -20,11 +20,11 @@ namespace CK_QOL_Collection.Features.NoDeathPenalty.Patches
 		///     The result of the inventory change operation, which is modified to retain the original
 		///     inventory.
 		/// </param>
-		[HarmonyPostfix]
-		[HarmonyPatch(nameof(Create.MoveInventory))]
+		[HarmonyPostfix, HarmonyPatch(nameof(Create.MoveInventory))]
 		public static void MoveInventory(ref InventoryChangeData __result)
 		{
-			if (!ConfigurationManager.IsModEnabled)
+			var noDeathPenaltyFeature = FeatureManager.Instance.GetFeature<NoDeathPenaltyFeature>();
+			if (noDeathPenaltyFeature is not { IsEnabled: true })
 			{
 				return;
 			}

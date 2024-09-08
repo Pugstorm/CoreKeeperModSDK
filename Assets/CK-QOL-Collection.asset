@@ -29,8 +29,7 @@ MonoBehaviour:
     - path: Scripts/Features/NoDeathPenalty/Patches/InventoryCreatePatches.cs
     - path: Scripts/Features/NoDeathPenalty/NoDeathPenaltyFeature.cs
     - path: Scripts/Features/NoDeathPenalty/NoDeathPenaltyConfiguration.cs
-    - path: Scripts/Features/ItemPickUpNotifier/Patches/ItemDiscoveryUIPatches.cs
-    - path: Scripts/Features/ItemPickUpNotifier/Patches/ItemDiscoveryTextUIPatches.cs
+    - path: Scripts/Features/ItemPickUpNotifier/Systems/ItemPickUpNotificationSystem.cs
     - path: Scripts/Features/ItemPickUpNotifier/ItemPickUpNotifierFeature.cs
     - path: Scripts/Features/ItemPickUpNotifier/ItemPickUpNotifierConfiguration.cs
     - path: Scripts/Features/CraftingRange/Patches/UIManagerPatches.cs
@@ -38,18 +37,23 @@ MonoBehaviour:
     - path: Scripts/Features/CraftingRange/CraftingRangeFeature.cs
     - path: Scripts/Features/CraftingRange/CraftingRangeConfiguration.cs
     - path: Scripts/Entry.cs
+    - path: Scripts/Core/Patches/ItemDiscoveryUIPatches.cs
+    - path: Scripts/Core/Patches/ItemDiscoveryTextUIPatches.cs
     - path: Scripts/Core/ModSettings.cs
     - path: Scripts/Core/Logger.cs
-    - path: Scripts/Core/IFeature.cs
+    - path: Scripts/Core/Helpers/TextHelper.cs
     - path: Scripts/Core/Helpers/MathHelpers.cs
     - path: Scripts/Core/Helpers/ChestHelper.cs
-    - path: Scripts/Core/FeatureManager.cs
-    - path: Scripts/Core/FeatureBase.cs
+    - path: Scripts/Core/Feature/IFeature.cs
+    - path: Scripts/Core/Feature/FeatureManager.cs
+    - path: Scripts/Core/Feature/FeatureBase.cs
+    - path: Scripts/Core/Extensions/PickUpItemStateExtensions.cs
     - path: Scripts/Core/Configuration/KeyBindManager.cs
     - path: Scripts/Core/Configuration/IFeatureKeyBind.cs
     - path: Scripts/Core/Configuration/IFeatureConfiguration.cs
     - path: Scripts/Core/Configuration/GeneralConfiguration.cs
     - path: Scripts/Core/Configuration/ConfigurationManager.cs
+    - path: Scripts/Generated/ItemPickUpNotificationSystem__System_19055065920.g.cs
     - path: Scripts/Generated/NoDeathPenaltySystem__System_19510078270.g.cs
     - path: Bundles/CK-QOL-Collection_Windows.assetbundle
     - path: Bundles/CK-QOL-Collection_Linux.assetbundle

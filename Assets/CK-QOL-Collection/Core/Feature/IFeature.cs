@@ -1,4 +1,4 @@
-﻿namespace CK_QOL_Collection.Core
+﻿namespace CK_QOL_Collection.Core.Feature
 {
     /// <summary>
     ///     Represents a feature within the CK_QOL_Collection mod.

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using CK_QOL_Collection.Core.Configuration;
 
-namespace CK_QOL_Collection.Core
+namespace CK_QOL_Collection.Core.Feature
 {
     /// <summary>
     ///     Provides a base implementation for features within the CK_QOL_Collection mod.
@@ -17,7 +17,7 @@ namespace CK_QOL_Collection.Core
         /// <summary>
         ///     Gets or sets the list of key bindings for this feature.
         /// </summary>
-        protected List<IFeatureKeyBind> KeyBinds { get; private set; } = new List<IFeatureKeyBind>();
+        protected List<IFeatureKeyBind> KeyBinds { get; private set; } = new();
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="FeatureBase" /> class.
@@ -36,10 +36,7 @@ namespace CK_QOL_Collection.Core
         public bool IsEnabled => Configuration is { Enabled: true };
 
         /// <inheritdoc />
-        public virtual bool CanExecute()
-        {
-            return IsEnabled;
-        }
+        public virtual bool CanExecute() => IsEnabled;
 
         /// <inheritdoc />
         public virtual void Execute()
