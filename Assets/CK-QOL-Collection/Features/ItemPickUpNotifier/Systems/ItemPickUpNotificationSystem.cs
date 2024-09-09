@@ -11,7 +11,7 @@ namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Systems
     ///     System that detects and notifies when a player picks up items into their inventory from the ground or containers.
     ///     This system gathers inventory changes every frame, aggregates them, and logs the results after a configurable delay to reduce notification spam.
     /// </summary>
-    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)] // Ensures the system only runs on the client
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
     [UpdateInGroup(typeof(InventorySystemGroup))]
     public partial class ItemPickUpNotificationSystem : PugSimulationSystemBase
     {
@@ -31,10 +31,8 @@ namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Systems
             var itemPickUpNotifierFeature = FeatureManager.Instance.GetFeature<ItemPickUpNotifierFeature>();
             _isEnabled = itemPickUpNotifierFeature.IsEnabled;
             _logDelay = itemPickUpNotifierFeature.Config.LogDelay;
-
-            Debug.Log($"{_isEnabled} | {_logDelay}");
             
-            if (!_isEnabled)
+            if (isServer || !_isEnabled)
             {
                 return;
             }
@@ -46,27 +44,41 @@ namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Systems
             _cachedPickups = new NativeParallelHashMap<int, (int totalAmount, Rarity rarity, FixedString64Bytes displayName)>(16, Allocator.Persistent);
             _timeSinceLastLog = 0f;
         }
+        
+        /// <summary>
+        ///     Called when the system is destroyed. Disposes of the cached changes list.
+        /// </summary>
+        protected override void OnDestroy()
+        {
+            if (_cachedPickups.IsCreated)
+            {
+                _cachedPickups.Dispose();
+            }
+
+            base.OnDestroy();
+        }
 
         /// <summary>
         ///     Called on each frame update to check for item pickups and log them.
         /// </summary>
         protected override void OnUpdate()
         {
-            if (!_isEnabled)
+            if (isServer || !_isEnabled)
             {
                 return;
             }
 
             if (_localPlayerEntity == Entity.Null)
             {
-                _localPlayerEntity = Manager.main?.player?.isLocal ?? false
-                    ? Manager.main?.player?.entity ?? Entity.Null
-                    : Entity.Null;
-            }
-
-            if (_localPlayerEntity == Entity.Null)
-            {
-                return;
+                var playerController = Manager.main?.player;
+                if (playerController?.isLocal ?? false)
+                {
+                    _localPlayerEntity = playerController.entity;
+                }
+                else
+                {
+                    return;
+                }
             }
 
             var containedObjectsBufferLookup = GetBufferLookup<ContainedObjectsBuffer>(true);
@@ -74,8 +86,9 @@ namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Systems
             var localPlayerEntity = _localPlayerEntity;
 
             Entities
+                .WithNone<EntityDestroyedCD>()
                 .WithAll<InventoryChangeBuffer>()
-                .ForEach((Entity entity, in DynamicBuffer<InventoryChangeBuffer> inventoryChanges) =>
+                .ForEach((Entity _, in DynamicBuffer<InventoryChangeBuffer> inventoryChanges) =>
                 {
                     foreach (var change in inventoryChanges)
                     {
@@ -127,9 +140,9 @@ namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Systems
             {
                 CompleteDependency();
 
-                foreach (var itemPickup in _cachedPickups)
+                foreach (var item in _cachedPickups)
                 {
-                    var (amount, rarity, text) = itemPickup.Value;
+                    var (amount, rarity, text) = item.Value;
                     TextHelper.DisplayText($"{text} x{amount}", rarity);
                 }
 
@@ -138,19 +151,6 @@ namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Systems
             }
 
             base.OnUpdate();
-        }
-
-        /// <summary>
-        ///     Called when the system is destroyed. Disposes of the cached changes list.
-        /// </summary>
-        protected override void OnDestroy()
-        {
-            if (_cachedPickups.IsCreated)
-            {
-                _cachedPickups.Dispose();
-            }
-
-            base.OnDestroy();
         }
     }
 }
