@@ -19,8 +19,8 @@
         "",
         "",
         "CoreLib",
-        "CoreLib.RewiredExtension",
-        "CoreLib.Localization"
+        "CoreLib.Localization",
+        "CoreLib.RewiredExtension"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

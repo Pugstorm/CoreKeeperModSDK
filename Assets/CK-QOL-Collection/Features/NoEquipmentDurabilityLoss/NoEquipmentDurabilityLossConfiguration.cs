@@ -1,16 +1,16 @@
 using CK_QOL_Collection.Core.Configuration;
 using CoreLib.Data.Configuration;
 
-namespace CK_QOL_Collection.Features.NoDeathPenalty
+namespace CK_QOL_Collection.Features.NoEquipmentDurabilityLoss
 {
 	/// <summary>
-	///     Configuration for the 'No Death Penalty' feature.
+	///     Configuration for the 'No Equipment Durability Loss' feature.
 	/// </summary>
-	internal class NoDeathPenaltyConfiguration : IFeatureConfiguration
+	internal class NoEquipmentDurabilityLossConfiguration : IFeatureConfiguration
 	{
 		private ConfigEntry<bool> _enabledEntry;
 
-		public string SectionName => nameof(NoDeathPenalty);
+		public string SectionName => nameof(NoEquipmentDurabilityLoss);
 
 		/// <inheritdoc />
 		public bool Enabled => _enabledEntry.Value;
@@ -19,7 +19,7 @@ namespace CK_QOL_Collection.Features.NoDeathPenalty
 		public void BindSettings(ConfigFile configFile)
 		{
 			var enabledAcceptableValues = new AcceptableValueList<bool>(true, false);
-			var enabledDescription = new ConfigDescription("Enable the 'No Death Penalty' (Server) feature?", enabledAcceptableValues);
+			var enabledDescription = new ConfigDescription("Enable the 'No Equipment Durability Loss' (Server) feature?", enabledAcceptableValues);
 			_enabledEntry = configFile.Bind(SectionName, nameof(Enabled), false, enabledDescription);
 		}
 	}

@@ -2,6 +2,7 @@
 using CK_QOL_Collection.Features.CraftingRange;
 using CK_QOL_Collection.Features.ItemPickUpNotifier;
 using CK_QOL_Collection.Features.NoDeathPenalty;
+using CK_QOL_Collection.Features.NoEquipmentDurabilityLoss;
 using CK_QOL_Collection.Features.QuickStash;
 using CoreLib.Data.Configuration;
 using PugMod;
@@ -67,6 +68,9 @@ namespace CK_QOL_Collection.Core.Configuration
 
             var itemPickUpNotifierConfig = new ItemPickUpNotifierConfiguration();
             FeatureConfigurations[itemPickUpNotifierConfig.SectionName] = itemPickUpNotifierConfig;
+            
+            var noEquipmentDurabilityLossConfig = new NoEquipmentDurabilityLossConfiguration();
+            FeatureConfigurations[noEquipmentDurabilityLossConfig.SectionName] = noEquipmentDurabilityLossConfig;
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CK_QOL_Collection.Features.CraftingRange;
 using CK_QOL_Collection.Features.ItemPickUpNotifier;
 using CK_QOL_Collection.Features.NoDeathPenalty;
+using CK_QOL_Collection.Features.NoEquipmentDurabilityLoss;
 using CK_QOL_Collection.Features.QuickStash;
 
 namespace CK_QOL_Collection.Core.Feature
@@ -36,6 +37,7 @@ namespace CK_QOL_Collection.Core.Feature
 			RegisterFeature(new QuickStashFeature());
 			RegisterFeature(new NoDeathPenaltyFeature());
 			RegisterFeature(new ItemPickUpNotifierFeature());
+			RegisterFeature(new NoEquipmentDurabilityLossFeature());
 		}
 
         /// <summary>

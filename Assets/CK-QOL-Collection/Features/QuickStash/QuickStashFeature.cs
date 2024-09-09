@@ -4,7 +4,6 @@ using CK_QOL_Collection.Core.Feature;
 using CK_QOL_Collection.Core.Helpers;
 using CK_QOL_Collection.Features.QuickStash.KeyBinds;
 using Rewired;
-using UnityEngine;
 
 namespace CK_QOL_Collection.Features.QuickStash
 {
@@ -66,7 +65,7 @@ namespace CK_QOL_Collection.Features.QuickStash
 
             TextHelper.DisplayText(stashedIntoChestsCount == 0 
                 ? "Quick Stash: No chests found!" 
-                : $"Quick Stash: Stashed into {stashedIntoChestsCount} chests.", Rarity.Legendary);
+                : $"Quick Stash: {stashedIntoChestsCount} chests.", Rarity.Legendary);
         }
 
         /// <inheritdoc />

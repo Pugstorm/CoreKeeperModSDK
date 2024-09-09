@@ -25,7 +25,7 @@ namespace CK_QOL_Collection.Features.ItemPickUpNotifier
 		public void BindSettings(ConfigFile configFile)
 		{
 			var enabledAcceptableValues = new AcceptableValueList<bool>(true, false);
-			var enabledDescription = new ConfigDescription("Enable the 'Item Pick-Up Notifier' feature?", enabledAcceptableValues);
+			var enabledDescription = new ConfigDescription("Enable the 'Item Pick-Up Notifier' (Client) feature?", enabledAcceptableValues);
 			_enabledEntry = configFile.Bind(SectionName, nameof(Enabled), false, enabledDescription);
 			
 			var logDelayAcceptableValues = new AcceptableValueRange<float>(1f, 30f);

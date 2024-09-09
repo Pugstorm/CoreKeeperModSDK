@@ -27,7 +27,7 @@ namespace CK_QOL_Collection.Features.CraftingRange
         public void BindSettings(ConfigFile configFile)
 		{
 			var enabledAcceptableValues = new AcceptableValueList<bool>(true, false);
-			var enabledDescription = new ConfigDescription("Enable the 'Crafting Range' feature?", enabledAcceptableValues);
+			var enabledDescription = new ConfigDescription("Enable the 'Crafting Range' (Client) feature?", enabledAcceptableValues);
 			_enabledEntry = configFile.Bind(SectionName, nameof(Enabled), true, enabledDescription);
 
 			var chestLimitAcceptableValues = new AcceptableValueRange<int>(1, 8);

@@ -3,7 +3,6 @@ using CK_QOL_Collection.Core.Helpers;
 using Inventory;
 using Unity.Collections;
 using Unity.Entities;
-using UnityEngine;
 
 namespace CK_QOL_Collection.Features.ItemPickUpNotifier.Systems
 {

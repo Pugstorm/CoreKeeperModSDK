@@ -28,7 +28,7 @@ namespace CK_QOL_Collection.Features.QuickStash
 		public void BindSettings(ConfigFile configFile)
 		{
 			var enabledAcceptableValues = new AcceptableValueList<bool>(true, false);
-			var enabledDescription = new ConfigDescription("Enable the 'Quick Stash' feature?", enabledAcceptableValues);
+			var enabledDescription = new ConfigDescription("Enable the 'Quick Stash' (Client) feature?", enabledAcceptableValues);
 			_enabledEntry = configFile.Bind(SectionName, nameof(Enabled), true, enabledDescription);
 			
 			var chestLimitAcceptableValues = new AcceptableValueRange<int>(1, 50);
