@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using HarmonyLib;
 using UnityEngine;
 
@@ -26,6 +27,7 @@ namespace CK_QOL_Collection.Core.Patches
         ///     otherwise, <see langword="true" /> to continue with the original method execution.
         /// </returns>
         [HarmonyPrefix, HarmonyPatch(nameof(ItemDiscoveryTextUI.Activate), typeof(string), typeof(Rarity), typeof(ItemDiscoveryUI))]
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static bool Activate(ItemDiscoveryTextUI __instance, ref Color ___color, ref TimerSimple ___activeTimer, string text, Rarity rarity, ItemDiscoveryUI itemDiscoveryUI)
         {
             // Check if the text starts with the custom prefix "-CK-QOL-".

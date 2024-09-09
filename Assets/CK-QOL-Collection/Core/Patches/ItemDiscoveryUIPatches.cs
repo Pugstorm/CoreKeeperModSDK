@@ -1,77 +1,125 @@
-using System.Collections.Generic;
 using HarmonyLib;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
 
 namespace CK_QOL_Collection.Core.Patches
 {
-    /// <summary>
-    ///     Contains Harmony patches for the <see cref="ItemDiscoveryUI" /> class to modify how item discoveries are displayed.
-    ///     This patch customizes the display of discovered items in the game to support custom mod text.
-    /// </summary>
-    [HarmonyPatch(typeof(ItemDiscoveryUI))]
-    internal static class ItemDiscoveryUIPatches
-    {
-        /// <summary>
-        ///     A prefix patch for the <see cref="ItemDiscoveryUI.ShowDiscoveredItem(List{string}, Rarity)" /> method.
-        ///     Modifies the behavior to handle custom mod text prefixed with "-CK-QOL-" and manages the discovery text UI elements.
-        /// </summary>
-        /// <param name="__instance">The instance of <see cref="ItemDiscoveryUI" /> being patched.</param>
-        /// <param name="texts">The list of text strings representing discovered items.</param>
-        /// <param name="rarity">The rarity of the discovered item.</param>
-        /// <returns>
-        ///     <see langword="false" /> if the patch modifies the behavior to skip the original method execution;
-        ///     otherwise, <see langword="true" /> to continue with the original method execution.
-        /// </returns>
-        [HarmonyPrefix, HarmonyPatch(nameof(ItemDiscoveryUI.ShowDiscoveredItem), typeof(List<string>), typeof(Rarity))]
-        private static bool ShowDiscoveredItem(ItemDiscoveryUI __instance, ref List<string> texts, Rarity rarity)
-        {
-            // Check if the text list has exactly one item and if it starts with the custom prefix "-CK-QOL-".
-            if (texts.Count is < 1 or > 1 || !texts[0].StartsWith("-CK-QOL-"))
-            {
-                // If the text does not match the criteria, continue with the original method execution.
-                return true;
-            }
+	/// <summary>
+	///		Contains Harmony patches for the <see cref="ItemDiscoveryUI" /> class to modify how item discoveries are displayed.
+	///		instance patch customizes the display of discovered items in the game to support custom mod text and limits the number of active texts.
+	/// </summary>
+	[HarmonyPatch(typeof(ItemDiscoveryUI))]
+	internal static class ItemDiscoveryUIPatches
+	{
+		/// <summary>
+		///		The maximum number of active texts that can be displayed at any given time.
+		/// </summary>
+		private const int MaxActiveTexts = 5;
 
-            var text = texts[0];
+		/// <summary>
+		///		A queue to store notifications that are waiting to be displayed.
+		/// </summary>
+		private static readonly Queue<(string text, Rarity rarity)> NotificationQueue = new();
 
-            // Iterate over discovery texts to find an inactive text object.
-            int discoveryTextsIndex;
-            for (discoveryTextsIndex = 0; discoveryTextsIndex < __instance.discoveryTexts.Count; discoveryTextsIndex++)
-            {
-                if (__instance.discoveryTexts[discoveryTextsIndex].gameObject.activeSelf)
-                {
-                    continue;
-                }
+		/// <summary>
+		///		A flag indicating whether the notification queue is currently being processed.
+		/// </summary>
+		private static bool isProcessingQueue;
+		
+		/// <summary>
+		///		Harmony prefix patch for the <see cref="ItemDiscoveryUI.ShowDiscoveredItem(List{string}, Rarity)" /> method.
+		///		Modifies the behavior to handle custom mod text prefixed with "-CK-QOL-" and manages the discovery text UI elements.
+		/// </summary>
+		/// <param name="__instance">The instance of <see cref="ItemDiscoveryUI" /> being patched.</param>
+		/// <param name="texts">The list of text strings representing discovered items.</param>
+		/// <param name="rarity">The rarity of the discovered item.</param>
+		/// <returns>
+		///		<see langword="false" /> if the patch modifies the behavior to skip the original method execution;
+		///		otherwise, <see langword="true" /> to continue with the original method execution.
+		/// </returns>
+		[HarmonyPrefix, HarmonyPatch(nameof(ItemDiscoveryUI.ShowDiscoveredItem), typeof(List<string>), typeof(Rarity))]
+		[SuppressMessage("ReSharper", "InconsistentNaming")]
+		private static bool ShowDiscoveredItem(ItemDiscoveryUI __instance, ref List<string> texts, Rarity rarity)
+		{
+			// Check if the text is mod-related
+			if (texts.Count is < 1 or > 1 || !texts[0].StartsWith("-CK-QOL-"))
+			{
+				return true; // Continue with the original method execution for non-mod texts
+			}
 
-                // Activate the inactive text object with the custom text and rarity.
-                __instance.discoveryTexts[discoveryTextsIndex].Activate(text, rarity, __instance);
-                break;
-            }
+			var text = texts[0];
+			
+			NotificationQueue.Enqueue((text, rarity));
+			
+			if (!isProcessingQueue)
+			{
+				__instance.StartCoroutine(ProcessNotificationQueue(__instance));
+			}
 
-            // If no inactive text object was found, instantiate a new one and activate it.
-            if (discoveryTextsIndex == __instance.discoveryTexts.Count)
-            {
-                var itemDiscoveryTextUI = Object.Instantiate(__instance.discoveryTextPrefab, __instance.container);
-                __instance.discoveryTexts.Add(itemDiscoveryTextUI);
-                itemDiscoveryTextUI.Activate(text, rarity, __instance);
-            }
+			// Skip the original method execution
+			return false;
+		}
 
-            // Position all active text objects properly by stacking them vertically.
-            var zero = Vector3.zero;
-            for (var activeTextsCount = __instance.activeTexts.Count - 1; activeTextsCount >= 0; activeTextsCount--)
-            {
-                if (!__instance.activeTexts[activeTextsCount].gameObject.activeSelf)
-                {
-                    continue;
-                }
+		/// <summary>
+		/// Processes the notification queue to display notifications while respecting the maximum active text limit.
+		/// </summary>
+		/// <param name="instance">The instance of <see cref="ItemDiscoveryUI" /> managing the display of discovered items.</param>
+		/// <returns>An enumerator for the coroutine that processes the notification queue.</returns>
+		private static IEnumerator<WaitForSeconds> ProcessNotificationQueue(ItemDiscoveryUI instance)
+		{
+			isProcessingQueue = true;
 
-                // Align the active text object's position and adjust the offset for the next text.
-                __instance.activeTexts[activeTextsCount].transform.localPosition = zero;
-                zero += new Vector3(0f, __instance.activeTexts[activeTextsCount].pugText.dimensions.height, 0f);
-            }
+			while (NotificationQueue.Count > 0)
+			{
+				// Check if there are active texts already exceeding the limit
+				while (instance.activeTexts.Count < MaxActiveTexts && NotificationQueue.Count > 0)
+				{
+					var (text, rarity) = NotificationQueue.Dequeue();
 
-            // Skip the original method execution to apply the custom behavior.
-            return false;
-        }
-    }
+					// Activate new notifications until we reach the limit
+					ActivateNotification(instance, text, rarity);
+				}
+
+				// Wait for a short period before checking again
+				yield return new WaitForSeconds(0.1f);
+			}
+
+			isProcessingQueue = false;
+		}
+
+		/// <summary>
+		///		Activates a notification on the screen by using available or newly instantiated text objects.
+		/// </summary>
+		/// <param name="instance">The instance of <see cref="ItemDiscoveryUI" /> managing the display of discovered items.</param>
+		/// <param name="text">The text string representing the discovered item.</param>
+		/// <param name="rarity">The rarity of the discovered item.</param>
+		private static void ActivateNotification(ItemDiscoveryUI instance, string text, Rarity rarity)
+		{
+			int index1;
+			for (index1 = 0; index1 < instance.discoveryTexts.Count; ++index1)
+			{
+				if (!instance.discoveryTexts[index1].gameObject.activeSelf)
+				{
+					instance.discoveryTexts[index1].Activate(text, rarity, instance);
+					break;
+				}
+			}
+			if (index1 == instance.discoveryTexts.Count)
+			{
+				ItemDiscoveryTextUI itemDiscoveryTextUi = Object.Instantiate<ItemDiscoveryTextUI>(instance.discoveryTextPrefab, instance.container);
+				instance.discoveryTexts.Add(itemDiscoveryTextUi);
+				itemDiscoveryTextUi.Activate(text, rarity, instance);
+			}
+			Vector3 zero = Vector3.zero;
+			for (int index2 = instance.activeTexts.Count - 1; index2 >= 0; --index2)
+			{
+				if (instance.activeTexts[index2].gameObject.activeSelf)
+				{
+					instance.activeTexts[index2].transform.localPosition = zero;
+					zero += new Vector3(0.0f, instance.activeTexts[index2].pugText.dimensions.height, 0.0f);
+				}
+			}
+		}
+	}
 }

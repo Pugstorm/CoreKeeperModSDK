@@ -30,7 +30,7 @@ namespace CK_QOL_Collection.Features.ItemPickUpNotifier
 			
 			var logDelayAcceptableValues = new AcceptableValueRange<float>(1f, 30f);
 			var logDelayDescription = new ConfigDescription("The delay in seconds to aggregate picked up items before displaying the notification.", logDelayAcceptableValues);
-			_logDelayEntry = configFile.Bind(SectionName, nameof(LogDelay), 1f, logDelayDescription);
+			_logDelayEntry = configFile.Bind(SectionName, nameof(LogDelay), 1.5f, logDelayDescription);
 		}
 	}
 }

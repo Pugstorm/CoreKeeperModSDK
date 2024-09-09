@@ -8,7 +8,7 @@ namespace CK_QOL_Collection.Core
 		/// <summary>
 		///     The version of the mod.
 		/// </summary>
-		public const string Version = "1.3.2";
+		public const string Version = "1.3.3";
 
 		/// <summary>
 		///     The name of the mod.

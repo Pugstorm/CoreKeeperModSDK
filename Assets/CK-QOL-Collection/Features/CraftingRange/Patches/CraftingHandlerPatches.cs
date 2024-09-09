@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using CK_QOL_Collection.Core.Feature;
 using HarmonyLib;
 
@@ -22,7 +23,8 @@ namespace CK_QOL_Collection.Features.CraftingRange.Patches
         ///     otherwise, <see langword="true" />.
         /// </returns>
 		[HarmonyPrefix, HarmonyPatch(nameof(CraftingHandler.GetAnyNearbyChests), new Type[] { })]
-		private static bool GetAnyNearbyChests(ref List<Chest> __result)
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        private static bool GetAnyNearbyChests(ref List<Chest> __result)
 		{
 			var craftingRangeFeature = FeatureManager.Instance.GetFeature<CraftingRangeFeature>();
 			if (craftingRangeFeature is not { IsEnabled: true })
@@ -44,6 +46,7 @@ namespace CK_QOL_Collection.Features.CraftingRange.Patches
 		// ///     Modifies the list of chests to take materials from, using those from the 'Crafting Range' feature.
 		// /// </summary>
 		// [HarmonyPrefix, HarmonyPatch(nameof(CraftingHandler.HasMaterialsInCraftingInventoryToCraftRecipe), typeof(CraftingHandler.RecipeInfo), typeof(bool), typeof(List<Chest>), typeof(bool), typeof(int))]
+		// [SuppressMessage("ReSharper", "InconsistentNaming")]
 		// private static void HasMaterialsInCraftingInventoryToCraftRecipe(CraftingHandler.RecipeInfo recipeInfo, bool checkPlayerInventoryToo, ref List<Chest> nearbyChestsToTakeMaterialsFrom, bool useRequiredObjectsSetInRecipeInfo, int multiplier)
 		// {
 		//     var craftingRangeFeature = FeatureManager.Instance.GetFeature<Feature>();
@@ -60,6 +63,7 @@ namespace CK_QOL_Collection.Features.CraftingRange.Patches
 		// ///     Modifies the list of chests to take materials from, using those from the 'Crafting Range' feature.
 		// /// </summary>
 		// [HarmonyPrefix, HarmonyPatch(nameof(CraftingHandler.GetCraftingMaterialInfosForRecipe), typeof(CraftingHandler.RecipeInfo), typeof(List<Chest>), typeof(bool), typeof(bool), typeof(bool))]
+		// [SuppressMessage("ReSharper", "InconsistentNaming")]
 		// private static void GetCraftingMaterialInfosForRecipe(CraftingHandler.RecipeInfo recipeInfo, ref List<Chest> nearbyChestsToTakeMaterialsFrom, bool isRepairing, bool isReinforcing, bool isCookedFood)
 		// {
 		//     var craftingRangeFeature = FeatureManager.Instance.GetFeature<Feature>();
@@ -76,6 +80,7 @@ namespace CK_QOL_Collection.Features.CraftingRange.Patches
 		// ///     Modifies the list of chests to take materials from, using those from the 'Crafting Range' feature.
 		// /// </summary>
 		// [HarmonyPrefix, HarmonyPatch(nameof(CraftingHandler.GetCraftingMaterialInfosForUpgrade))]
+		// [SuppressMessage("ReSharper", "InconsistentNaming")]
 		// private static void GetCraftingMaterialInfosForUpgrade(int level, ref List<Chest> nearbyChestsToTakeMaterialsFrom)
 		// {
 		//     var craftingRangeFeature = FeatureManager.Instance.GetFeature<Feature>();

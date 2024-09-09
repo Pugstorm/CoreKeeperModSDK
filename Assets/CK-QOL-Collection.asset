@@ -19,7 +19,7 @@ MonoBehaviour:
     disableScripts: 0
     accessesExtraAssemblies: 1
     disableHarmonyPatching: 0
-    requiredOn: -1
+    requiredOn: 3
     files:
     - path: Localization/Localization.csv
     - path: Scripts/Features/QuickStash/QuickStashFeature.cs
