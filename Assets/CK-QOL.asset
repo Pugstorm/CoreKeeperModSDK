@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc43e4983a160e543856e5ba0421c9e1, type: 3}
+  m_Name: CK-QOL
+  m_EditorClassIdentifier: 
+  metadata:
+    guid: d3bac1eb08fc4cd292da4370a06951f9
+    name: CK-QOL
+    skipSafetyChecks: 0
+    disableScripts: 0
+    accessesExtraAssemblies: 1
+    disableHarmonyPatching: 0
+    requiredOn: 3
+    files:
+    - path: Localization/Localization.csv
+    - path: Scripts/Features/QuickStash/QuickStashConfig.cs
+    - path: Scripts/Features/QuickStash/QuickStash.cs
+    - path: Scripts/Features/QuickHeal/QuickHealConfig.cs
+    - path: Scripts/Features/QuickHeal/QuickHeal.cs
+    - path: Scripts/Features/QuickEat/QuickEatConfig.cs
+    - path: Scripts/Features/QuickEat/QuickEat.cs
+    - path: Scripts/Features/NoEquipmentDurabilityLoss/Systems/NoEquipmentDurabilityLossSystem.cs
+    - path: Scripts/Features/NoEquipmentDurabilityLoss/NoEquipmentDurabilityLossConfig.cs
+    - path: Scripts/Features/NoEquipmentDurabilityLoss/NoEquipmentDurabilityLoss.cs
+    - path: Scripts/Features/NoDeathPenalty/Systems/NoDeathPenaltySystem.cs
+    - path: Scripts/Features/NoDeathPenalty/Patches/InventoryCreatePatches.cs
+    - path: Scripts/Features/NoDeathPenalty/NoDeathPenaltyConfig.cs
+    - path: Scripts/Features/NoDeathPenalty/NoDeathPenalty.cs
+    - path: Scripts/Features/ItemPickUpNotifier/Systems/ItemPickUpNotificationSystem.cs
+    - path: Scripts/Features/ItemPickUpNotifier/ItemPickUpNotifierConfig.cs
+    - path: Scripts/Features/ItemPickUpNotifier/ItemPickUpNotifier.cs
+    - path: Scripts/Features/CraftingRange/Patches/UIManagerPatches.cs
+    - path: Scripts/Features/CraftingRange/Patches/CraftingHandlerPatches.cs
+    - path: Scripts/Features/CraftingRange/CraftingRangeConfig.cs
+    - path: Scripts/Features/CraftingRange/CraftingRange.cs
+    - path: Scripts/Entry.cs
+    - path: Scripts/Core/Patches/ItemDiscoveryUIPatches.cs
+    - path: Scripts/Core/Patches/ItemDiscoveryTextUIPatches.cs
+    - path: Scripts/Core/ModSettings.cs
+    - path: Scripts/Core/ModLogger.cs
+    - path: Scripts/Core/Helpers/TextHelper.cs
+    - path: Scripts/Core/Helpers/MathHelpers.cs
+    - path: Scripts/Core/Helpers/CoroutineHelper.cs
+    - path: Scripts/Core/Helpers/ChestHelper.cs
+    - path: Scripts/Core/Features/IFeature.cs
+    - path: Scripts/Core/Features/FeatureType.cs
+    - path: Scripts/Core/Features/FeatureBase.cs
+    - path: Scripts/Core/Config/ConfigBase.cs
+    - path: Scripts/Generated/ItemPickUpNotificationSystem__System_16760277450.g.cs
+    - path: Scripts/Generated/NoDeathPenaltySystem__System_14410053500.g.cs
+    - path: Scripts/Generated/NoEquipmentDurabilityLossSystem__System_18387612860.g.cs
+    - path: Bundles/CK-QOL_Windows.assetbundle
+    - path: Bundles/CK-QOL_Linux.assetbundle
+    dependencies:
+    - modName: CoreLib
+      required: 1
+    - modName: CoreLib.Localization
+      required: 1
+    - modName: CoreLib.RewiredExtension
+      required: 1
+  modPath: Assets\CK-QOL
+  buildBurst: 1
+  buildLinux: 1
