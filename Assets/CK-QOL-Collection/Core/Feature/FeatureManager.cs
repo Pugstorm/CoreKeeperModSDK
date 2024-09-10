@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using CK_QOL_Collection.Features.CraftingRange;
+using CK_QOL_Collection.Features.EatableBinding;
+using CK_QOL_Collection.Features.HealableBinding;
 using CK_QOL_Collection.Features.ItemPickUpNotifier;
 using CK_QOL_Collection.Features.NoDeathPenalty;
 using CK_QOL_Collection.Features.NoEquipmentDurabilityLoss;
@@ -38,6 +40,8 @@ namespace CK_QOL_Collection.Core.Feature
 			RegisterFeature(new NoDeathPenaltyFeature());
 			RegisterFeature(new ItemPickUpNotifierFeature());
 			RegisterFeature(new NoEquipmentDurabilityLossFeature());
+			RegisterFeature(new EatableBindingFeature());
+			RegisterFeature(new HealableBindingFeature());
 		}
 
         /// <summary>

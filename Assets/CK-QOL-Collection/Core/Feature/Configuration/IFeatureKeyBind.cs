@@ -1,6 +1,6 @@
 using Rewired;
 
-namespace CK_QOL_Collection.Core.Configuration
+namespace CK_QOL_Collection.Core.Feature.Configuration
 {
 	/// <summary>
 	///     Represents the interface for key bindings of a feature.

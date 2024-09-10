@@ -1,6 +1,6 @@
 using CoreLib.Data.Configuration;
 
-namespace CK_QOL_Collection.Core.Configuration
+namespace CK_QOL_Collection.Core.Feature.Configuration
 {
 	/// <summary>
 	///     Configuration for general settings of the mod.

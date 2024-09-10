@@ -1,6 +1,6 @@
 ﻿using System.Linq;
-using CK_QOL_Collection.Core.Configuration;
 using CK_QOL_Collection.Core.Feature;
+using CK_QOL_Collection.Core.Feature.Configuration;
 using CK_QOL_Collection.Core.Helpers;
 using CK_QOL_Collection.Features.QuickStash.KeyBinds;
 using Rewired;

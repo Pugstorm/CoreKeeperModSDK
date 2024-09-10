@@ -1,4 +1,4 @@
-using CK_QOL_Collection.Core.Configuration;
+using CK_QOL_Collection.Core.Feature.Configuration;
 using CoreLib.Data.Configuration;
 
 namespace CK_QOL_Collection.Features.CraftingRange

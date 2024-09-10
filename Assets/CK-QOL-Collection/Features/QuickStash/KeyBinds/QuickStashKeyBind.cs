@@ -1,5 +1,5 @@
 using CK_QOL_Collection.Core;
-using CK_QOL_Collection.Core.Configuration;
+using CK_QOL_Collection.Core.Feature.Configuration;
 using Rewired;
 
 namespace CK_QOL_Collection.Features.QuickStash.KeyBinds

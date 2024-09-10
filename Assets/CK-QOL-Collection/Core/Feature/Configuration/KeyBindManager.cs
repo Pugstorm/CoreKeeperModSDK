@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using CK_QOL_Collection.Features.EatableBinding.KeyBinds;
+using CK_QOL_Collection.Features.HealableBinding.KeyBinds;
 using CK_QOL_Collection.Features.QuickStash.KeyBinds;
 using CoreLib.RewiredExtension;
 
-namespace CK_QOL_Collection.Core.Configuration
+namespace CK_QOL_Collection.Core.Feature.Configuration
 {
     /// <summary>
     ///     Manages all key bindings for the CK QOL Collection mod.
@@ -30,6 +32,8 @@ namespace CK_QOL_Collection.Core.Configuration
         private KeyBindManager()
         {
             RegisterKeyBind(new QuickStashKeyBind());
+            RegisterKeyBind(new EatableBindingKeyBind());
+            RegisterKeyBind(new HealableBindingKeyBind());
         }
 
         /// <summary>

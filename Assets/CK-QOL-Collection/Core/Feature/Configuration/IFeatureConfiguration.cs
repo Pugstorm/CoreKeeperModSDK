@@ -1,6 +1,6 @@
 using CoreLib.Data.Configuration;
 
-namespace CK_QOL_Collection.Core.Configuration
+namespace CK_QOL_Collection.Core.Feature.Configuration
 {
     /// <summary>
     ///     Interface for feature configuration settings.

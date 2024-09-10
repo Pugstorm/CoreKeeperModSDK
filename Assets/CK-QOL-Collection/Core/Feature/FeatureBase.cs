@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using CK_QOL_Collection.Core.Configuration;
+using CK_QOL_Collection.Core.Feature.Configuration;
 
 namespace CK_QOL_Collection.Core.Feature
 {

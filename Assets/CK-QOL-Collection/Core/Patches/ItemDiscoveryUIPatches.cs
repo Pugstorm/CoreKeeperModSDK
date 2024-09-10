@@ -107,12 +107,12 @@ namespace CK_QOL_Collection.Core.Patches
 			}
 			if (index1 == instance.discoveryTexts.Count)
 			{
-				ItemDiscoveryTextUI itemDiscoveryTextUi = Object.Instantiate<ItemDiscoveryTextUI>(instance.discoveryTextPrefab, instance.container);
+				var itemDiscoveryTextUi = Object.Instantiate<ItemDiscoveryTextUI>(instance.discoveryTextPrefab, instance.container);
 				instance.discoveryTexts.Add(itemDiscoveryTextUi);
 				itemDiscoveryTextUi.Activate(text, rarity, instance);
 			}
-			Vector3 zero = Vector3.zero;
-			for (int index2 = instance.activeTexts.Count - 1; index2 >= 0; --index2)
+			var zero = Vector3.zero;
+			for (var index2 = instance.activeTexts.Count - 1; index2 >= 0; --index2)
 			{
 				if (instance.activeTexts[index2].gameObject.activeSelf)
 				{

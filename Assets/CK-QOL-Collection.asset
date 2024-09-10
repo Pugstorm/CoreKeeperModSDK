@@ -35,6 +35,9 @@ MonoBehaviour:
     - path: Scripts/Features/ItemPickUpNotifier/Systems/ItemPickUpNotificationSystem.cs
     - path: Scripts/Features/ItemPickUpNotifier/ItemPickUpNotifierFeature.cs
     - path: Scripts/Features/ItemPickUpNotifier/ItemPickUpNotifierConfiguration.cs
+    - path: Scripts/Features/EatableBinding/KeyBinds/EatableBindingKeyBind.cs
+    - path: Scripts/Features/EatableBinding/EatableBindingFeature.cs
+    - path: Scripts/Features/EatableBinding/EatableBindingConfiguration.cs
     - path: Scripts/Features/CraftingRange/Patches/UIManagerPatches.cs
     - path: Scripts/Features/CraftingRange/Patches/CraftingHandlerPatches.cs
     - path: Scripts/Features/CraftingRange/CraftingRangeFeature.cs
@@ -46,6 +49,7 @@ MonoBehaviour:
     - path: Scripts/Core/Logger.cs
     - path: Scripts/Core/Helpers/TextHelper.cs
     - path: Scripts/Core/Helpers/MathHelpers.cs
+    - path: Scripts/Core/Helpers/CoroutineHelper.cs
     - path: Scripts/Core/Helpers/ChestHelper.cs
     - path: Scripts/Core/Feature/IFeature.cs
     - path: Scripts/Core/Feature/FeatureManager.cs

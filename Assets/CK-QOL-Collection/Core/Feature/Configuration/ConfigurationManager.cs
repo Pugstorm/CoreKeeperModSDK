@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using CK_QOL_Collection.Features.CraftingRange;
+using CK_QOL_Collection.Features.EatableBinding;
+using CK_QOL_Collection.Features.HealableBinding;
 using CK_QOL_Collection.Features.ItemPickUpNotifier;
 using CK_QOL_Collection.Features.NoDeathPenalty;
 using CK_QOL_Collection.Features.NoEquipmentDurabilityLoss;
@@ -7,7 +9,7 @@ using CK_QOL_Collection.Features.QuickStash;
 using CoreLib.Data.Configuration;
 using PugMod;
 
-namespace CK_QOL_Collection.Core.Configuration
+namespace CK_QOL_Collection.Core.Feature.Configuration
 {
     /// <summary>
     ///     Handles the configuration settings for the CK_QOL_Collection mod.
@@ -71,6 +73,12 @@ namespace CK_QOL_Collection.Core.Configuration
             
             var noEquipmentDurabilityLossConfig = new NoEquipmentDurabilityLossConfiguration();
             FeatureConfigurations[noEquipmentDurabilityLossConfig.SectionName] = noEquipmentDurabilityLossConfig;
+            
+            var eatableBindingConfig = new EatableBindingConfiguration();
+            FeatureConfigurations[eatableBindingConfig.SectionName] = eatableBindingConfig;
+            
+            var healableBindingConfig = new HealableBindingConfiguration();
+            FeatureConfigurations[healableBindingConfig.SectionName] = healableBindingConfig;
         }
 
         /// <summary>

@@ -1,6 +1,6 @@
 ﻿using CK_QOL_Collection.Core;
-using CK_QOL_Collection.Core.Configuration;
 using CK_QOL_Collection.Core.Feature;
+using CK_QOL_Collection.Core.Feature.Configuration;
 using CoreLib;
 using CoreLib.Localization;
 using CoreLib.RewiredExtension;
