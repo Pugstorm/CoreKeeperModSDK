@@ -94,7 +94,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 			var localPlayerEntity = _localPlayerEntity;
 
 			Entities
-				.WithNone<EntityDestroyedCD>()
+				.WithNone<EntityDestroyedCD, CattleCD>()
 				.WithAll<InventoryChangeBuffer>()
 				.ForEach((Entity _, in DynamicBuffer<InventoryChangeBuffer> inventoryChanges) =>
 				{
@@ -119,7 +119,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 						var itemsBuffer = containedObjectsBufferLookup[sourceInventory];
 						foreach (var item in itemsBuffer)
 						{
-							if (item.objectData.objectID == ObjectID.None)
+							if (item.objectID is ObjectID.None or ObjectID.CattleCage)
 							{
 								continue;
 							}

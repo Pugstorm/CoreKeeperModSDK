@@ -63,17 +63,17 @@ namespace CK_QOL.Features.NoEquipmentDurabilityLoss.Systems
 
             foreach (var equippedObject in SystemAPI.Query<RefRW<EquippedObjectCD>>())
             {
-                if (equippedObject.ValueRW.containedObject.objectID == ObjectID.None)
+                if (equippedObject.ValueRO.containedObject.objectID is ObjectID.None or ObjectID.CattleCage)
                 {
                     continue;
                 }
-                
-                if (!SystemAPI.HasComponent<DurabilityCD>(equippedObject.ValueRW.equipmentPrefab))
+
+                if (!SystemAPI.HasComponent<DurabilityCD>(equippedObject.ValueRO.equipmentPrefab))
                 {
                     continue;
                 }
                     
-                var durabilityComponent = SystemAPI.GetComponent<DurabilityCD>(equippedObject.ValueRW.equipmentPrefab);
+                var durabilityComponent = SystemAPI.GetComponent<DurabilityCD>(equippedObject.ValueRO.equipmentPrefab);
                 equippedObject.ValueRW.containedObject.objectData.amount = durabilityComponent.maxDurability;
             }
 
