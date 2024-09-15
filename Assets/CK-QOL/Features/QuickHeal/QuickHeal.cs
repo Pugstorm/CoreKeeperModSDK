@@ -64,6 +64,7 @@ namespace CK_QOL.Features.QuickHeal
 		#endregion Configurations
 
 		private int _previousSlotIndex = -1;
+		private int _fromSlotIndex = -1;
 
 		public QuickHeal()
 		{
@@ -122,6 +123,7 @@ namespace CK_QOL.Features.QuickHeal
 		private bool TryFindHealable(PlayerController player)
 		{
 			_previousSlotIndex = player.equippedSlotIndex;
+			_fromSlotIndex = -1;
 
 			// Check if there's a healable item in the predefined slot.
 			if (IsHealable(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex)))
@@ -137,6 +139,9 @@ namespace CK_QOL.Features.QuickHeal
 				{
 					continue;
 				}
+
+				// Store the slot we're swapping from.
+				_fromSlotIndex = playerInventoryIndex;
 
 				// Swap the item to the healable slot.
 				player.playerInventoryHandler.Swap(player, playerInventoryIndex, player.playerInventoryHandler, EquipmentSlotIndex);
@@ -182,6 +187,9 @@ namespace CK_QOL.Features.QuickHeal
 			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryConsume.secondInteractUITriggered = true;
 			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
+
+			// Swap the original item back to the eatable slot we used
+			if (_fromSlotIndex != -1 && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None) player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
 		}
 
 		/// <summary>
