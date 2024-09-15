@@ -13,7 +13,7 @@ namespace CK_QOL.Features.NoEquipmentDurabilityLoss
 			var acceptableValues = new AcceptableValueList<bool>(true, false);
 			var description = new ConfigDescription($"Enable the '{feature.DisplayName}' ({feature.FeatureType}) feature? {feature.Description}", acceptableValues);
 			var definition = new ConfigDefinition(feature.Name, nameof(feature.IsEnabled));
-			
+
 			var entry = Config.Bind(definition, false, description);
 
 			return entry.Value;

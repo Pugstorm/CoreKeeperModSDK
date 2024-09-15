@@ -17,7 +17,7 @@ namespace CK_QOL.Features.QuickHeal
 
 			return entry.Value;
 		}
-		
+
 		internal static int ApplyEquipmentSlotIndex(QuickHeal feature)
 		{
 			var acceptableValues = new AcceptableValueRange<int>(0, 9);

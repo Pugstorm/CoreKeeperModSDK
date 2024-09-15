@@ -7,7 +7,8 @@ namespace CK_QOL.Features.NoDeathPenalty.Patches
 	[HarmonyPatch(typeof(Create))]
 	internal static class InventoryCreatePatches
 	{
-		[HarmonyPostfix, HarmonyPatch(nameof(Create.MoveInventory))]
+		[HarmonyPostfix]
+		[HarmonyPatch(nameof(Create.MoveInventory))]
 		[SuppressMessage("ReSharper", "InconsistentNaming")]
 		private static void MoveInventory(ref InventoryChangeData __result)
 		{
@@ -15,7 +16,7 @@ namespace CK_QOL.Features.NoDeathPenalty.Patches
 			{
 				return;
 			}
-			
+
 			// inventoryAction = InventoryAction.MoveInventory
 			// inventory1 = inventoryFrom (Entity)
 			// entityOrInventory2 = inventoryTo (Entity)

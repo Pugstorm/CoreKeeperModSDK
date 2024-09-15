@@ -4,12 +4,44 @@ using System.Diagnostics.CodeAnalysis;
 namespace CK_QOL.Core.Features
 {
 	/// <summary>
-	///		A base class for all features, implementing the IFeature interface and providing thread-safe singleton behavior.
+	///     A base class for all features, implementing the IFeature interface and providing thread-safe singleton behavior.
 	/// </summary>
 	/// <typeparam name="TFeature">The type of the feature inheriting from FeatureBase.</typeparam>
-	internal abstract class FeatureBase<TFeature>: IFeature
+	internal abstract class FeatureBase<TFeature> : IFeature
 		where TFeature : FeatureBase<TFeature>, new()
 	{
+		/// <summary>
+		///     Determines whether the feature can be executed.
+		///     Override this method in derived classes to provide additional checks or conditions.
+		/// </summary>
+		/// <remarks>
+		///     When overriding, the base method <see cref="CanExecute" /> should be called to ensure the base conditions are
+		///     respected.
+		/// </remarks>
+		public virtual bool CanExecute() => IsEnabled;
+
+		/// <summary>
+		///     Executes the feature's logic.
+		///     Override this method in derived classes to implement specific execution logic for the feature.
+		/// </summary>
+		/// <remarks>
+		///     When overriding, <see cref="CanExecute" /> should be called to ensure the base conditions are respected.
+		/// </remarks>
+		public virtual void Execute()
+		{
+		}
+
+		/// <summary>
+		///     Executes the feature's update logic.
+		///     Override this method in derived classes to implement specific update logic for the feature.
+		/// </summary>
+		/// <remarks>
+		///     When overriding, <see cref="CanExecute" /> should be called to ensure the base conditions are respected.
+		/// </remarks>
+		public virtual void Update()
+		{
+		}
+
 		#region Singleton
 
 		[SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -33,36 +65,5 @@ namespace CK_QOL.Core.Features
 		public bool IsEnabled { get; protected set; }
 
 		#endregion IFeature
-		
-		/// <summary>
-		///		Determines whether the feature can be executed.
-		///		Override this method in derived classes to provide additional checks or conditions.
-		/// </summary>
-		/// <remarks>		
-		///		When overriding, the base method <see cref="CanExecute"/> should be called to ensure the base conditions are respected.
-		/// </remarks>
-		public virtual bool CanExecute() => IsEnabled;
-
-		/// <summary>
-		///		Executes the feature's logic.
-		///		Override this method in derived classes to implement specific execution logic for the feature.
-		/// </summary>
-		/// <remarks>
-		///		When overriding, <see cref="CanExecute"/> should be called to ensure the base conditions are respected.
-		/// </remarks>
-		public virtual void Execute()
-		{
-		}
-
-		/// <summary>
-		///		Executes the feature's update logic.
-		///		Override this method in derived classes to implement specific update logic for the feature.
-		/// </summary>
-		/// <remarks>
-		///		When overriding, <see cref="CanExecute"/> should be called to ensure the base conditions are respected.
-		/// </remarks>
-		public virtual void Update()
-		{
-		}
 	}
 }

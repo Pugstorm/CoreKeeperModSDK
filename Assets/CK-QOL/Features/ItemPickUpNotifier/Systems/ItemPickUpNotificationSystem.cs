@@ -6,43 +6,54 @@ using Unity.Entities;
 namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 {
 	/// <summary>
-	/// 	Represents the system responsible for managing and aggregating item pick-up notifications within the game client.
-	///		This system runs as part of the client-side simulation and listens for inventory changes related to item pickups, collecting and displaying aggregated notifications to the player.
-	/// 	
-	/// 	The system performs the following functions:
-	/// 	<list type="bullet">
-	/// 	    <item>
-	/// 	        <description>Monitors inventory changes to detect when items are picked up by the player, 
-	/// 	        using the <see cref="InventoryChangeBuffer"/> component to track relevant events.</description>
-	/// 	    </item>
-	/// 	    <item>
-	/// 	        <description>Caches the details of picked-up items (e.g., total amount, rarity, and display name) 
-	/// 	        using a <see cref="NativeParallelHashMap{TKey,TValue}"/> for efficient aggregation.</description>
-	/// 	    </item>
-	/// 	    <item>
-	/// 	        <description>Aggregates multiple pick-up events over a configurable delay period (<see cref="ItemPickUpNotifier.AggregateDelay"/>),
-	///				reducing notification spam by combining multiple events into a single message.</description>
-	/// 	    </item>
-	/// 	    <item>
-	/// 	        <description>Displays aggregated notifications to the player at regular intervals, 
-	/// 	        utilizing the game's text display system to show the total items picked up within the specified delay period.</description>
-	/// 	    </item>
-	/// 	</list>
-	/// 	
-	/// 	This system is enabled and controlled by the <see cref="ItemPickUpNotifier"/> feature, 
-	/// 	which provides the necessary configuration settings and determines whether the system should be active based on the feature's enabled state.
+	///     Represents the system responsible for managing and aggregating item pick-up notifications within the game client.
+	///     This system runs as part of the client-side simulation and listens for inventory changes related to item pickups,
+	///     collecting and displaying aggregated notifications to the player.
+	///     The system performs the following functions:
+	///     <list type="bullet">
+	///         <item>
+	///             <description>
+	///                 Monitors inventory changes to detect when items are picked up by the player,
+	///                 using the <see cref="InventoryChangeBuffer" /> component to track relevant events.
+	///             </description>
+	///         </item>
+	///         <item>
+	///             <description>
+	///                 Caches the details of picked-up items (e.g., total amount, rarity, and display name)
+	///                 using a <see cref="NativeParallelHashMap{TKey,TValue}" /> for efficient aggregation.
+	///             </description>
+	///         </item>
+	///         <item>
+	///             <description>
+	///                 Aggregates multiple pick-up events over a configurable delay period (
+	///                 <see cref="ItemPickUpNotifier.AggregateDelay" />),
+	///                 reducing notification spam by combining multiple events into a single message.
+	///             </description>
+	///         </item>
+	///         <item>
+	///             <description>
+	///                 Displays aggregated notifications to the player at regular intervals,
+	///                 utilizing the game's text display system to show the total items picked up within the specified delay
+	///                 period.
+	///             </description>
+	///         </item>
+	///     </list>
+	///     This system is enabled and controlled by the <see cref="ItemPickUpNotifier" /> feature,
+	///     which provides the necessary configuration settings and determines whether the system should be active based on the
+	///     feature's enabled state.
 	/// </summary>
 	/// <remarks>
-	/// 	The <see cref="ItemPickUpNotificationSystem"/> class extends <see cref="PugSimulationSystemBase"/> to integrate with the game's simulation framework,
-	///		running in the client-side simulation context to handle item pick-up notifications in real-time.
+	///     The <see cref="ItemPickUpNotificationSystem" /> class extends <see cref="PugSimulationSystemBase" /> to integrate
+	///     with the game's simulation framework,
+	///     running in the client-side simulation context to handle item pick-up notifications in real-time.
 	/// </remarks>
 	[WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
 	[UpdateInGroup(typeof(InventorySystemGroup))]
 	public partial class ItemPickUpNotificationSystem : PugSimulationSystemBase
 	{
 		private NativeParallelHashMap<int, (int totalAmount, Rarity rarity, FixedString64Bytes displayName)> _cachedPickups;
-		private float _timeSinceLastLog;
 		private Entity _localPlayerEntity;
+		private float _timeSinceLastLog;
 
 		protected override void OnCreate()
 		{

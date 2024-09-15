@@ -5,12 +5,13 @@ using HarmonyLib;
 
 namespace CK_QOL.Features.CraftingRange.Patches
 {
-    [HarmonyPatch(typeof(CraftingHandler))]
+	[HarmonyPatch(typeof(CraftingHandler))]
 	internal static class CraftingHandlerPatches
 	{
-		[HarmonyPrefix, HarmonyPatch(nameof(CraftingHandler.GetAnyNearbyChests), new Type[] { })]
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        private static bool GetAnyNearbyChests(ref List<Chest> __result)
+		[HarmonyPrefix]
+		[HarmonyPatch(nameof(CraftingHandler.GetAnyNearbyChests), new Type[] { })]
+		[SuppressMessage("ReSharper", "InconsistentNaming")]
+		private static bool GetAnyNearbyChests(ref List<Chest> __result)
 		{
 			if (!CraftingRange.Instance.IsEnabled)
 			{

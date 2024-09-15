@@ -17,7 +17,7 @@ namespace CK_QOL.Features.QuickEat
 
 			return entry.Value;
 		}
-		
+
 		internal static int ApplyEquipmentSlotIndex(QuickEat feature)
 		{
 			var acceptableValues = new AcceptableValueRange<int>(0, 9);

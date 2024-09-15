@@ -10,12 +10,12 @@ namespace CK_QOL.Core
 		{
 			Debug.Log($"{Prefix} {message}");
 		}
-		
+
 		internal static void Warn(object message)
 		{
 			Debug.LogWarning($"{Prefix} {message}");
 		}
-		
+
 		internal static void Error(object message)
 		{
 			Debug.LogError($"{Prefix} {message}");

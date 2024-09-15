@@ -17,7 +17,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier
 
 			return entry.Value;
 		}
-		
+
 		internal static float ApplyAggregateDelay(ItemPickUpNotifier feature)
 		{
 			var acceptableValues = new AcceptableValueRange<float>(1f, 30f);
