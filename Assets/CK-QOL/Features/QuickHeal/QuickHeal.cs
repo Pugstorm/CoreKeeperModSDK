@@ -172,7 +172,7 @@ namespace CK_QOL.Features.QuickHeal
 			// Re-equip the slot to reinitialize the item state, ensuring that any side effects of the input reset are neutralized.
 			player.EquipSlot(EquipmentSlotIndex);
 
-			// Swap the original item back to the healable slot we used.
+			// Swap back to the original item.
 			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None) player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
 
 			// Set the secondInteractUITriggered flag to 'true' to simulate the "right-click" or "use" action on the item.

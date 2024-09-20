@@ -8,8 +8,8 @@ using CK_QOL.Features.NoDeathPenalty;
 using CK_QOL.Features.NoEquipmentDurabilityLoss;
 using CK_QOL.Features.QuickEat;
 using CK_QOL.Features.QuickHeal;
-using CK_QOL.Features.QuickSummon;
 using CK_QOL.Features.QuickStash;
+using CK_QOL.Features.QuickSummon;
 using CoreLib;
 using CoreLib.Localization;
 using CoreLib.RewiredExtension;
@@ -31,7 +31,7 @@ namespace CK_QOL
 
 		public void EarlyInit()
 		{
-			ModLogger.Info($"{ModSettings.Name} v{ModSettings.Version} by {ModSettings.Author}");
+			ModLogger.Info($"{ModSettings.Name} v{ModSettings.Version} by {ModSettings.Author} with contributors {ModSettings.Contributors}");
 
 			ModInfo = this.GetModInfo();
 			if (ModInfo is null)

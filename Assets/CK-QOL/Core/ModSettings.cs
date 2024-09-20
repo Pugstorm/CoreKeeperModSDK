@@ -6,8 +6,10 @@ namespace CK_QOL.Core
 
 		public const string ShortName = "CK_QOL";
 
-		public const string Version = "1.5.3";
+		public const string Version = "1.6.0";
 
 		public const string Author = "DrSalzstreuer";
+
+		public const string Contributors = "spintermind & Fehdra";
 	}
 }
