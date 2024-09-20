@@ -115,6 +115,8 @@ namespace CK_QOL.Features.QuickHeal
 			// Check if there's a healable item in the predefined slot.
 			if (IsHealable(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex)))
 			{
+				_fromSlotIndex = EquipmentSlotIndex;
+				
 				return true;
 			}
 
@@ -170,13 +172,13 @@ namespace CK_QOL.Features.QuickHeal
 			// Re-equip the slot to reinitialize the item state, ensuring that any side effects of the input reset are neutralized.
 			player.EquipSlot(EquipmentSlotIndex);
 
+			// Swap the original item back to the healable slot we used.
+			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None) player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+
 			// Set the secondInteractUITriggered flag to 'true' to simulate the "right-click" or "use" action on the item.
 			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryConsume.secondInteractUITriggered = true;
 			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
-
-			// Swap the original item back to the healable slot we used.
-			if (_fromSlotIndex != -1 && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None) player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
 		}
 
 		/// <summary>
