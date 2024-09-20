@@ -132,10 +132,12 @@ namespace CK_QOL.Features.ShiftClick
 			var firstFound = GetIndexOfItemInInventory(inventoryHandler, objectID, index);
 
 			if (!isItemStackable)
+			{
 				return firstFound;
+			}
 
 			var nextItemKind = GetIndexOfItemInInventory(inventoryHandler, objectID, 0, firstFound);
-			var firstStackableSlot = FindFirstStackbleSlot(startingIndex, firstFound, nextItemKind);
+			var firstStackableSlot = FindFirstStackableSlot(startingIndex, firstFound, nextItemKind);
 
 			return firstStackableSlot ?? GetIndexOfItemInInventory(inventoryHandler, ObjectID.None, index);
 		}
@@ -147,23 +149,31 @@ namespace CK_QOL.Features.ShiftClick
 				var objData = inventoryHandler.GetObjectData(i);
 
 				if (objData.objectID == objectID && i != skipIndex)
+				{
 					return i;
+				}
 			}
 
 			return -1;
 		}
 
-		private static int? FindFirstStackbleSlot(int initialValue, int first, int second)
+		private static int? FindFirstStackableSlot(int initialValue, int first, int second)
 		{
 			if (first == initialValue && second != -1)
+			{
 				return second;
+			}
 
 			if (second == initialValue && first != -1)
+			{
 				return first;
+			}
 
 			// edge case - when inventory is filled with stackable items of the same kind
 			if (first != second && first != initialValue && first != -1)
+			{
 				return first;
+			}
 
 			return null;
 		}
@@ -171,7 +181,9 @@ namespace CK_QOL.Features.ShiftClick
 		private static void MoveInventoryItem(PlayerController player, InventoryHandler primaryInventoryHandler, InventoryHandler secondaryInventoryHandler, int index, int emptySlot)
 		{
 			if (emptySlot == -1)
+			{
 				return;
+			}
 
 			primaryInventoryHandler.TryMoveTo(player, index, secondaryInventoryHandler, emptySlot);
 		}
@@ -180,7 +192,7 @@ namespace CK_QOL.Features.ShiftClick
 
 		public override string Name => nameof(ShiftClick);
 		public override string DisplayName => "Shift + Click";
-		public override string Description => "Allows quick stashing of inventory items into nearby chests.";
+		public override string Description => "Allows quick moving of items between inventories.";
 		public override FeatureType FeatureType => FeatureType.Client;
 
 		#endregion IFeature
