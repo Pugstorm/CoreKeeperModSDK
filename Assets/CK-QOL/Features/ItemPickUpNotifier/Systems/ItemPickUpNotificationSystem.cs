@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using CK_QOL.Core.Helpers;
 using Inventory;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 
@@ -49,9 +51,10 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 	/// </remarks>
 	[WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
 	[UpdateInGroup(typeof(InventorySystemGroup))]
+	[BurstCompile(DisableDirectCall = true)]
 	public partial class ItemPickUpNotificationSystem : PugSimulationSystemBase
 	{
-		private NativeParallelHashMap<int, (int totalAmount, Rarity rarity, FixedString64Bytes displayName)> _cachedPickups;
+		private Dictionary<int, (int totalAmount, Rarity rarity, FixedString64Bytes displayName)> _cachedPickups;
 		private Entity _localPlayerEntity;
 		private float _timeSinceLastLog;
 
@@ -63,20 +66,15 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 			}
 
 			base.OnCreate();
-
 			RequireForUpdate<InventoryChangeBuffer>();
 
-			_cachedPickups = new NativeParallelHashMap<int, (int totalAmount, Rarity rarity, FixedString64Bytes displayName)>(16, Allocator.Persistent);
+			_cachedPickups = new Dictionary<int, (int totalAmount, Rarity rarity, FixedString64Bytes displayName)>();
 			_timeSinceLastLog = 0f;
 		}
 
 		protected override void OnDestroy()
 		{
-			if (_cachedPickups.IsCreated)
-			{
-				_cachedPickups.Dispose();
-			}
-
+			_cachedPickups.Clear();
 			base.OnDestroy();
 		}
 
@@ -104,72 +102,70 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 			var cachedPickups = _cachedPickups;
 			var localPlayerEntity = _localPlayerEntity;
 
-			Entities
-				.WithNone<EntityDestroyedCD, CattleCD>()
-				.WithAll<InventoryChangeBuffer>()
-				.ForEach((Entity _, in DynamicBuffer<InventoryChangeBuffer> inventoryChanges) =>
+			foreach (var inventoryChanges in SystemAPI.Query<DynamicBuffer<InventoryChangeBuffer>>())
+			{
+				foreach (var change in inventoryChanges)
 				{
-					foreach (var change in inventoryChanges)
+					if (change.inventoryChangeData.inventoryAction != InventoryAction.MoveOrDropAllItems)
 					{
-						if (change.inventoryChangeData.inventoryAction != InventoryAction.MoveOrDropAllItems)
+						continue;
+					}
+
+					if (change.playerEntity != localPlayerEntity)
+					{
+						continue;
+					}
+
+					var sourceInventory = change.inventoryChangeData.inventory1;
+					if (!containedObjectsBufferLookup.HasBuffer(sourceInventory))
+					{
+						continue;
+					}
+
+					var itemsBuffer = containedObjectsBufferLookup[sourceInventory];
+					foreach (var item in itemsBuffer)
+					{
+						if (item.objectID is ObjectID.None or ObjectID.CattleCage)
 						{
 							continue;
 						}
 
-						if (change.playerEntity != localPlayerEntity)
+						var objectIdHash = item.objectData.objectID.GetHashCode();
+						if (cachedPickups.TryGetValue(objectIdHash, out var existing))
 						{
-							continue;
+							cachedPickups[objectIdHash] = (existing.totalAmount + item.amount, existing.rarity, existing.displayName);
 						}
-
-						var sourceInventory = change.inventoryChangeData.inventory1;
-						if (!containedObjectsBufferLookup.HasBuffer(sourceInventory))
+						else
 						{
-							continue;
-						}
+							var text = PlayerController.GetObjectName(item, true).text;
+							var rarity = PugDatabase.GetObjectInfo(item.objectData.objectID).rarity;
 
-						var itemsBuffer = containedObjectsBufferLookup[sourceInventory];
-						foreach (var item in itemsBuffer)
-						{
-							if (item.objectID is ObjectID.None or ObjectID.CattleCage)
-							{
-								continue;
-							}
-
-							var objectIdHash = item.objectData.objectID.GetHashCode();
-							if (cachedPickups.TryGetValue(objectIdHash, out var existing))
-							{
-								cachedPickups[objectIdHash] = (existing.totalAmount + item.amount, existing.rarity, existing.displayName);
-							}
-							else
-							{
-								var text = PlayerController.GetObjectName(item, true).text;
-								var rarity = PugDatabase.GetObjectInfo(item.objectData.objectID).rarity;
-
-								cachedPickups[objectIdHash] = (item.amount, rarity, text);
-							}
+							cachedPickups[objectIdHash] = (item.amount, rarity, text);
 						}
 					}
-				})
-				.WithoutBurst()
-				.ScheduleParallel();
+				}
+			}
 
 			_timeSinceLastLog += SystemAPI.Time.DeltaTime;
 
 			if (_timeSinceLastLog >= ItemPickUpNotifier.Instance.AggregateDelay)
 			{
-				CompleteDependency();
-
-				foreach (var item in _cachedPickups)
-				{
-					var (amount, rarity, text) = item.Value;
-					TextHelper.DisplayText($"{text} x{amount}", rarity);
-				}
-
-				_cachedPickups.Clear();
-				_timeSinceLastLog = 0f;
+				HandleItemPickupNotifications();
 			}
 
 			base.OnUpdate();
+		}
+
+		private void HandleItemPickupNotifications()
+		{
+			foreach (var item in _cachedPickups)
+			{
+				var (amount, rarity, text) = item.Value;
+				TextHelper.DisplayText($"{text} x{amount}", rarity);
+			}
+
+			_cachedPickups.Clear();
+			_timeSinceLastLog = 0f;
 		}
 	}
 }

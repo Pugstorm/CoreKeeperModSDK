@@ -132,7 +132,7 @@ namespace CK_QOL.Features.QuickStash
 
 		private void ApplyKeyBinds()
 		{
-			RewiredExtensionModule.AddKeybind(KeyBindName, "Quick Stash Items", KeyboardKeyCode.A, ModifierKey.Control);
+			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.A, ModifierKey.Control);
 		}
 
 		#endregion Configuration

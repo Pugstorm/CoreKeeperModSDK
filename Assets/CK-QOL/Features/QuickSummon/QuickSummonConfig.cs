@@ -28,17 +28,17 @@ namespace CK_QOL.Features.QuickSummon
 
 			return entry.Value;
 		}
-		
+
 		internal static TomeType ApplyTomeType(QuickSummon feature)
 		{
 			var acceptableValues = new AcceptableValueList<string>(nameof(TomeType.TomeOfTheDark), nameof(TomeType.TomeOfTheDeep), nameof(TomeType.TomeOfTheDead));
 			var description = new ConfigDescription("Set the summoning tome type.", acceptableValues);
 			var definition = new ConfigDefinition(feature.Name, nameof(feature.TomeType));
-			var entry = Config.Bind(definition, nameof(TomeType.TomeOfTheDark), description);
+			var entry = Config.Bind(definition, nameof(TomeType), description);
 			var tomeString = entry.Value;
 
-			return Enum.TryParse(tomeString, out TomeType tomeType) 
-				? tomeType 
+			return Enum.TryParse(tomeString, out TomeType tomeType)
+				? tomeType
 				: TomeType.None;
 		}
 	}

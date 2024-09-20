@@ -10,6 +10,7 @@ using CK_QOL.Features.QuickEat;
 using CK_QOL.Features.QuickHeal;
 using CK_QOL.Features.QuickStash;
 using CK_QOL.Features.QuickSummon;
+using CK_QOL.Features.ShiftClick;
 using CoreLib;
 using CoreLib.Localization;
 using CoreLib.RewiredExtension;
@@ -57,7 +58,8 @@ namespace CK_QOL
 				NoEquipmentDurabilityLoss.Instance,
 				QuickHeal.Instance,
 				QuickEat.Instance,
-				QuickSummon.Instance
+				QuickSummon.Instance,
+				ShiftClick.Instance
 			});
 
 			foreach (var feature in _features.OrderBy(feature => feature.IsEnabled))
@@ -71,28 +73,40 @@ namespace CK_QOL
 						case CraftingRange { IsEnabled: true } craftingRange:
 							ModLogger.Info($"{nameof(craftingRange.MaxRange)}: {craftingRange.MaxRange} ");
 							ModLogger.Info($"{nameof(craftingRange.MaxChests)}: {craftingRange.MaxChests}");
+
 							break;
 						case QuickStash { IsEnabled: true } quickStash:
 							ModLogger.Info($"{nameof(quickStash.MaxRange)}: {quickStash.MaxRange} ");
 							ModLogger.Info($"{nameof(quickStash.MaxChests)}: {quickStash.MaxChests}");
+
 							break;
 						case ItemPickUpNotifier { IsEnabled: true } itemPickUpNotifier:
 							ModLogger.Info($"{nameof(itemPickUpNotifier.AggregateDelay)}: {itemPickUpNotifier.AggregateDelay}");
+
 							break;
 						case NoDeathPenalty { IsEnabled: true } noDeathPenalty:
 							ModLogger.Info($"{feature.DisplayName}");
+
 							break;
 						case NoEquipmentDurabilityLoss { IsEnabled: true } noEquipmentDurabilityLoss:
 							ModLogger.Info($"{feature.DisplayName}");
+
 							break;
 						case QuickHeal { IsEnabled: true } quickHeal:
 							ModLogger.Info($"{nameof(quickHeal.EquipmentSlotIndex)}: {quickHeal.EquipmentSlotIndex}");
+
 							break;
 						case QuickEat { IsEnabled: true } quickEat:
 							ModLogger.Info($"{nameof(quickEat.EquipmentSlotIndex)}: {quickEat.EquipmentSlotIndex}");
+
 							break;
 						case QuickSummon { IsEnabled: true } quickSummon:
 							ModLogger.Info($"{nameof(quickSummon.EquipmentSlotIndex)}: {quickSummon.EquipmentSlotIndex}");
+
+							break;
+						case ShiftClick { IsEnabled: true } shiftClick:
+							ModLogger.Info($"{feature.DisplayName}");
+
 							break;
 					}
 				}

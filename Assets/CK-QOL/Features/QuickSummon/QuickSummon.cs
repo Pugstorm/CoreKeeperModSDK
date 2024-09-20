@@ -87,13 +87,15 @@ namespace CK_QOL.Features.QuickSummon
 				return;
 			}
 
-			if (!Entry.RewiredPlayer.GetButtonShortPress(KeyBindName))
+			if (Entry.RewiredPlayer.GetButtonDown(KeyBindName))
 			{
-				return;
+				Execute();
 			}
 
-			Execute();
-			SwapBackToPreviousSlot();
+			if (Entry.RewiredPlayer.GetButtonUp(KeyBindName))
+			{
+				SwapBackToPreviousSlot();
+			}
 		}
 
 		/// <summary>
@@ -146,10 +148,10 @@ namespace CK_QOL.Features.QuickSummon
 		}
 
 		/// <summary>
-		///     Maps the <see cref="TomeType"/> to the corresponding <see cref="ObjectID"/>.
+		///     Maps the <see cref="TomeType" /> to the corresponding <see cref="ObjectID" />.
 		/// </summary>
 		/// <param name="tomeType">The tome type to map.</param>
-		/// <returns>The corresponding <see cref="ObjectID"/>.</returns>
+		/// <returns>The corresponding <see cref="ObjectID" />.</returns>
 		private ObjectID GetObjectIDForTomeType(TomeType tomeType)
 		{
 			return tomeType switch
@@ -168,33 +170,32 @@ namespace CK_QOL.Features.QuickSummon
 		private void CastSummonSpell(PlayerController player)
 		{
 			// Swap the item to the correct slot and equip it.
-			player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			if (_fromSlotIndex != EquipmentSlotIndex)
+			{
+				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			}
+
 			player.EquipSlot(EquipmentSlotIndex);
 
 			// Reset input history and re-equip the item.
 			var inputHistoryFake = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryFake.secondInteractUITriggered = false;
 			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryFake);
-			
+
 			player.EquipSlot(EquipmentSlotIndex);
 
 			// Simulate "right-click" or "use" action on the item.
 			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryConsume.secondInteractUITriggered = true;
-			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
-			
+
 			// Swap back to the original item.
-			if (_fromSlotIndex == EquipmentSlotIndex || player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID == ObjectID.None)
+			if (_fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
 			{
-				return;
+				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
 			}
 
-			player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
-			
-			// Reset input history for swapped back item.
-			var inputHistorySwapBack = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
-			inputHistorySwapBack.secondInteractUITriggered = false;
-			EntityUtility.SetComponentData(player.entity, player.world, inputHistorySwapBack);
+			// Setting it here makes it somehow "smoother"...?
+			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
 		}
 
 		/// <summary>
@@ -235,7 +236,7 @@ namespace CK_QOL.Features.QuickSummon
 
 		private void ApplyKeyBinds()
 		{
-			RewiredExtensionModule.AddKeybind(KeyBindName, "Quick Summon", KeyboardKeyCode.X);
+			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.X);
 		}
 
 		#endregion Configurations

@@ -22,6 +22,9 @@ MonoBehaviour:
     requiredOn: 3
     files:
     - path: Localization/Localization.csv
+    - path: Scripts/Features/QuickSummon/TomeType.cs
+    - path: Scripts/Features/QuickSummon/QuickSummonConfig.cs
+    - path: Scripts/Features/QuickSummon/QuickSummon.cs
     - path: Scripts/Features/QuickStash/QuickStashConfig.cs
     - path: Scripts/Features/QuickStash/QuickStash.cs
     - path: Scripts/Features/QuickHeal/QuickHealConfig.cs

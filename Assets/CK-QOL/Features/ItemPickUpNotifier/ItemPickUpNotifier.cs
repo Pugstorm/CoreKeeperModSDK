@@ -1,6 +1,5 @@
 using CK_QOL.Core.Config;
 using CK_QOL.Core.Features;
-using CK_QOL.Features.ItemPickUpNotifier.Systems;
 
 namespace CK_QOL.Features.ItemPickUpNotifier
 {
@@ -9,7 +8,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier
 	///     up from the ground.
 	///     This feature aggregates multiple pick-ups into a single message based on a configurable delay, enhancing clarity
 	///     and reducing notification spam.
-	///     The core logic for this feature is handled by the <see cref="ItemPickUpNotificationSystem" /> class,
+	///     The core logic for this feature is handled by the <see cref="Systems.ItemPickUpNotificationSystem" /> class,
 	///     which operates within the game's simulation system to track item pickups and display aggregated notifications.
 	///     The class manages the following functionalities:
 	///     <list type="bullet">
@@ -22,7 +21,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier
 	///         </item>
 	///         <item>
 	///             <description>
-	///                 Integration with the <see cref="ItemPickUpNotificationSystem" /> to handle real-time
+	///                 Integration with the <see cref="Systems.ItemPickUpNotificationSystem" /> to handle real-time
 	///                 aggregation and display of item pickup notifications.
 	///             </description>
 	///         </item>
@@ -32,7 +31,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier
 	///     This class extends the <see cref="FeatureBase{TFeature}" /> base class to inherit common feature behavior,
 	///     including singleton instantiation, configuration management, and execution control.
 	///     The actual logic for detecting and aggregating item pick-ups is managed by the
-	///     <see cref="ItemPickUpNotificationSystem" />.
+	///     <see cref="Systems.ItemPickUpNotificationSystem" />.
 	/// </remarks>
 	internal sealed class ItemPickUpNotifier : FeatureBase<ItemPickUpNotifier>
 	{
