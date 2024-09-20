@@ -7,8 +7,40 @@ using Rewired;
 
 namespace CK_QOL.Features.ShiftClick
 {
+	/// <summary>
+	///     Represents the "Shift + Click" feature, allowing players to quickly move items between their inventory and
+	///     other containers such as chests. This feature provides a key binding that enables users to transfer items
+	///     with a simple key and mouse click combination.
+	///     The class manages the following functionalities:
+	///     <list type="bullet">
+	///         <item>
+	///             <description>
+	///                 Configuration of the feature's enabled state and key bindings for quickly moving items between
+	///                 inventories (<see cref="ApplyKeyBinds" /> method).
+	///             </description>
+	///         </item>
+	///         <item>
+	///             <description>
+	///                 Executes the logic for determining which items are being clicked, then moves them to the target
+	///                 inventory if an appropriate slot is available (<see cref="Execute" /> method).
+	///             </description>
+	///         </item>
+	///         <item>
+	///             <description>
+	///                 Monitors key inputs and manages the movement of items between the player's inventory and other
+	///                 inventories, such as chests, using the Shift + Click shortcut (<see cref="Update" /> method).
+	///             </description>
+	///         </item>
+	///     </list>
+	/// </summary>
+	/// <remarks>
+	///     This class extends the <see cref="FeatureBase{TFeature}" /> base class to inherit common feature behavior,
+	///     including singleton instantiation, configuration management, and execution control.
+	///     It provides an optimized mechanism for item management using input handling and inventory management.
+	/// </remarks>
 	internal sealed class ShiftClick : FeatureBase<ShiftClick>
 	{
+		// Define item types that should be ignored during Shift + Click operations.
 		private readonly ObjectType[] _ignoredItemTypes =
 		{
 			ObjectType.Helm,
@@ -107,6 +139,10 @@ namespace CK_QOL.Features.ShiftClick
 			}
 		}
 
+		/// <summary>
+		///     Determines if any of the ignored UI elements, such as crafting or repair UIs, are open.
+		/// </summary>
+		/// <returns><see langword="true" /> if any ignored UI elements are open; otherwise, <see langword="false" />.</returns>
 		private static bool IsAnyIgnoredUIOpen()
 		{
 			var ignoredUIElementsAreOpened = new[]
@@ -122,6 +158,13 @@ namespace CK_QOL.Features.ShiftClick
 			return ignoredUIElementsAreOpened.Any(element => element);
 		}
 
+		/// <summary>
+		///     Finds the first available slot in the inventory that is empty or can stack the item, if stackable.
+		/// </summary>
+		/// <param name="inventoryHandler">The player's inventory handler.</param>
+		/// <param name="objectInfo">Information about the object to be moved.</param>
+		/// <param name="startingIndex">The starting index for the search.</param>
+		/// <returns>The index of the first available slot.</returns>
 		private static int GetEmptyInventoryIndex(InventoryHandler inventoryHandler, ObjectInfo objectInfo, int startingIndex = 0)
 		{
 			var isItemStackable = objectInfo.isStackable;
@@ -142,6 +185,24 @@ namespace CK_QOL.Features.ShiftClick
 			return firstStackableSlot ?? GetIndexOfItemInInventory(inventoryHandler, ObjectID.None, index);
 		}
 
+		/// <summary>
+		///     Searches the player's inventory for an item that matches the specified <see cref="ObjectID" />.
+		///     This method can skip a specified index to avoid conflicts during item movement operations.
+		/// </summary>
+		/// <param name="inventoryHandler">The inventory handler responsible for managing the player's inventory.</param>
+		/// <param name="objectID">The ID of the object to search for.</param>
+		/// <param name="index">
+		///     The starting index for the search. Defaults to 0, which means the search will start from the beginning
+		///     of the inventory.
+		/// </param>
+		/// <param name="skipIndex">
+		///     An optional index to skip during the search. Defaults to -1, meaning no index will be skipped.
+		///     This can be used to avoid selecting the same item being moved.
+		/// </param>
+		/// <returns>
+		///     The index of the first item found that matches the specified <see cref="ObjectID" />. If no item is found,
+		///     returns -1.
+		/// </returns>
 		private static int GetIndexOfItemInInventory(InventoryHandler inventoryHandler, ObjectID objectID, int index = 0, int skipIndex = -1)
 		{
 			for (var i = index; i < inventoryHandler.size; i++)
@@ -157,6 +218,19 @@ namespace CK_QOL.Features.ShiftClick
 			return -1;
 		}
 
+		/// <summary>
+		///     Determines the first available stackable slot between two specified item indices. This method is useful
+		///     when dealing with stackable items to ensure that items are placed in existing stacks if possible.
+		/// </summary>
+		/// <param name="initialValue">
+		///     The initial value used to compare with the first and second indices. Typically this represents the current
+		///     item being checked.
+		/// </param>
+		/// <param name="first">The index of the first potential stackable slot.</param>
+		/// <param name="second">The index of the second potential stackable slot.</param>
+		/// <returns>
+		///     The index of the first stackable slot if one is found. If no slot is found, returns <see langword="null" />.
+		/// </returns>
 		private static int? FindFirstStackableSlot(int initialValue, int first, int second)
 		{
 			if (first == initialValue && second != -1)
@@ -169,7 +243,7 @@ namespace CK_QOL.Features.ShiftClick
 				return first;
 			}
 
-			// edge case - when inventory is filled with stackable items of the same kind
+			// Handles edge case when the inventory is filled with stackable items of the same kind.
 			if (first != second && first != initialValue && first != -1)
 			{
 				return first;
@@ -178,6 +252,14 @@ namespace CK_QOL.Features.ShiftClick
 			return null;
 		}
 
+		/// <summary>
+		///     Moves an item between inventories by trying to place it in the target slot.
+		/// </summary>
+		/// <param name="player">The player controller.</param>
+		/// <param name="primaryInventoryHandler">The source inventory handler.</param>
+		/// <param name="secondaryInventoryHandler">The target inventory handler.</param>
+		/// <param name="index">The index of the item in the source inventory.</param>
+		/// <param name="emptySlot">The target slot in the destination inventory.</param>
 		private static void MoveInventoryItem(PlayerController player, InventoryHandler primaryInventoryHandler, InventoryHandler secondaryInventoryHandler, int index, int emptySlot)
 		{
 			if (emptySlot == -1)

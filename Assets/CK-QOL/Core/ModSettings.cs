@@ -6,7 +6,7 @@ namespace CK_QOL.Core
 
 		public const string ShortName = "CK_QOL";
 
-		public const string Version = "1.7.0";
+		public const string Version = "1.7.1";
 
 		public const string Author = "DrSalzstreuer";
 

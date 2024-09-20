@@ -81,7 +81,9 @@ namespace CK_QOL.Features.NoEquipmentDurabilityLoss.Systems
 				}
 
 				var durabilityComponent = SystemAPI.GetComponent<DurabilityCD>(equippedObject.ValueRO.equipmentPrefab);
-				equippedObject.ValueRW.containedObject.objectData.amount = durabilityComponent.maxDurability;
+				equippedObject.ValueRW.containedObject.objectData.amount = durabilityComponent.IsReinforced(equippedObject.ValueRW.containedObject.objectData.amount)
+					? durabilityComponent.maxDurability * 2
+					: durabilityComponent.maxDurability;
 			}
 
 			base.OnUpdate();
