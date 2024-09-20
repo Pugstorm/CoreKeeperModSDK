@@ -116,7 +116,7 @@ namespace CK_QOL.Features.QuickHeal
 			if (IsHealable(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex)))
 			{
 				_fromSlotIndex = EquipmentSlotIndex;
-				
+
 				return true;
 			}
 
@@ -173,7 +173,10 @@ namespace CK_QOL.Features.QuickHeal
 			player.EquipSlot(EquipmentSlotIndex);
 
 			// Swap back to the original item.
-			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None) player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
+			{
+				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			}
 
 			// Set the secondInteractUITriggered flag to 'true' to simulate the "right-click" or "use" action on the item.
 			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);

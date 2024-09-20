@@ -18,7 +18,10 @@ namespace CK_QOL.Core.Features
 		///     When overriding, the base method <see cref="CanExecute" /> should be called to ensure the base conditions are
 		///     respected.
 		/// </remarks>
-		public virtual bool CanExecute() => IsEnabled;
+		public virtual bool CanExecute()
+		{
+			return IsEnabled;
+		}
 
 		/// <summary>
 		///     Executes the feature's logic.

@@ -69,12 +69,18 @@ namespace CK_QOL.Features.QuickEat
 
 		public override void Execute()
 		{
-			if (!CanExecute()) return;
+			if (!CanExecute())
+			{
+				return;
+			}
 
 			var player = Manager.main.player;
 
 			var foundValidEatable = TryFindEatable(player);
-			if (foundValidEatable) ConsumeEatable(player);
+			if (foundValidEatable)
+			{
+				ConsumeEatable(player);
+			}
 		}
 
 		public override void Update()
@@ -123,18 +129,27 @@ namespace CK_QOL.Features.QuickEat
 			var playerInventorySize = player.playerInventoryHandler.size;
 			for (var playerInventoryIndex = 0; playerInventoryIndex < playerInventorySize; playerInventoryIndex++)
 			{
-				if (!IsEatable(player.playerInventoryHandler.GetObjectData(playerInventoryIndex))) continue;
+				if (!IsEatable(player.playerInventoryHandler.GetObjectData(playerInventoryIndex)))
+				{
+					continue;
+				}
 
 				eatableItems.Add(playerInventoryIndex, player.playerInventoryHandler.GetObjectData(playerInventoryIndex));
 			}
 
-			if (eatableItems.Count == 0) return false;
+			if (eatableItems.Count == 0)
+			{
+				return false;
+			}
 
 			var firstEatableItem = eatableItems.FirstOrDefault();
 			_fromSlotIndex = firstEatableItem.Key;
 
 			var firstCookedFood = eatableItems.OrderByDescending(i => PugDatabase.HasComponent<CookedFoodCD>(i.Value)).FirstOrDefault();
-			if (firstCookedFood.Key == default || firstCookedFood.Value.Equals(default)) return true;
+			if (firstCookedFood.Key == default || firstCookedFood.Value.Equals(default))
+			{
+				return true;
+			}
 
 			_fromSlotIndex = firstCookedFood.Key;
 
@@ -152,7 +167,10 @@ namespace CK_QOL.Features.QuickEat
 		private static bool IsEatable(ObjectDataCD objectData)
 		{
 			// Ignore bad items and potions. Some items like milk are eatable, but don't improve the 'food' bar.
-			if (objectData.objectID == ObjectID.None || PugDatabase.HasComponent<PotionCD>(objectData)) return false;
+			if (objectData.objectID == ObjectID.None || PugDatabase.HasComponent<PotionCD>(objectData))
+			{
+				return false;
+			}
 
 			var objectInfo = PugDatabase.GetObjectInfo(objectData.objectID, objectData.variation);
 
@@ -181,7 +199,10 @@ namespace CK_QOL.Features.QuickEat
 			player.EquipSlot(EquipmentSlotIndex);
 
 			// Swap the original item back to the eatable slot we used.
-			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None) player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
+			{
+				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			}
 
 			// Set the secondInteractUITriggered flag to 'true' to simulate the "right-click" or "use" action on the item.
 			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
@@ -194,7 +215,10 @@ namespace CK_QOL.Features.QuickEat
 		/// </summary>
 		private void SwapBackToPreviousSlot()
 		{
-			if (_previousSlotIndex == -1) return;
+			if (_previousSlotIndex == -1)
+			{
+				return;
+			}
 
 			Manager.main.player.EquipSlot(_previousSlotIndex);
 		}

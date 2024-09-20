@@ -22,10 +22,9 @@ namespace CK_QOL
 {
 	public class Entry : IMod
 	{
+		private readonly List<IFeature> _features = new();
 		internal static LoadedMod ModInfo { get; private set; }
 		internal static Player RewiredPlayer { get; private set; }
-		
-		private readonly List<IFeature> _features = new();
 
 		#region IMod
 
@@ -46,9 +45,9 @@ namespace CK_QOL
 			CoreLibMod.LoadModule(typeof(RewiredExtensionModule));
 
 			RewiredExtensionModule.rewiredStart += () => RewiredPlayer = ReInput.players.GetPlayer(0);
-			
+
 			ModLogger.Info("Loading features..");
-			
+
 			_features.AddRange(new IFeature[]
 			{
 				CraftingRange.Instance,
@@ -64,7 +63,7 @@ namespace CK_QOL
 			foreach (var feature in _features.OrderBy(feature => feature.IsEnabled))
 			{
 				ModLogger.Info($"{feature.DisplayName} ({feature.FeatureType})");
-                
+
 				if (feature.IsEnabled)
 				{
 					switch (feature)
@@ -102,7 +101,7 @@ namespace CK_QOL
 					ModLogger.Warn("Feature is disabled.");
 				}
 			}
-			
+
 			ModLogger.Info(".. all features loaded.");
 		}
 

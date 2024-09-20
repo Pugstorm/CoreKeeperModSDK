@@ -7,10 +7,45 @@ using Rewired;
 namespace CK_QOL.Features.QuickSummon
 {
 	/// <summary>
-	///     Represents the "Quick Summon" feature, allowing players to quickly equip the "Tome of the Dark"
+	///     Represents the "Quick Summon" feature, allowing players to quickly equip a configured summoning tome,
 	///     use a summon spell, and swap back to the previously equipped item.
-	///     At Some point, will work out how to handle the other 2 summoning books.
+	///     This feature provides a key binding to trigger summoning actions and automatically manages the inventory to locate
+	///     and equip the tome efficiently.
+	///     The class manages the following functionalities:
+	///     <list type="bullet">
+	///         <item>
+	///             <description>
+	///                 Configuration of the feature's enabled state and summoning tome slot index,
+	///                 which determines the preferred slot to search for the tome (<see cref="EquipmentSlotIndex" />).
+	///             </description>
+	///         </item>
+	///         <item>
+	///             <description>
+	///                 Defines key bindings for quick summoning, allowing users to set a custom key to trigger the
+	///                 summon action (<see cref="ApplyKeyBinds" /> method).
+	///             </description>
+	///         </item>
+	///         <item>
+	///             <description>
+	///                 Executes the logic to find, equip, and cast the summon spell using the configured tome,
+	///                 ensuring efficient summoning actions during gameplay (<see cref="Execute" /> and
+	///                 <see cref="CastSummonSpell" /> methods).
+	///             </description>
+	///         </item>
+	///         <item>
+	///             <description>
+	///                 Monitors for key input and manages the summoning process, including resetting the inventory
+	///                 state after casting the summon spell (<see cref="Update" /> method).
+	///             </description>
+	///         </item>
+	///     </list>
 	/// </summary>
+	/// <remarks>
+	///     This class extends the <see cref="FeatureBase{TFeature}" /> base class to inherit common feature behavior,
+	///     including singleton instantiation, configuration management, and execution control.
+	///     It provides an optimized mechanism for summoning by leveraging game input handling and inventory management
+	///     functionalities.
+	/// </remarks>
 	internal sealed class QuickSummon : FeatureBase<QuickSummon>
 	{
 		private int _fromSlotIndex = -1;
@@ -32,24 +67,39 @@ namespace CK_QOL.Features.QuickSummon
 
 		public override void Execute()
 		{
-			if (!CanExecute()) return;
+			if (!CanExecute())
+			{
+				return;
+			}
 
 			var player = Manager.main.player;
 
-			if (TryFindSummonTome(player)) CastSummonSpell(player);
+			if (TryFindSummonTome(player))
+			{
+				CastSummonSpell(player);
+			}
 		}
 
 		public override void Update()
 		{
-			if (!CanExecute()) return;
+			if (!CanExecute())
+			{
+				return;
+			}
 
-			if (Entry.RewiredPlayer.GetButtonDown(KeyBindName)) Execute();
+			if (Entry.RewiredPlayer.GetButtonDown(KeyBindName))
+			{
+				Execute();
+			}
 
-			if (Entry.RewiredPlayer.GetButtonUp(KeyBindName)) SwapBackToPreviousSlot();
+			if (Entry.RewiredPlayer.GetButtonUp(KeyBindName))
+			{
+				SwapBackToPreviousSlot();
+			}
 		}
 
 		/// <summary>
-		///     Attempts to find the "Tome of the Dark" in the player's inventory.
+		///     Attempts to find a summoning tome in the player's inventory.
 		/// </summary>
 		/// <param name="player">The player controller to access inventory.</param>
 		/// <returns>
@@ -60,14 +110,22 @@ namespace CK_QOL.Features.QuickSummon
 			_previousSlotIndex = player.equippedSlotIndex;
 			_fromSlotIndex = -1;
 
-			// Check if the Tome of the Dark is in the predefined slot.
-			if (IsSummonTome(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex))) return true;
+			// Check if the summoning tome is in the predefined slot.
+			if (IsSummonTome(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex)))
+			{
+				_fromSlotIndex = EquipmentSlotIndex;
 
-			// Look through the inventory if not in the predefined slot.
+				return true;
+			}
+
+			// If the tome is not in the predefined slot, search through the inventory.
 			var playerInventorySize = player.playerInventoryHandler.size;
 			for (var playerInventoryIndex = 0; playerInventoryIndex < playerInventorySize; playerInventoryIndex++)
 			{
-				if (!IsSummonTome(player.playerInventoryHandler.GetObjectData(playerInventoryIndex))) continue;
+				if (!IsSummonTome(player.playerInventoryHandler.GetObjectData(playerInventoryIndex)))
+				{
+					continue;
+				}
 
 				_fromSlotIndex = playerInventoryIndex;
 
@@ -78,52 +136,70 @@ namespace CK_QOL.Features.QuickSummon
 		}
 
 		/// <summary>
-		///     Checks if the provided object data corresponds to the "Tome of the Dark".
+		///     Checks if the provided object data corresponds to the currently configured summoning tome.
 		/// </summary>
 		/// <param name="objectData">The object data to check.</param>
 		/// <returns>
-		///     <see langword="true" /> if the object is the summon tome; otherwise, <see langword="false" />.
+		///     <see langword="true" /> if the object is the summoning tome; otherwise, <see langword="false" />.
 		/// </returns>
-		private static bool IsSummonTome(ObjectDataCD objectData)
+		private bool IsSummonTome(ObjectDataCD objectData)
 		{
-			return objectData.objectID == ObjectID.TomeOfRange;
+			return objectData.objectID == GetObjectIDForTomeType(TomeType);
 		}
 
+		/// <summary>
+		///     Maps the <see cref="TomeType"/> to the corresponding <see cref="ObjectID"/>.
+		/// </summary>
+		/// <param name="tomeType">The tome type to map.</param>
+		/// <returns>The corresponding <see cref="ObjectID"/>.</returns>
+		private ObjectID GetObjectIDForTomeType(TomeType tomeType)
+		{
+			return tomeType switch
+			{
+				TomeType.TomeOfTheDark => ObjectID.TomeOfRange,
+				TomeType.TomeOfTheDeep => ObjectID.TomeOfOrbit,
+				TomeType.TomeOfTheDead => ObjectID.TomeOfMelee,
+				_ => ObjectID.None
+			};
+		}
 
 		/// <summary>
-		///     Equips the "Tome of the Dark", uses the summon spell, and swaps back to the previous item.
+		///     Equips the summoning tome, casts the summon spell, and swaps back to the previous item.
 		/// </summary>
 		/// <param name="player">The player controller.</param>
 		private void CastSummonSpell(PlayerController player)
 		{
-			// Swap the item to the healable slot and equip it.
+			// Swap the item to the correct slot and equip it.
 			player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
 			player.EquipSlot(EquipmentSlotIndex);
 
-			// Get the input history component and reset the secondInteractUITriggered flag to 'false'.
-			// This is likely needed to ensure that the game recognizes a fresh input action on the next trigger.
+			// Reset input history and re-equip the item.
 			var inputHistoryFake = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryFake.secondInteractUITriggered = false;
 			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryFake);
-
-			// Re-equip the slot to reinitialize the item state, ensuring that any side effects of the input reset are neutralized.
 			player.EquipSlot(EquipmentSlotIndex);
 
 			// Swap back to the original item.
-			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None) player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
+			{
+				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			}
 
-			// Set the secondInteractUITriggered flag to 'true' to simulate the "right-click" or "use" action on the item.
+			// Simulate "right-click" or "use" action on the item.
 			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryConsume.secondInteractUITriggered = true;
 			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
 		}
 
 		/// <summary>
-		///     Swaps back to the previously equipped slot after using the summon spell.
+		///     Swaps back to the previously equipped slot after casting the summon spell.
 		/// </summary>
 		private void SwapBackToPreviousSlot()
 		{
-			if (_previousSlotIndex == -1) return;
+			if (_previousSlotIndex == -1)
+			{
+				return;
+			}
 
 			Manager.main.player.EquipSlot(_previousSlotIndex);
 		}
@@ -132,7 +208,7 @@ namespace CK_QOL.Features.QuickSummon
 
 		public override string Name => nameof(QuickSummon);
 		public override string DisplayName => "Quick Summon";
-		public override string Description => "Quickly equips 'Tome of the Dark', casts a summon spell, and swaps back to the previous item.";
+		public override string Description => "Quickly equips a summoning tome, casts a summon spell, and swaps back to the previous item.";
 		public override FeatureType FeatureType => FeatureType.Client;
 
 		#endregion IFeature
@@ -141,12 +217,14 @@ namespace CK_QOL.Features.QuickSummon
 
 		internal string KeyBindName => $"{ModSettings.ShortName}_{Name}";
 		internal int EquipmentSlotIndex { get; private set; }
+		internal TomeType TomeType { get; private set; }
 
 		private void ApplyConfigurations()
 		{
 			ConfigBase.Create(this);
 			IsEnabled = QuickSummonConfig.ApplyIsEnabled(this);
 			EquipmentSlotIndex = QuickSummonConfig.ApplyEquipmentSlotIndex(this);
+			TomeType = QuickSummonConfig.ApplyTomeType(this);
 		}
 
 		private void ApplyKeyBinds()
