@@ -87,15 +87,13 @@ namespace CK_QOL.Features.QuickSummon
 				return;
 			}
 
-			if (Entry.RewiredPlayer.GetButtonDown(KeyBindName))
+			if (!Entry.RewiredPlayer.GetButtonShortPress(KeyBindName))
 			{
-				Execute();
+				return;
 			}
 
-			if (Entry.RewiredPlayer.GetButtonUp(KeyBindName))
-			{
-				SwapBackToPreviousSlot();
-			}
+			Execute();
+			SwapBackToPreviousSlot();
 		}
 
 		/// <summary>
@@ -177,18 +175,26 @@ namespace CK_QOL.Features.QuickSummon
 			var inputHistoryFake = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryFake.secondInteractUITriggered = false;
 			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryFake);
+			
 			player.EquipSlot(EquipmentSlotIndex);
-
-			// Swap back to the original item.
-			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
-			{
-				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
-			}
 
 			// Simulate "right-click" or "use" action on the item.
 			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryConsume.secondInteractUITriggered = true;
 			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
+			
+			// Swap back to the original item.
+			if (_fromSlotIndex == EquipmentSlotIndex || player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID == ObjectID.None)
+			{
+				return;
+			}
+
+			player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			
+			// Reset input history for swapped back item.
+			var inputHistorySwapBack = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
+			inputHistorySwapBack.secondInteractUITriggered = false;
+			EntityUtility.SetComponentData(player.entity, player.world, inputHistorySwapBack);
 		}
 
 		/// <summary>

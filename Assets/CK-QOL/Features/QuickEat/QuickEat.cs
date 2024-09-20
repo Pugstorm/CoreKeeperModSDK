@@ -76,8 +76,7 @@ namespace CK_QOL.Features.QuickEat
 
 			var player = Manager.main.player;
 
-			var foundValidEatable = TryFindEatable(player);
-			if (foundValidEatable)
+			if (TryFindEatable(player))
 			{
 				ConsumeEatable(player);
 			}
@@ -90,15 +89,13 @@ namespace CK_QOL.Features.QuickEat
 				return;
 			}
 
-			if (Entry.RewiredPlayer.GetButtonDown(KeyBindName))
+			if (!Entry.RewiredPlayer.GetButtonShortPress(KeyBindName))
 			{
-				Execute();
+				return;
 			}
 
-			if (Entry.RewiredPlayer.GetButtonUp(KeyBindName))
-			{
-				SwapBackToPreviousSlot();
-			}
+			Execute();
+			SwapBackToPreviousSlot();
 		}
 
 		/// <summary>
@@ -185,29 +182,34 @@ namespace CK_QOL.Features.QuickEat
 		/// <param name="player">The player controller to access inventory and use items.</param>
 		private void ConsumeEatable(PlayerController player)
 		{
-			// Swap the item to the eatable slot and equip it.
+			// Swap the item to the correct slot and equip it.
 			player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
 			player.EquipSlot(EquipmentSlotIndex);
 
-			// Get the input history component and reset the secondInteractUITriggered flag to 'false'.
-			// This is likely needed to ensure that the game recognizes a fresh input action on the next trigger.
+			// Reset input history and re-equip the item.
 			var inputHistoryFake = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryFake.secondInteractUITriggered = false;
 			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryFake);
-
-			// Re-equip the slot to reinitialize the item state, ensuring that any side effects of the input reset are neutralized.
+			
 			player.EquipSlot(EquipmentSlotIndex);
 
-			// Swap the original item back to the eatable slot we used.
-			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
-			{
-				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
-			}
-
-			// Set the secondInteractUITriggered flag to 'true' to simulate the "right-click" or "use" action on the item.
+			// Simulate "right-click" or "use" action on the item.
 			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryConsume.secondInteractUITriggered = true;
 			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
+			
+			// Swap back to the original item.
+			if (_fromSlotIndex == EquipmentSlotIndex || player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID == ObjectID.None)
+			{
+				return;
+			}
+
+			player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			
+			// Reset input history for swapped back item.
+			var inputHistorySwapBack = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
+			inputHistorySwapBack.secondInteractUITriggered = false;
+			EntityUtility.SetComponentData(player.entity, player.world, inputHistorySwapBack);
 		}
 
 		/// <summary>
