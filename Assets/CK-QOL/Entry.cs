@@ -8,6 +8,7 @@ using CK_QOL.Features.NoDeathPenalty;
 using CK_QOL.Features.NoEquipmentDurabilityLoss;
 using CK_QOL.Features.QuickEat;
 using CK_QOL.Features.QuickHeal;
+using CK_QOL.Features.QuickSummon;
 using CK_QOL.Features.QuickStash;
 using CoreLib;
 using CoreLib.Localization;
@@ -21,9 +22,10 @@ namespace CK_QOL
 {
 	public class Entry : IMod
 	{
-		private readonly List<IFeature> _features = new();
 		internal static LoadedMod ModInfo { get; private set; }
 		internal static Player RewiredPlayer { get; private set; }
+		
+		private readonly List<IFeature> _features = new();
 
 		#region IMod
 
@@ -44,9 +46,9 @@ namespace CK_QOL
 			CoreLibMod.LoadModule(typeof(RewiredExtensionModule));
 
 			RewiredExtensionModule.rewiredStart += () => RewiredPlayer = ReInput.players.GetPlayer(0);
-
+			
 			ModLogger.Info("Loading features..");
-
+			
 			_features.AddRange(new IFeature[]
 			{
 				CraftingRange.Instance,
@@ -55,14 +57,16 @@ namespace CK_QOL
 				NoDeathPenalty.Instance,
 				NoEquipmentDurabilityLoss.Instance,
 				QuickHeal.Instance,
-				QuickEat.Instance
+				QuickEat.Instance,
+				QuickSummon.Instance
 			});
 
 			foreach (var feature in _features.OrderBy(feature => feature.IsEnabled))
 			{
 				ModLogger.Info($"{feature.DisplayName} ({feature.FeatureType})");
-
+                
 				if (feature.IsEnabled)
+				{
 					switch (feature)
 					{
 						case CraftingRange { IsEnabled: true } craftingRange:
@@ -77,10 +81,10 @@ namespace CK_QOL
 							ModLogger.Info($"{nameof(itemPickUpNotifier.AggregateDelay)}: {itemPickUpNotifier.AggregateDelay}");
 							break;
 						case NoDeathPenalty { IsEnabled: true } noDeathPenalty:
-							ModLogger.Info("No configuration available.");
+							ModLogger.Info($"{feature.DisplayName}");
 							break;
 						case NoEquipmentDurabilityLoss { IsEnabled: true } noEquipmentDurabilityLoss:
-							ModLogger.Info("No configuration available.");
+							ModLogger.Info($"{feature.DisplayName}");
 							break;
 						case QuickHeal { IsEnabled: true } quickHeal:
 							ModLogger.Info($"{nameof(quickHeal.EquipmentSlotIndex)}: {quickHeal.EquipmentSlotIndex}");
@@ -88,11 +92,17 @@ namespace CK_QOL
 						case QuickEat { IsEnabled: true } quickEat:
 							ModLogger.Info($"{nameof(quickEat.EquipmentSlotIndex)}: {quickEat.EquipmentSlotIndex}");
 							break;
+						case QuickSummon { IsEnabled: true } quickSummon:
+							ModLogger.Info($"{nameof(quickSummon.EquipmentSlotIndex)}: {quickSummon.EquipmentSlotIndex}");
+							break;
 					}
+				}
 				else
+				{
 					ModLogger.Warn("Feature is disabled.");
+				}
 			}
-
+			
 			ModLogger.Info(".. all features loaded.");
 		}
 
