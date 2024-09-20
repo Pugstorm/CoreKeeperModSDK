@@ -62,9 +62,9 @@ namespace CK_QOL.Features.QuickEat
 		public override bool CanExecute()
 		{
 			return base.CanExecute()
-			       && Entry.RewiredPlayer != null
-			       && Manager.main.player != null
-			       && !(Manager.input?.textInputIsActive ?? false);
+            && Entry.RewiredPlayer != null
+            && Manager.main.player != null
+            && !(Manager.input?.textInputIsActive ?? false);
 		}
 
 		public override void Execute()
@@ -73,7 +73,7 @@ namespace CK_QOL.Features.QuickEat
             {
                 return;
             }
-            
+
             var player = Manager.main.player;
 
             var foundValidEatable = TryFindEatable(player);
@@ -122,8 +122,8 @@ namespace CK_QOL.Features.QuickEat
 			var eatableItems = new Dictionary<int, ObjectDataCD>();
 
 			var playerInventorySize = player.playerInventoryHandler.size;
-			for (var playerInventoryIndex = 0; playerInventoryIndex < playerInventorySize; playerInventoryIndex++)
-			{
+            for (var playerInventoryIndex = 0; playerInventoryIndex < playerInventorySize; playerInventoryIndex++)
+            {
 				if (!IsEatable(player.playerInventoryHandler.GetObjectData(playerInventoryIndex))) continue;
 
 				eatableItems.Add(playerInventoryIndex, player.playerInventoryHandler.GetObjectData(playerInventoryIndex));
@@ -139,19 +139,19 @@ namespace CK_QOL.Features.QuickEat
 
 			_fromSlotIndex = firstCookedFood.Key;
 
-			return true;
-		}
+                return true;
+            }
 
-		/// <summary>
-		///     Checks if the provided object data corresponds to an eatable item.
-		/// </summary>
-		/// <param name="objectData">The object data to check.</param>
-		/// <returns>
+        /// <summary>
+        ///     Checks if the provided object data corresponds to an eatable item.
+        /// </summary>
+        /// <param name="objectData">The object data to check.</param>
+        /// <returns>
 		///     <see langword="true" /> if the object is eatable;
-		///     otherwise, <see langword="false" />.
-		/// </returns>
-		private static bool IsEatable(ObjectDataCD objectData)
-		{
+        ///		otherwise, <see langword="false" />.
+        /// </returns>
+        private static bool IsEatable(ObjectDataCD objectData)
+        {
 			// Ignore bad items and potions. Some items like milk are eatable, but don't improve the 'food' bar.
 			if (objectData.objectID == ObjectID.None || PugDatabase.HasComponent<PotionCD>(objectData))
 	        {
@@ -171,9 +171,11 @@ namespace CK_QOL.Features.QuickEat
 		/// <param name="player">The player controller to access inventory and use items.</param>
 		private void ConsumeEatable(PlayerController player)
 		{
-			// Swap the item to the eatable slot and equip it.
-			player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
-			player.EquipSlot(EquipmentSlotIndex);
+			// Swap the item to the eatable slot and equip it, unless it's already there.
+            if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex) {
+                player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+            }
+            player.EquipSlot(EquipmentSlotIndex);
 
 			// Get the input history component and reset the secondInteractUITriggered flag to 'false'.
 			// This is likely needed to ensure that the game recognizes a fresh input action on the next trigger.
@@ -184,16 +186,18 @@ namespace CK_QOL.Features.QuickEat
 			// Re-equip the slot to reinitialize the item state, ensuring that any side effects of the input reset are neutralized.
 			player.EquipSlot(EquipmentSlotIndex);
 
-			// Set the secondInteractUITriggered flag to 'true' to simulate the "right-click" or "use" action on the item.
-			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
-			inputHistoryConsume.secondInteractUITriggered = true;
-			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
+            // Set the secondInteractUITriggered flag to 'true' to simulate the "right-click" or "use" action on the item.
+            var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
+            inputHistoryConsume.secondInteractUITriggered = true;
 
 			// Swap the original item back to the eatable slot we used.
-			if (_fromSlotIndex != -1 && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
+			if (_fromSlotIndex != -1 && _fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
 			{
 				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
 			}
+
+			// Seems to work a bit smoother if this is last? I have no idea why.
+            EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
 		}
 
         /// <summary>
