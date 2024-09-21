@@ -78,19 +78,58 @@ namespace CK_QOL.Features.QuickStash
 			}
 
 			var player = Manager.main.player;
+			var playerInventoryHandler = player.playerInventoryHandler;
+
+			// Get nearby chests within the configured range and limit
 			var nearbyChests = ChestHelper.GetNearbyChests(MaxRange)
 				.Take(MaxChests)
 				.ToList();
 
-			var stashedIntoChestsCount = 0;
-			foreach (var inventoryHandler in nearbyChests.Select(chest => chest.inventoryHandler).Where(inventoryHandler => inventoryHandler != null))
+			if (!nearbyChests.Any())
 			{
-				player.playerInventoryHandler.QuickStack(player, inventoryHandler);
-				stashedIntoChestsCount++;
+				TextHelper.DisplayText("Quick Stash: No chests found", Rarity.Legendary);
+
+				return;
+			}
+
+			var stashedIntoChestsCount = 0;
+
+			foreach (var chest in nearbyChests)
+			{
+				var chestInventoryHandler = chest.inventoryHandler;
+				if (chestInventoryHandler == null)
+				{
+					continue;
+				}
+
+				// Iterate through the player's inventory, skipping equipment slots (0-9).
+				for (var playerInventorySlotIndex = PlayerController.MAX_EQUIPMENT_SLOTS; playerInventorySlotIndex < playerInventoryHandler.size; playerInventorySlotIndex++)
+				{
+					var itemData = playerInventoryHandler.GetObjectData(playerInventorySlotIndex);
+					if (itemData.objectID == ObjectID.None)
+					{
+						continue;
+					}
+
+					var objectInfo = PugDatabase.GetObjectInfo(itemData.objectID);
+					if (!objectInfo.isStackable)
+					{
+						continue;
+					}
+
+					var chestSlot = GetIndexOfItemInInventory(chestInventoryHandler, itemData.objectID);
+					if (chestSlot == -1)
+					{
+						continue;
+					}
+
+					playerInventoryHandler.TryMoveTo(player, playerInventorySlotIndex, chestInventoryHandler, chestSlot);
+					stashedIntoChestsCount++;
+				}
 			}
 
 			TextHelper.DisplayText(stashedIntoChestsCount == 0
-				? "Quick Stash: No chests found!"
+				? "Quick Stash: Nothing to stack"
 				: $"Quick Stash: {stashedIntoChestsCount} chests", Rarity.Legendary);
 		}
 
@@ -106,6 +145,30 @@ namespace CK_QOL.Features.QuickStash
 				Execute();
 			}
 		}
+
+		/// <summary>
+		///     Searches the player's inventory for an item that matches the specified <see cref="ObjectID" />.
+		/// </summary>
+		/// <param name="inventoryHandler">The inventory handler responsible for managing the inventory.</param>
+		/// <param name="objectID">The ID of the object to search for.</param>
+		/// <returns>
+		///     The index of the first item found that matches the specified <see cref="ObjectID" />.
+		///     If no item is found, returns -1.
+		/// </returns>
+		private static int GetIndexOfItemInInventory(InventoryHandler inventoryHandler, ObjectID objectID)
+		{
+			for (var i = 0; i < inventoryHandler.size; i++)
+			{
+				var objectData = inventoryHandler.GetObjectData(i);
+				if (objectData.objectID == objectID)
+				{
+					return i;
+				}
+			}
+
+			return -1;
+		}
+
 
 		#region IFeature
 

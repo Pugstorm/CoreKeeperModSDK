@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CK_QOL.Core;
 using CK_QOL.Core.Features;
@@ -17,7 +18,7 @@ using CoreLib.RewiredExtension;
 using CoreLib.Util.Extensions;
 using PugMod;
 using Rewired;
-using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CK_QOL
 {
@@ -102,6 +103,7 @@ namespace CK_QOL
 							break;
 						case QuickSummon { IsEnabled: true } quickSummon:
 							ModLogger.Info($"{nameof(quickSummon.EquipmentSlotIndex)}: {quickSummon.EquipmentSlotIndex}");
+							ModLogger.Info($"{nameof(quickSummon.TomeType)}: {Enum.GetName(typeof(TomeType), quickSummon.TomeType)}");
 
 							break;
 						case ShiftClick { IsEnabled: true } shiftClick:

@@ -22,6 +22,8 @@ MonoBehaviour:
     requiredOn: 3
     files:
     - path: Localization/Localization.csv
+    - path: Scripts/Features/ShiftClick/ShiftClickConfig.cs
+    - path: Scripts/Features/ShiftClick/ShiftClick.cs
     - path: Scripts/Features/QuickSummon/TomeType.cs
     - path: Scripts/Features/QuickSummon/QuickSummonConfig.cs
     - path: Scripts/Features/QuickSummon/QuickSummon.cs

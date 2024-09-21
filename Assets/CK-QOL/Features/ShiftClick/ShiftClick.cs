@@ -26,6 +26,7 @@ namespace CK_QOL.Features.ShiftClick
 	///             </description>
 	///         </item>
 	///         <item>
+	///             ,
 	///             <description>
 	///                 Monitors key inputs and manages the movement of items between the player's inventory and other
 	///                 inventories, such as chests, using the Shift + Click shortcut (<see cref="Update" /> method).
@@ -40,8 +41,7 @@ namespace CK_QOL.Features.ShiftClick
 	/// </remarks>
 	internal sealed class ShiftClick : FeatureBase<ShiftClick>
 	{
-		// Define item types that should be ignored during Shift + Click operations.
-		private readonly ObjectType[] _ignoredItemTypes =
+		private static readonly ObjectType[] IgnoredItemTypes =
 		{
 			ObjectType.Helm,
 			ObjectType.BreastArmor,
@@ -64,7 +64,7 @@ namespace CK_QOL.Features.ShiftClick
 		{
 			return base.CanExecute()
 			       && Entry.RewiredPlayer != null
-			       && (Manager.main.currentSceneHandler?.isInGame ?? false)
+			       && Manager.main.currentSceneHandler?.isInGame == true
 			       && Manager.main.player?.playerInventoryHandler != null
 			       && Manager.ui.isPlayerInventoryShowing
 			       && !IsAnyIgnoredUIOpen();
@@ -74,54 +74,39 @@ namespace CK_QOL.Features.ShiftClick
 		{
 			var player = Manager.main.player;
 			var inventorySlotUI = Manager.ui.currentSelectedUIElement as InventorySlotUI;
-			var index = inventorySlotUI == null
-				? -1
-				: inventorySlotUI.inventorySlotIndex;
+			var index = inventorySlotUI?.inventorySlotIndex ?? -1;
+
+			if (index == -1 || inventorySlotUI == null)
+			{
+				return;
+			}
 
 			var inventoryHandler = player.playerInventoryHandler;
 			var chestInventoryHandler = player.activeInventoryHandler;
-
 			var itemData = inventoryHandler.GetObjectData(index);
 			var objectInfo = PugDatabase.GetObjectInfo(itemData.objectID);
 
-			if (itemData.objectID == ObjectID.None || index == -1 || inventorySlotUI == null)
+			if (itemData.objectID == ObjectID.None)
 			{
 				return;
 			}
 
-			if (inventorySlotUI.slotType == ItemSlotsUIType.ChestSlot)
+			switch (inventorySlotUI.slotType)
 			{
-				var itemDataChest = chestInventoryHandler.GetObjectData(index);
-				var objectInfoChest = PugDatabase.GetObjectInfo(itemDataChest.objectID);
+				case ItemSlotsUIType.ChestSlot:
+					HandleChestSlot(player, chestInventoryHandler, inventoryHandler, index);
 
-				var emptySlot = GetEmptyInventoryIndex(inventoryHandler, objectInfoChest, -1);
-				MoveInventoryItem(player, chestInventoryHandler, inventoryHandler, index, emptySlot);
+					return;
+				case ItemSlotsUIType.PlayerInventorySlot:
+					HandlePlayerSlot(player, inventoryHandler, chestInventoryHandler, objectInfo, index);
 
-				return;
+					break;
 			}
-
-			if (inventorySlotUI.slotType != ItemSlotsUIType.PlayerInventorySlot)
-			{
-				return;
-			}
-
-			if (Manager.ui.isChestInventoryUIShowing)
-			{
-				var emptySlot = GetIndexOfItemInInventory(chestInventoryHandler, objectInfo.isStackable ? objectInfo.objectID : ObjectID.None);
-				MoveInventoryItem(player, inventoryHandler, chestInventoryHandler, index, emptySlot);
-
-				return;
-			}
-
-			if (_ignoredItemTypes.Contains(objectInfo.objectType))
-			{
-				return;
-			}
-
-			var inventorySlot = GetEmptyInventoryIndex(inventoryHandler, objectInfo, index);
-			MoveInventoryItem(player, inventoryHandler, inventoryHandler, index, inventorySlot);
 		}
 
+		/// <summary>
+		///     Monitors input and processes the Shift + Click action if the conditions are met.
+		/// </summary>
 		public override void Update()
 		{
 			if (!CanExecute())
@@ -140,12 +125,55 @@ namespace CK_QOL.Features.ShiftClick
 		}
 
 		/// <summary>
-		///     Determines if any of the ignored UI elements, such as crafting or repair UIs, are open.
+		///     Handles moving items from the chest to the player's inventory.
 		/// </summary>
-		/// <returns><see langword="true" /> if any ignored UI elements are open; otherwise, <see langword="false" />.</returns>
+		/// <param name="player">The player controller managing the inventory.</param>
+		/// <param name="chestHandler">The chest's inventory handler.</param>
+		/// <param name="playerHandler">The player's inventory handler.</param>
+		/// <param name="index">The index of the item in the chest's inventory.</param>
+		private static void HandleChestSlot(PlayerController player, InventoryHandler chestHandler, InventoryHandler playerHandler, int index)
+		{
+			var itemDataChest = chestHandler.GetObjectData(index);
+			var objectInfoChest = PugDatabase.GetObjectInfo(itemDataChest.objectID);
+			var emptySlot = GetEmptyInventoryIndex(playerHandler, objectInfoChest, -1);
+
+			MoveInventoryItem(player, chestHandler, playerHandler, index, emptySlot);
+		}
+
+		/// <summary>
+		///     Handles moving items within the player's inventory or to a chest.
+		/// </summary>
+		/// <param name="player">The player controller managing the inventory.</param>
+		/// <param name="playerHandler">The player's inventory handler.</param>
+		/// <param name="chestHandler">The chest's inventory handler.</param>
+		/// <param name="objectInfo">The object information of the item being moved.</param>
+		/// <param name="index">The index of the item in the player's inventory.</param>
+		private static void HandlePlayerSlot(PlayerController player, InventoryHandler playerHandler, InventoryHandler chestHandler, ObjectInfo objectInfo, int index)
+		{
+			if (IgnoredItemTypes.Contains(objectInfo.objectType))
+			{
+				return;
+			}
+
+			if (Manager.ui.isChestInventoryUIShowing)
+			{
+				var emptySlot = GetIndexOfItemInInventory(chestHandler, objectInfo.isStackable ? objectInfo.objectID : ObjectID.None);
+				MoveInventoryItem(player, playerHandler, chestHandler, index, emptySlot);
+			}
+			else
+			{
+				var inventorySlot = GetEmptyInventoryIndex(playerHandler, objectInfo, index);
+				MoveInventoryItem(player, playerHandler, playerHandler, index, inventorySlot);
+			}
+		}
+
+		/// <summary>
+		///     Determines if any ignored UI elements, such as crafting or repair UIs, are open.
+		/// </summary>
+		/// <returns>True if any ignored UI elements are open, otherwise false.</returns>
 		private static bool IsAnyIgnoredUIOpen()
 		{
-			var ignoredUIElementsAreOpened = new[]
+			return new[]
 			{
 				Manager.ui.cookingCraftingUI.isShowing,
 				Manager.ui.processResourcesCraftingUI.isShowing,
@@ -153,9 +181,7 @@ namespace CK_QOL.Features.ShiftClick
 				Manager.ui.bossStatueUI.isShowing,
 				Manager.ui.isBuyUIShowing,
 				Manager.ui.isSellUIShowing
-			};
-
-			return ignoredUIElementsAreOpened.Any(element => element);
+			}.Any(element => element);
 		}
 
 		/// <summary>
@@ -167,48 +193,37 @@ namespace CK_QOL.Features.ShiftClick
 		/// <returns>The index of the first available slot.</returns>
 		private static int GetEmptyInventoryIndex(InventoryHandler inventoryHandler, ObjectInfo objectInfo, int startingIndex = 0)
 		{
-			var isItemStackable = objectInfo.isStackable;
-			var objectID = isItemStackable ? objectInfo.objectID : ObjectID.None;
-
+			var objectID = objectInfo.isStackable ? objectInfo.objectID : ObjectID.None;
 			var index = startingIndex != -1 && startingIndex < 10 ? 10 : 0;
 
 			var firstFound = GetIndexOfItemInInventory(inventoryHandler, objectID, index);
-
-			if (!isItemStackable)
+			if (!objectInfo.isStackable)
 			{
 				return firstFound;
 			}
 
-			var nextItemKind = GetIndexOfItemInInventory(inventoryHandler, objectID, 0, firstFound);
-			var firstStackableSlot = FindFirstStackableSlot(startingIndex, firstFound, nextItemKind);
+			var nextItemIndex = GetIndexOfItemInInventory(inventoryHandler, objectID, 0, firstFound);
+			var firstStackableSlot = FindFirstStackableSlot(startingIndex, firstFound, nextItemIndex);
 
 			return firstStackableSlot ?? GetIndexOfItemInInventory(inventoryHandler, ObjectID.None, index);
 		}
 
 		/// <summary>
 		///     Searches the player's inventory for an item that matches the specified <see cref="ObjectID" />.
-		///     This method can skip a specified index to avoid conflicts during item movement operations.
 		/// </summary>
 		/// <param name="inventoryHandler">The inventory handler responsible for managing the player's inventory.</param>
 		/// <param name="objectID">The ID of the object to search for.</param>
-		/// <param name="index">
-		///     The starting index for the search. Defaults to 0, which means the search will start from the beginning
-		///     of the inventory.
-		/// </param>
-		/// <param name="skipIndex">
-		///     An optional index to skip during the search. Defaults to -1, meaning no index will be skipped.
-		///     This can be used to avoid selecting the same item being moved.
-		/// </param>
+		/// <param name="index">The starting index for the search.</param>
+		/// <param name="skipIndex">An optional index to skip during the search.</param>
 		/// <returns>
-		///     The index of the first item found that matches the specified <see cref="ObjectID" />. If no item is found,
-		///     returns -1.
+		///     The index of the first item found that matches the specified <see cref="ObjectID" />.
+		///     If no item is found, returns -1.
 		/// </returns>
 		private static int GetIndexOfItemInInventory(InventoryHandler inventoryHandler, ObjectID objectID, int index = 0, int skipIndex = -1)
 		{
 			for (var i = index; i < inventoryHandler.size; i++)
 			{
 				var objData = inventoryHandler.GetObjectData(i);
-
 				if (objData.objectID == objectID && i != skipIndex)
 				{
 					return i;
@@ -219,18 +234,12 @@ namespace CK_QOL.Features.ShiftClick
 		}
 
 		/// <summary>
-		///     Determines the first available stackable slot between two specified item indices. This method is useful
-		///     when dealing with stackable items to ensure that items are placed in existing stacks if possible.
+		///     Determines the first available stackable slot between two specified item indices.
 		/// </summary>
-		/// <param name="initialValue">
-		///     The initial value used to compare with the first and second indices. Typically this represents the current
-		///     item being checked.
-		/// </param>
+		/// <param name="initialValue">The initial value used to compare with the first and second indices.</param>
 		/// <param name="first">The index of the first potential stackable slot.</param>
 		/// <param name="second">The index of the second potential stackable slot.</param>
-		/// <returns>
-		///     The index of the first stackable slot if one is found. If no slot is found, returns <see langword="null" />.
-		/// </returns>
+		/// <returns>The index of the first stackable slot if one is found, otherwise null.</returns>
 		private static int? FindFirstStackableSlot(int initialValue, int first, int second)
 		{
 			if (first == initialValue && second != -1)
@@ -243,7 +252,6 @@ namespace CK_QOL.Features.ShiftClick
 				return first;
 			}
 
-			// Handles edge case when the inventory is filled with stackable items of the same kind.
 			if (first != second && first != initialValue && first != -1)
 			{
 				return first;
@@ -253,21 +261,21 @@ namespace CK_QOL.Features.ShiftClick
 		}
 
 		/// <summary>
-		///     Moves an item between inventories by trying to place it in the target slot.
+		///     Moves an item between inventories.
 		/// </summary>
-		/// <param name="player">The player controller.</param>
-		/// <param name="primaryInventoryHandler">The source inventory handler.</param>
-		/// <param name="secondaryInventoryHandler">The target inventory handler.</param>
-		/// <param name="index">The index of the item in the source inventory.</param>
-		/// <param name="emptySlot">The target slot in the destination inventory.</param>
-		private static void MoveInventoryItem(PlayerController player, InventoryHandler primaryInventoryHandler, InventoryHandler secondaryInventoryHandler, int index, int emptySlot)
+		/// <param name="player">The player controller handling the movement.</param>
+		/// <param name="sourceHandler">The source inventory handler.</param>
+		/// <param name="targetHandler">The target inventory handler.</param>
+		/// <param name="sourceIndex">The index of the item in the source inventory.</param>
+		/// <param name="targetIndex">The index to move the item to in the target inventory.</param>
+		private static void MoveInventoryItem(PlayerController player, InventoryHandler sourceHandler, InventoryHandler targetHandler, int sourceIndex, int targetIndex)
 		{
-			if (emptySlot == -1)
+			if (targetIndex == -1)
 			{
 				return;
 			}
 
-			primaryInventoryHandler.TryMoveTo(player, index, secondaryInventoryHandler, emptySlot);
+			sourceHandler.TryMoveTo(player, sourceIndex, targetHandler, targetIndex);
 		}
 
 		#region IFeature
