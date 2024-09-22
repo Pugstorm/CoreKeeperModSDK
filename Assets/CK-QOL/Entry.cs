@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CK_QOL.Core;
 using CK_QOL.Core.Features;
+using CK_QOL.Features.ChestAutoUnlock;
 using CK_QOL.Features.CraftingRange;
 using CK_QOL.Features.ItemPickUpNotifier;
 using CK_QOL.Features.NoDeathPenalty;
@@ -60,7 +61,8 @@ namespace CK_QOL
 				QuickHeal.Instance,
 				QuickEat.Instance,
 				QuickSummon.Instance,
-				ShiftClick.Instance
+				ShiftClick.Instance,
+				ChestAutoUnlock.Instance
 			});
 
 			foreach (var feature in _features.OrderBy(feature => feature.IsEnabled))
@@ -86,11 +88,9 @@ namespace CK_QOL
 
 							break;
 						case NoDeathPenalty { IsEnabled: true } noDeathPenalty:
-							ModLogger.Info($"{feature.DisplayName}");
 
 							break;
 						case NoEquipmentDurabilityLoss { IsEnabled: true } noEquipmentDurabilityLoss:
-							ModLogger.Info($"{feature.DisplayName}");
 
 							break;
 						case QuickHeal { IsEnabled: true } quickHeal:
@@ -107,14 +107,16 @@ namespace CK_QOL
 
 							break;
 						case ShiftClick { IsEnabled: true } shiftClick:
-							ModLogger.Info($"{feature.DisplayName}");
+
+							break;
+						case ChestAutoUnlock { IsEnabled: true } chestAutoUnlock:
 
 							break;
 					}
 				}
 				else
 				{
-					ModLogger.Warn("Feature is disabled.");
+					ModLogger.Info("Disabled");
 				}
 			}
 

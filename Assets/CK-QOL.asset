@@ -47,6 +47,8 @@ MonoBehaviour:
     - path: Scripts/Features/CraftingRange/Patches/CraftingHandlerPatches.cs
     - path: Scripts/Features/CraftingRange/CraftingRangeConfig.cs
     - path: Scripts/Features/CraftingRange/CraftingRange.cs
+    - path: Scripts/Features/ChestAutoUnlock/ChestAutoUnlockConfig.cs
+    - path: Scripts/Features/ChestAutoUnlock/ChestAutoUnlock.cs
     - path: Scripts/Entry.cs
     - path: Scripts/Core/Patches/ItemDiscoveryUIPatches.cs
     - path: Scripts/Core/Patches/ItemDiscoveryTextUIPatches.cs
