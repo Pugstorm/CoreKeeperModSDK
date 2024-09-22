@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using CK_QOL.Core.Config;
 using CK_QOL.Core.Features;
-using CK_QOL.Core.Helpers;
 using Unity.Entities;
 
 namespace CK_QOL.Features.ChestAutoUnlock
@@ -67,17 +66,8 @@ namespace CK_QOL.Features.ChestAutoUnlock
 
 			if (chest == null || !chest.inventoryHandler.HasValidInventorySlotRequirementBuffer())
 			{
-				_lastCheckedChest = null;
-
 				return;
 			}
-
-			if (chest == _lastCheckedChest)
-			{
-				return;
-			}
-
-			_lastCheckedChest = chest;
 
 			Execute();
 		}
@@ -106,12 +96,7 @@ namespace CK_QOL.Features.ChestAutoUnlock
 					continue;
 				}
 
-				if (TransferRequiredItemsToChest(player, chest, requiredKeys))
-				{
-					return;
-				}
-
-				TextHelper.DisplayText("ChestAutoUnlock: Missing items.", Rarity.Legendary);
+				TransferRequiredItemsToChest(player, chest, requiredKeys);
 			}
 		}
 
@@ -152,16 +137,15 @@ namespace CK_QOL.Features.ChestAutoUnlock
 				}
 
 				var emptySlotIndex = GetEmptyInventoryIndex(chestInventory);
-				if (emptySlotIndex != -1)
+				if (emptySlotIndex == -1)
 				{
-					MoveInventoryItem(player, playerInventory, chestInventory, i, emptySlotIndex);
-
-					return true;
+					return false;
 				}
 
-				TextHelper.DisplayText("No available slot in the chest for the key!", Rarity.Common);
+				MoveInventoryItem(player, playerInventory, chestInventory, i, emptySlotIndex);
 
-				return false;
+				return true;
+
 			}
 
 			return false;
