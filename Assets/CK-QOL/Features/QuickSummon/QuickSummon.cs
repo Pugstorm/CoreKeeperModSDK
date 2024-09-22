@@ -51,194 +51,180 @@ namespace CK_QOL.Features.QuickSummon
 		private int _fromSlotIndex = -1;
 		private int _previousSlotIndex = -1;
 
-		public QuickSummon()
-		{
-			ApplyConfigurations();
-			ApplyKeyBinds();
-		}
+        public QuickSummon()
+        {
+            ApplyConfigurations();
+            ApplyKeyBinds();
+        }
 
-		public override bool CanExecute()
-		{
-			return base.CanExecute()
-			       && Entry.RewiredPlayer != null
-			       && Manager.main.player != null
-			       && !(Manager.input?.textInputIsActive ?? false);
-		}
+        public override bool CanExecute()
+        {
+            return base.CanExecute()
+                   && Entry.RewiredPlayer != null
+                   && Manager.main.player != null
+                   && !(Manager.input?.textInputIsActive ?? false);
+        }
 
-		public override void Execute()
-		{
-			if (!CanExecute())
-			{
-				return;
-			}
+        public override void Execute()
+        {
+            // This method will be invoked in the Update method to check for key presses.
+        }
 
-			var player = Manager.main.player;
+        public override void Update()
+        {
+            if (!CanExecute())
+            {
+                return;
+            }
 
-			if (TryFindSummonTome(player))
-			{
-				CastSummonSpell(player);
-			}
-		}
+            if (Entry.RewiredPlayer.GetButtonDown(KeyBindNameX))
+            {
+                ExecuteTome(0); // Tome of the Dark
+            }
 
-		public override void Update()
-		{
-			if (!CanExecute())
-			{
-				return;
-			}
+            if (Entry.RewiredPlayer.GetButtonDown(KeyBindNameK))
+            {
+                ExecuteTome(1); // Tome of the Deep
+            }
 
-			if (Entry.RewiredPlayer.GetButtonDown(KeyBindName))
-			{
-				Execute();
-			}
+            if (Entry.RewiredPlayer.GetButtonDown(KeyBindNameL))
+            {
+                ExecuteTome(2); // Tome of the Dead
+            }
 
-			if (Entry.RewiredPlayer.GetButtonUp(KeyBindName))
-			{
-				SwapBackToPreviousSlot();
-			}
-		}
+            if (Entry.RewiredPlayer.GetButtonUp(KeyBindNameX) || 
+                Entry.RewiredPlayer.GetButtonUp(KeyBindNameK) || 
+                Entry.RewiredPlayer.GetButtonUp(KeyBindNameL))
+            {
+                SwapBackToPreviousSlot();
+            }
+        }
 
+        private void ExecuteTome(int tomeSlotIndex)
+        {
+            var player = Manager.main.player;
+
+            if (TryFindSummonTome(player, tomeSlotIndex))
+            {
+                CastSummonSpell(player);
+            }
+        }
 		/// <summary>
 		///     Attempts to find a summoning tome in the player's inventory.
-		/// </summary>
-		/// <param name="player">The player controller to access inventory.</param>
-		/// <returns>
-		///     <see langword="true" /> if the tome is found; otherwise, <see langword="false" />.
-		/// </returns>
-		private bool TryFindSummonTome(PlayerController player)
-		{
-			_previousSlotIndex = player.equippedSlotIndex;
-			_fromSlotIndex = -1;
 
+        private bool TryFindSummonTome(PlayerController player, int tomeSlotIndex)
+        {
+            _previousSlotIndex = player.equippedSlotIndex;
+            _fromSlotIndex = -1;
+
+            ObjectID tomeID = tomeSlotIndex switch
+            {
+                0 => ObjectID.TomeOfRange,
+                1 => ObjectID.TomeOfOrbit,
+                2 => ObjectID.TomeOfMelee,
+                _ => ObjectID.None
+            };
 			// Check if the summoning tome is in the predefined slot.
-			if (IsSummonTome(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex)))
-			{
-				_fromSlotIndex = EquipmentSlotIndex;
-
-				return true;
-			}
+            if (IsSummonTome(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex), tomeID))
+            {
+                _fromSlotIndex = EquipmentSlotIndex;
+                return true;
+            }
 
 			// If the tome is not in the predefined slot, search through the inventory.
-			var playerInventorySize = player.playerInventoryHandler.size;
-			for (var playerInventoryIndex = 0; playerInventoryIndex < playerInventorySize; playerInventoryIndex++)
-			{
-				if (!IsSummonTome(player.playerInventoryHandler.GetObjectData(playerInventoryIndex)))
-				{
-					continue;
-				}
+            var playerInventorySize = player.playerInventoryHandler.size;
+            for (var playerInventoryIndex = 0; playerInventoryIndex < playerInventorySize; playerInventoryIndex++)
+            {
+                if (IsSummonTome(player.playerInventoryHandler.GetObjectData(playerInventoryIndex), tomeID))
+                {
+                    _fromSlotIndex = playerInventoryIndex;
+                    return true;
+                }
+            }
 
-				_fromSlotIndex = playerInventoryIndex;
-
-				return true;
-			}
-
-			return false;
-		}
+            return false;
+        }
 
 		/// <summary>
 		///     Checks if the provided object data corresponds to the currently configured summoning tome.
 		/// </summary>
-		/// <param name="objectData">The object data to check.</param>
-		/// <returns>
-		///     <see langword="true" /> if the object is the summoning tome; otherwise, <see langword="false" />.
-		/// </returns>
-		private bool IsSummonTome(ObjectDataCD objectData)
-		{
-			return objectData.objectID == GetObjectIDForTomeType(TomeType);
-		}
-
-		/// <summary>
-		///     Maps the <see cref="TomeType" /> to the corresponding <see cref="ObjectID" />.
-		/// </summary>
-		/// <param name="tomeType">The tome type to map.</param>
-		/// <returns>The corresponding <see cref="ObjectID" />.</returns>
-		private ObjectID GetObjectIDForTomeType(TomeType tomeType)
-		{
-			return tomeType switch
-			{
-				TomeType.TomeOfTheDark => ObjectID.TomeOfRange,
-				TomeType.TomeOfTheDeep => ObjectID.TomeOfOrbit,
-				TomeType.TomeOfTheDead => ObjectID.TomeOfMelee,
-				_ => ObjectID.None
-			};
-		}
+        private bool IsSummonTome(ObjectDataCD objectData, ObjectID tomeID)
+        {
+            return objectData.objectID == tomeID;
+        }
 
 		/// <summary>
 		///     Equips the summoning tome, casts the summon spell, and swaps back to the previous item.
 		/// </summary>
 		/// <param name="player">The player controller.</param>
-		private void CastSummonSpell(PlayerController player)
-		{
+        private void CastSummonSpell(PlayerController player)
+        {
 			// Swap the item to the correct slot and equip it.
-			if (_fromSlotIndex != EquipmentSlotIndex)
-			{
-				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
-			}
+            if (_fromSlotIndex != EquipmentSlotIndex)
+            {
+                player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+            }
 
 			player.EquipSlot(EquipmentSlotIndex);
 
 			// Reset input history and re-equip the item.
-			var inputHistoryFake = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
-			inputHistoryFake.secondInteractUITriggered = false;
-			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryFake);
-
-			player.EquipSlot(EquipmentSlotIndex);
+            var inputHistory = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
+            inputHistory.secondInteractUITriggered = true;
+            EntityUtility.SetComponentData(player.entity, player.world, inputHistory);
 
 			// Simulate "right-click" or "use" action on the item.
-			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
-			inputHistoryConsume.secondInteractUITriggered = true;
-
 			// Swap back to the original item.
-			if (_fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
-			{
-				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
-			}
-
+            if (_fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
+            {
+                player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+            }
 			// Setting it here makes it somehow "smoother"...?
-			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
-		}
+			EntityUtility.SetComponentData(player.entity, player.world, inputHistory);
+        }
 
 		/// <summary>
 		///     Swaps back to the previously equipped slot after casting the summon spell.
 		/// </summary>
-		private void SwapBackToPreviousSlot()
-		{
-			if (_previousSlotIndex == -1)
-			{
-				return;
-			}
+        private void SwapBackToPreviousSlot()
+        {
+            if (_previousSlotIndex == -1)
+            {
+                return;
+            }
 
-			Manager.main.player.EquipSlot(_previousSlotIndex);
-		}
+            Manager.main.player.EquipSlot(_previousSlotIndex);
+        }
 
-		#region IFeature
+        #region IFeature
 
-		public override string Name => nameof(QuickSummon);
-		public override string DisplayName => "Quick Summon";
-		public override string Description => "Quickly equips a summoning tome, casts a summon spell, and swaps back to the previous item.";
-		public override FeatureType FeatureType => FeatureType.Client;
+        public override string Name => nameof(QuickSummon);
+        public override string DisplayName => "Quick Summon";
+        public override string Description => "Quickly equips a summoning tome, casts a summon spell, and swaps back to the previous item.";
+        public override FeatureType FeatureType => FeatureType.Client;
 
-		#endregion IFeature
+        #endregion IFeature
 
-		#region Configurations
+        #region Configurations
 
-		internal string KeyBindName => $"{ModSettings.ShortName}_{Name}";
-		internal int EquipmentSlotIndex { get; private set; }
-		internal TomeType TomeType { get; private set; }
+        internal string KeyBindNameX => $"{ModSettings.ShortName}_{Name}_TomeOfTheDark";
+        internal string KeyBindNameK => $"{ModSettings.ShortName}_{Name}_TomeOfTheDeep";
+        internal string KeyBindNameL => $"{ModSettings.ShortName}_{Name}_TomeOfTheDead";
+        internal int EquipmentSlotIndex { get; private set; }
 
-		private void ApplyConfigurations()
-		{
-			ConfigBase.Create(this);
-			IsEnabled = QuickSummonConfig.ApplyIsEnabled(this);
-			EquipmentSlotIndex = QuickSummonConfig.ApplyEquipmentSlotIndex(this);
-			TomeType = QuickSummonConfig.ApplyTomeType(this);
-		}
+        private void ApplyConfigurations()
+        {
+            ConfigBase.Create(this);
+            IsEnabled = QuickSummonConfig.ApplyIsEnabled(this);
+            EquipmentSlotIndex = QuickSummonConfig.ApplyEquipmentSlotIndex(this);
+        }
 
-		private void ApplyKeyBinds()
-		{
-			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.X);
-		}
+        private void ApplyKeyBinds()
+        {
+            RewiredExtensionModule.AddKeybind(KeyBindNameX, "Quick Summon Tome of the Dark", KeyboardKeyCode.X);
+            RewiredExtensionModule.AddKeybind(KeyBindNameK, "Quick Summon Tome of the Deep", KeyboardKeyCode.K);
+            RewiredExtensionModule.AddKeybind(KeyBindNameL, "Quick Summon Tome of the Dead", KeyboardKeyCode.L);
+        }
 
-		#endregion Configurations
-	}
+        #endregion Configurations
+    }
 }
