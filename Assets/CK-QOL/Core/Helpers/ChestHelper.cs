@@ -5,10 +5,10 @@ using UnityEngine;
 
 namespace CK_QOL.Core.Helpers
 {
-	/// <summary>
-	///     Provides helper methods for operations related to chests in-game.
-	/// </summary>
-	internal static class ChestHelper
+    /// <summary>
+    ///     Provides helper methods for operations related to chests in-game.
+    /// </summary>
+    internal static class ChestHelper
     {
         private const string PoolChestName = "Pool Chest";
         private const string PoolBossChestName = "Pool BossChest";

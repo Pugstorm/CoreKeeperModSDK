@@ -24,7 +24,10 @@ namespace CK_QOL.Core.Patches
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static bool Activate(ItemDiscoveryTextUI __instance, ref Color ___color, ref TimerSimple ___activeTimer, string text, Rarity rarity, ItemDiscoveryUI itemDiscoveryUI)
         {
-            if (!text.StartsWith(ModSettings.ShortName)) return true;
+            if (!text.StartsWith(ModSettings.ShortName))
+            {
+                return true;
+            }
 
             text = text.Replace(ModSettings.ShortName, string.Empty);
 

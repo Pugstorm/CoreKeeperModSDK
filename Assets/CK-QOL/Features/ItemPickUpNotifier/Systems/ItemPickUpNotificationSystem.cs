@@ -7,56 +7,56 @@ using Unity.Entities;
 
 namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 {
-	/// <summary>
-	///     Represents the system responsible for managing and aggregating item pick-up notifications within the game client.
-	///     This system runs as part of the client-side simulation and listens for inventory changes related to item pickups,
-	///     collecting and displaying aggregated notifications to the player.
-	///     The system performs the following functions:
-	///     <list type="bullet">
-	///         <item>
-	///             <description>
-	///                 Monitors inventory changes to detect when items are picked up by the player,
-	///                 using the <see cref="InventoryChangeBuffer" /> component to track relevant events.
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Caches the details of picked-up items (e.g., total amount, rarity, and display name)
-	///                 using a <see cref="NativeParallelHashMap{TKey,TValue}" /> for efficient aggregation.
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Aggregates multiple pick-up events over a configurable delay period (
-	///                 <see cref="ItemPickUpNotifier.AggregateDelay" />),
-	///                 reducing notification spam by combining multiple events into a single message.
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Displays aggregated notifications to the player at regular intervals,
-	///                 utilizing the game's text display system to show the total items picked up within the specified delay
-	///                 period.
-	///             </description>
-	///         </item>
-	///     </list>
-	///     This system is enabled and controlled by the <see cref="ItemPickUpNotifier" /> feature,
-	///     which provides the necessary configuration settings and determines whether the system should be active based on the
-	///     feature's enabled state.
-	/// </summary>
-	/// <remarks>
-	///     The <see cref="ItemPickUpNotificationSystem" /> class extends <see cref="PugSimulationSystemBase" /> to integrate
-	///     with the game's simulation framework,
-	///     running in the client-side simulation context to handle item pick-up notifications in real-time.
-	/// </remarks>
-	[WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
+    /// <summary>
+    ///     Represents the system responsible for managing and aggregating item pick-up notifications within the game client.
+    ///     This system runs as part of the client-side simulation and listens for inventory changes related to item pickups,
+    ///     collecting and displaying aggregated notifications to the player.
+    ///     The system performs the following functions:
+    ///     <list type="bullet">
+    ///         <item>
+    ///             <description>
+    ///                 Monitors inventory changes to detect when items are picked up by the player,
+    ///                 using the <see cref="InventoryChangeBuffer" /> component to track relevant events.
+    ///             </description>
+    ///         </item>
+    ///         <item>
+    ///             <description>
+    ///                 Caches the details of picked-up items (e.g., total amount, rarity, and display name)
+    ///                 using a <see cref="NativeParallelHashMap{TKey,TValue}" /> for efficient aggregation.
+    ///             </description>
+    ///         </item>
+    ///         <item>
+    ///             <description>
+    ///                 Aggregates multiple pick-up events over a configurable delay period (
+    ///                 <see cref="ItemPickUpNotifier.AggregateDelay" />),
+    ///                 reducing notification spam by combining multiple events into a single message.
+    ///             </description>
+    ///         </item>
+    ///         <item>
+    ///             <description>
+    ///                 Displays aggregated notifications to the player at regular intervals,
+    ///                 utilizing the game's text display system to show the total items picked up within the specified delay
+    ///                 period.
+    ///             </description>
+    ///         </item>
+    ///     </list>
+    ///     This system is enabled and controlled by the <see cref="ItemPickUpNotifier" /> feature,
+    ///     which provides the necessary configuration settings and determines whether the system should be active based on the
+    ///     feature's enabled state.
+    /// </summary>
+    /// <remarks>
+    ///     The <see cref="ItemPickUpNotificationSystem" /> class extends <see cref="PugSimulationSystemBase" /> to integrate
+    ///     with the game's simulation framework,
+    ///     running in the client-side simulation context to handle item pick-up notifications in real-time.
+    /// </remarks>
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
     [UpdateInGroup(typeof(InventorySystemGroup))]
     [BurstCompile(DisableDirectCall = true)]
     public partial class ItemPickUpNotificationSystem : PugSimulationSystemBase
     {
-        private Dictionary<int, (int totalAmount, Rarity rarity, FixedString64Bytes displayName)> _cachedPickups;
+
+        private Dictionary<int, PickupEntry> _cachedPickups;
         private Entity _localPlayerEntity;
-        private float _timeSinceLastLog;
 
         protected override void OnCreate()
         {
@@ -68,8 +68,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
             base.OnCreate();
             RequireForUpdate<InventoryChangeBuffer>();
 
-            _cachedPickups = new Dictionary<int, (int totalAmount, Rarity rarity, FixedString64Bytes displayName)>();
-            _timeSinceLastLog = 0f;
+            _cachedPickups = new Dictionary<int, PickupEntry>();
         }
 
         protected override void OnDestroy()
@@ -102,6 +101,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
             var cachedPickups = _cachedPickups;
             var localPlayerEntity = _localPlayerEntity;
 
+            // ReSharper disable once Unity.Entities.MustBeSurroundedWithRefRwRo
             foreach (var inventoryChanges in SystemAPI.Query<DynamicBuffer<InventoryChangeBuffer>>())
             {
                 foreach (var change in inventoryChanges)
@@ -111,7 +111,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
                         continue;
                     }
 
-                    if (change.playerEntity != localPlayerEntity)
+                    if (change.playerEntity != _localPlayerEntity)
                     {
                         continue;
                     }
@@ -123,49 +123,89 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
                     }
 
                     var itemsBuffer = containedObjectsBufferLookup[sourceInventory];
+
                     foreach (var item in itemsBuffer)
                     {
-                        if (item.objectID is ObjectID.None or ObjectID.CattleCage)
+                        if (item.objectID == ObjectID.None)
                         {
                             continue;
                         }
 
-                        var objectIdHash = item.objectData.objectID.GetHashCode();
-                        if (cachedPickups.TryGetValue(objectIdHash, out var existing))
+                        var amount = item.amount;
+                        if (PugDatabase.GetObjectInfo(item.objectID, item.variation) is { isStackable: false })
                         {
-                            cachedPickups[objectIdHash] = (existing.totalAmount + item.amount, existing.rarity, existing.displayName);
+                            amount = 1;
+                        }
+
+                        var objectIdHash = item.objectData.objectID.GetHashCode();
+
+                        if (cachedPickups.TryGetValue(objectIdHash, out var existingEntry))
+                        {
+                            existingEntry.TotalAmount += amount;
+                            if (existingEntry.TotalAmount != existingEntry.LastTotalAmount)
+                            {
+                                existingEntry.TimeSinceLastChange = 0f;
+                                existingEntry.LastTotalAmount = existingEntry.TotalAmount;
+                            }
                         }
                         else
                         {
                             var text = PlayerController.GetObjectName(item, true).text;
                             var rarity = PugDatabase.GetObjectInfo(item.objectData.objectID).rarity;
 
-                            cachedPickups[objectIdHash] = (item.amount, rarity, text);
+                            cachedPickups[objectIdHash] = new PickupEntry
+                            {
+                                TotalAmount = amount,
+                                LastTotalAmount = amount,
+                                Rarity = rarity,
+                                DisplayName = text,
+                                TimeSinceLastChange = 0f
+                            };
                         }
                     }
                 }
             }
 
-            _timeSinceLastLog += SystemAPI.Time.DeltaTime;
-
-            if (_timeSinceLastLog >= ItemPickUpNotifier.Instance.AggregateDelay)
-            {
-                HandleItemPickupNotifications();
-            }
+            UpdateTimersAndHandleNotifications();
 
             base.OnUpdate();
         }
 
-        private void HandleItemPickupNotifications()
+        /// <summary>
+        ///     Updates the timers for all cached pickups and handles the display of notifications for items whose amounts
+        ///     haven't changed for the defined delay.
+        /// </summary>
+        private void UpdateTimersAndHandleNotifications()
         {
-            foreach (var item in _cachedPickups)
+            var aggregateDelay = ItemPickUpNotifier.Instance.AggregateDelay;
+            var notifiedPickups = new List<int>();
+
+            foreach (var (objectIdHash, pickupEntry) in _cachedPickups)
             {
-                var (amount, rarity, text) = item.Value;
-                TextHelper.DisplayText($"{text} x{amount}", rarity);
+                // Increment the time since the last change for this item.
+                pickupEntry.TimeSinceLastChange += SystemAPI.Time.DeltaTime;
+
+                // If time since last change exceeds the aggregate delay, we notify.
+                if (pickupEntry.TimeSinceLastChange >= aggregateDelay)
+                {
+                    TextHelper.DisplayText($"{pickupEntry.DisplayName} x{pickupEntry.TotalAmount}", pickupEntry.Rarity);
+                    notifiedPickups.Add(objectIdHash);
+                }
             }
 
-            _cachedPickups.Clear();
-            _timeSinceLastLog = 0f;
+            foreach (var objectIdHash in notifiedPickups)
+            {
+                _cachedPickups.Remove(objectIdHash);
+            }
+        }
+
+        private class PickupEntry
+        {
+            public int TotalAmount { get; set; }
+            public int LastTotalAmount { get; set; }
+            public Rarity Rarity { get; set; }
+            public FixedString64Bytes DisplayName { get; set; }
+            public float TimeSinceLastChange { get; set; }
         }
     }
 }

@@ -25,7 +25,6 @@ namespace CK_QOL.Core.Helpers
 	    internal static void DisplayText(string text, Rarity rarity = Rarity.Poor)
         {
             text = $"{ModSettings.ShortName}{text}";
-
             Manager.ui.ShowDiscoveredItemText(new List<string>
             {
                 text

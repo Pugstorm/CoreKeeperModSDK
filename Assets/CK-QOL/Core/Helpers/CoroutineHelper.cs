@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace CK_QOL.Core.Helpers
 {
-	/// <summary>
-	///     Provides a helper class for running coroutines outside a MonoBehaviour context.
-	///     This class ensures that there is always a MonoBehaviour available to handle coroutine operations.
-	/// </summary>
-	public class CoroutineHelper : MonoBehaviour
+    /// <summary>
+    ///     Provides a helper class for running coroutines outside a MonoBehaviour context.
+    ///     This class ensures that there is always a MonoBehaviour available to handle coroutine operations.
+    /// </summary>
+    public class CoroutineHelper : MonoBehaviour
     {
         private static CoroutineHelper _instance;
 

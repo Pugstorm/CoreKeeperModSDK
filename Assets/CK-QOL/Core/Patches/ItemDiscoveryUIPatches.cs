@@ -5,10 +5,10 @@ using UnityEngine;
 
 namespace CK_QOL.Core.Patches
 {
-	/// <summary>
-	///     Contains Harmony patches for the <see cref="ItemDiscoveryUI" /> class to display custom texts in-game.
-	/// </summary>
-	[HarmonyPatch(typeof(ItemDiscoveryUI))]
+    /// <summary>
+    ///     Contains Harmony patches for the <see cref="ItemDiscoveryUI" /> class to display custom texts in-game.
+    /// </summary>
+    [HarmonyPatch(typeof(ItemDiscoveryUI))]
     internal static class ItemDiscoveryUIPatches
     {
         private const int MaxActiveTexts = 5;

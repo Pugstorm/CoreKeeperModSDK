@@ -6,47 +6,47 @@ using Rewired;
 
 namespace CK_QOL.Features.QuickSummon
 {
-	/// <summary>
-	///     Represents the "Quick Summon" feature, allowing players to quickly equip a configured summoning tome,
-	///     use a summon spell, and swap back to the previously equipped item.
-	///     This feature provides a key binding to trigger summoning actions and automatically manages the inventory to locate
-	///     and equip the tome efficiently.
-	///     The class manages the following functionalities:
-	///     <list type="bullet">
-	///         <item>
-	///             <description>
-	///                 Configuration of the feature's enabled state and summoning tome slot index,
-	///                 which determines the preferred slot to search for the tome (<see cref="EquipmentSlotIndex" />).
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Defines key bindings for quick summoning, allowing users to set a custom key to trigger the
-	///                 summon action (<see cref="ApplyKeyBinds" /> method).
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Executes the logic to find, equip, and cast the summon spell using the configured tome,
-	///                 ensuring efficient summoning actions during gameplay (<see cref="Execute" /> and
-	///                 <see cref="CastSummonSpell" /> methods).
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Monitors for key input and manages the summoning process, including resetting the inventory
-	///                 state after casting the summon spell (<see cref="Update" /> method).
-	///             </description>
-	///         </item>
-	///     </list>
-	/// </summary>
-	/// <remarks>
-	///     This class extends the <see cref="FeatureBase{TFeature}" /> base class to inherit common feature behavior,
-	///     including singleton instantiation, configuration management, and execution control.
-	///     It provides an optimized mechanism for summoning by leveraging game input handling and inventory management
-	///     functionalities.
-	/// </remarks>
-	internal sealed class QuickSummon : FeatureBase<QuickSummon>
+    /// <summary>
+    ///     Represents the "Quick Summon" feature, allowing players to quickly equip a configured summoning tome,
+    ///     use a summon spell, and swap back to the previously equipped item.
+    ///     This feature provides a key binding to trigger summoning actions and automatically manages the inventory to locate
+    ///     and equip the tome efficiently.
+    ///     The class manages the following functionalities:
+    ///     <list type="bullet">
+    ///         <item>
+    ///             <description>
+    ///                 Configuration of the feature's enabled state and summoning tome slot index,
+    ///                 which determines the preferred slot to search for the tome (<see cref="EquipmentSlotIndex" />).
+    ///             </description>
+    ///         </item>
+    ///         <item>
+    ///             <description>
+    ///                 Defines key bindings for quick summoning, allowing users to set a custom key to trigger the
+    ///                 summon action (<see cref="ApplyKeyBinds" /> method).
+    ///             </description>
+    ///         </item>
+    ///         <item>
+    ///             <description>
+    ///                 Executes the logic to find, equip, and cast the summon spell using the configured tome,
+    ///                 ensuring efficient summoning actions during gameplay (<see cref="Execute" /> and
+    ///                 <see cref="CastSummonSpell" /> methods).
+    ///             </description>
+    ///         </item>
+    ///         <item>
+    ///             <description>
+    ///                 Monitors for key input and manages the summoning process, including resetting the inventory
+    ///                 state after casting the summon spell (<see cref="Update" /> method).
+    ///             </description>
+    ///         </item>
+    ///     </list>
+    /// </summary>
+    /// <remarks>
+    ///     This class extends the <see cref="FeatureBase{TFeature}" /> base class to inherit common feature behavior,
+    ///     including singleton instantiation, configuration management, and execution control.
+    ///     It provides an optimized mechanism for summoning by leveraging game input handling and inventory management
+    ///     functionalities.
+    /// </remarks>
+    internal sealed class QuickSummon : FeatureBase<QuickSummon>
     {
         private int _fromSlotIndex = -1;
         private int _previousSlotIndex = -1;

@@ -8,47 +8,47 @@ using Rewired;
 
 namespace CK_QOL.Features.QuickEat
 {
-	/// <summary>
-	///     Represents the "Eatable Binding" feature in the game, which allows players to quickly heal using a configured or
-	///     next available Eatable item from their inventory.
-	///     This feature provides a key binding to trigger healing actions and automatically manages the inventory to locate
-	///     and consume the Eatable item efficiently.
-	///     The class manages the following functionalities:
-	///     <list type="bullet">
-	///         <item>
-	///             <description>
-	///                 Configuration of the feature's enabled state and Eatable slot index,
-	///                 which determines the preferred slot to search for a Eatable item (<see cref="EquipmentSlotIndex" />).
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Defines key bindings for quick healing, allowing users to set a custom key  to trigger the
-	///                 Eatable action (<see cref="ApplyKeyBinds" /> method).
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Executes the logic to find, equip, and consume a Eatable item from the inventory,
-	///                 ensuring efficient healing actions during gameplay (<see cref="Execute" /> and
-	///                 <see cref="ConsumeEatable" /> methods).
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Monitors for key input and manages the healing process, including resetting the inventory
-	///                 state after healing (<see cref="Update" /> method).
-	///             </description>
-	///         </item>
-	///     </list>
-	/// </summary>
-	/// <remarks>
-	///     This class extends the <see cref="FeatureBase{TFeature}" /> base class to inherit common feature behavior,
-	///     including singleton instantiation, configuration management, and execution control.
-	///     It provides an optimized mechanism for healing by leveraging game input handling and inventory management
-	///     functionalities.
-	/// </remarks>
-	internal sealed class QuickEat : FeatureBase<QuickEat>
+    /// <summary>
+    ///     Represents the "Eatable Binding" feature in the game, which allows players to quickly heal using a configured or
+    ///     next available Eatable item from their inventory.
+    ///     This feature provides a key binding to trigger healing actions and automatically manages the inventory to locate
+    ///     and consume the Eatable item efficiently.
+    ///     The class manages the following functionalities:
+    ///     <list type="bullet">
+    ///         <item>
+    ///             <description>
+    ///                 Configuration of the feature's enabled state and Eatable slot index,
+    ///                 which determines the preferred slot to search for a Eatable item (<see cref="EquipmentSlotIndex" />).
+    ///             </description>
+    ///         </item>
+    ///         <item>
+    ///             <description>
+    ///                 Defines key bindings for quick healing, allowing users to set a custom key  to trigger the
+    ///                 Eatable action (<see cref="ApplyKeyBinds" /> method).
+    ///             </description>
+    ///         </item>
+    ///         <item>
+    ///             <description>
+    ///                 Executes the logic to find, equip, and consume a Eatable item from the inventory,
+    ///                 ensuring efficient healing actions during gameplay (<see cref="Execute" /> and
+    ///                 <see cref="ConsumeEatable" /> methods).
+    ///             </description>
+    ///         </item>
+    ///         <item>
+    ///             <description>
+    ///                 Monitors for key input and manages the healing process, including resetting the inventory
+    ///                 state after healing (<see cref="Update" /> method).
+    ///             </description>
+    ///         </item>
+    ///     </list>
+    /// </summary>
+    /// <remarks>
+    ///     This class extends the <see cref="FeatureBase{TFeature}" /> base class to inherit common feature behavior,
+    ///     including singleton instantiation, configuration management, and execution control.
+    ///     It provides an optimized mechanism for healing by leveraging game input handling and inventory management
+    ///     functionalities.
+    /// </remarks>
+    internal sealed class QuickEat : FeatureBase<QuickEat>
     {
         private int _fromSlotIndex = -1;
         private int _previousSlotIndex = -1;

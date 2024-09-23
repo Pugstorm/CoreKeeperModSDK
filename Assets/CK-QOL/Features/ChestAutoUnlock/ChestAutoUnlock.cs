@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
 using CK_QOL.Core.Config;
 using CK_QOL.Core.Features;
-using Unity.Entities;
+using CK_QOL.Core.Helpers;
 
 namespace CK_QOL.Features.ChestAutoUnlock
 {
@@ -75,120 +76,65 @@ namespace CK_QOL.Features.ChestAutoUnlock
         public override void Execute()
         {
             var player = Manager.main.player;
-            var chest = player.activeInventoryHandler.entityMonoBehaviour as Chest;
+            var chest = player.activeInventoryHandler?.entityMonoBehaviour as Chest;
 
-            var slotRequirementBuffer = GetSlotRequirementBuffer(chest);
-            if (slotRequirementBuffer is not { Length: > 0 })
+            if (chest == null)
             {
                 return;
             }
 
-            foreach (var slotRequirement in slotRequirementBuffer.Value)
+            var requiredObjectIDs = InventoryHandlerHelper.GetRequiredObjectIDs(chest.inventoryHandler);
+            if (!requiredObjectIDs.Any())
             {
-                var requiredKeys = new List<ObjectID>();
-                foreach (var id in slotRequirement.acceptsObjectIds)
-                {
-                    requiredKeys.Add(id);
-                }
+                return;
+            }
 
-                if (requiredKeys.Count <= 0)
-                {
-                    continue;
-                }
-
-                TransferRequiredItemsToChest(player, chest, requiredKeys);
+            if (PlayerHasAllRequiredItems(player, requiredObjectIDs))
+            {
+                TransferRequiredItemsToChest(player, chest, requiredObjectIDs);
             }
         }
 
         /// <summary>
-        ///     Fetches the InventorySlotRequirementBuffer from the chest's inventory entity.
+        ///     Checks if the player has all the required items in their inventory needed to unlock the chest.
         /// </summary>
-        /// <param name="chest">The chest entity.</param>
-        /// <returns>A nullable buffer of InventorySlotRequirementBuffer if it exists.</returns>
-        private static DynamicBuffer<InventorySlotRequirementBuffer>? GetSlotRequirementBuffer(Chest chest)
+        /// <param name="player">The player controller handling the inventory.</param>
+        /// <param name="requiredObjectIDs">The collection of ObjectIDs required to unlock the chest.</param>
+        /// <returns><see langword="true" /> if the player has all required items, otherwise <see langword="false" />.</returns>
+        private static bool PlayerHasAllRequiredItems(PlayerController player, IEnumerable<ObjectID> requiredObjectIDs)
         {
-            if (EntityUtility.TryGetBuffer(chest.inventoryHandler.inventoryEntity, chest.world, out DynamicBuffer<InventorySlotRequirementBuffer> slotRequirementBuffer))
-            {
-                return slotRequirementBuffer;
-            }
+            return requiredObjectIDs
+                .Select(objectID => InventoryHandlerHelper.GetIndexOfItem(player.playerInventoryHandler, objectID))
+                .All(playerItemIndex => playerItemIndex != InventoryHandlerHelper.InvalidIndex);
 
-            return null;
         }
 
         /// <summary>
-        ///     Transfers the required key items from the player's inventory to the chest's inventory.
-        ///     This method ensures that the chest receives the necessary items for unlocking.
+        ///     Transfers all required items from the player's inventory to the chest's inventory,
+        ///     ensuring that the chest can be unlocked by moving the required items in bulk.
+        ///     Before moving the items, this method ensures that the player has all the required items
+        ///     to unlock the chest. If any item is missing, no transfer occurs.
         /// </summary>
-        /// <param name="player">The player controller.</param>
-        /// <param name="chest">The chest entity.</param>
-        /// <param name="requiredKeys">List of required ObjectIDs (keys).</param>
-        /// <returns>True if the keys were successfully transferred; otherwise, false.</returns>
-        private static bool TransferRequiredItemsToChest(PlayerController player, Chest chest, List<ObjectID> requiredKeys)
+        /// <param name="player">The player controller responsible for handling inventory actions.</param>
+        /// <param name="chest">The chest entity containing the inventory to unlock.</param>
+        /// <param name="requiredObjectIDs">A collection of ObjectIDs representing the items needed to unlock the chest.</param>
+        private static void TransferRequiredItemsToChest(PlayerController player, Chest chest, IEnumerable<ObjectID> requiredObjectIDs)
         {
             var playerInventory = player.playerInventoryHandler;
             var chestInventory = chest.inventoryHandler;
 
-            for (var i = 0; i < playerInventory.size; i++)
+            foreach (var objectID in requiredObjectIDs)
             {
-                var objectData = playerInventory.GetObjectData(i);
-                if (!requiredKeys.Contains(objectData.objectID))
+                var playerItemIndex = InventoryHandlerHelper.GetIndexOfItem(playerInventory, objectID);
+                var chestEmptySlotIndex = InventoryHandlerHelper.GetNextAvailableIndex(chestInventory);
+
+                if (chestEmptySlotIndex == InventoryHandlerHelper.InvalidIndex)
                 {
-                    continue;
+                    return;
                 }
 
-                var emptySlotIndex = GetEmptyInventoryIndex(chestInventory);
-                if (emptySlotIndex == -1)
-                {
-                    return false;
-                }
-
-                MoveInventoryItem(player, playerInventory, chestInventory, i, emptySlotIndex);
-
-                return true;
-
+                InventoryHandlerHelper.MoveItem(player, playerInventory, chestInventory, playerItemIndex, chestEmptySlotIndex);
             }
-
-            return false;
-        }
-
-        /// <summary>
-        ///     Moves an item between inventories, facilitating the transfer of key items between the player's inventory
-        ///     and the chest's inventory.
-        /// </summary>
-        /// <param name="player">The player controller handling the movement.</param>
-        /// <param name="sourceHandler">The source inventory handler.</param>
-        /// <param name="targetHandler">The target inventory handler.</param>
-        /// <param name="sourceIndex">The index of the item in the source inventory.</param>
-        /// <param name="targetIndex">The index to move the item to in the target inventory.</param>
-        private static void MoveInventoryItem(PlayerController player, InventoryHandler sourceHandler, InventoryHandler targetHandler, int sourceIndex, int targetIndex)
-        {
-            if (targetIndex == -1)
-            {
-                return;
-            }
-
-            sourceHandler.TryMoveTo(player, sourceIndex, targetHandler, targetIndex);
-        }
-
-        /// <summary>
-        ///     Finds the first available slot in the chest's inventory that is empty.
-        ///     This method ensures that key items can be placed in available slots.
-        /// </summary>
-        /// <param name="inventoryHandler">The chest's inventory handler.</param>
-        /// <returns>The index of the first available slot.</returns>
-        private static int GetEmptyInventoryIndex(InventoryHandler inventoryHandler)
-        {
-            for (var i = 0; i < inventoryHandler.size; i++)
-            {
-                var objData = inventoryHandler.GetObjectData(i);
-
-                if (objData.objectID == ObjectID.None)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
         }
 
         #region Configuration
