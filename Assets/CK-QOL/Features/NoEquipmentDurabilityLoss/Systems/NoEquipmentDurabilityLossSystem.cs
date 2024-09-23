@@ -34,59 +34,59 @@ namespace CK_QOL.Features.NoEquipmentDurabilityLoss.Systems
 	///     real-time.
 	/// </remarks>
 	[WorldSystemFilter(WorldSystemFilterFlags.ServerSimulation)]
-	[UpdateInGroup(typeof(EndPredictedSimulationSystemGroup))]
-	[UpdateBefore(typeof(ChangeDurabilitySystem))]
-	public partial class NoEquipmentDurabilityLossSystem : PugSimulationSystemBase
-	{
-		protected override void OnCreate()
-		{
-			if (!NoEquipmentDurabilityLoss.Instance.IsEnabled)
-			{
-				return;
-			}
+    [UpdateInGroup(typeof(EndPredictedSimulationSystemGroup))]
+    [UpdateBefore(typeof(ChangeDurabilitySystem))]
+    public partial class NoEquipmentDurabilityLossSystem : PugSimulationSystemBase
+    {
+        protected override void OnCreate()
+        {
+            if (!NoEquipmentDurabilityLoss.Instance.IsEnabled)
+            {
+                return;
+            }
 
-			base.OnCreate();
-		}
+            base.OnCreate();
+        }
 
-		protected override void OnUpdate()
-		{
-			if (!NoEquipmentDurabilityLoss.Instance.IsEnabled)
-			{
-				return;
-			}
+        protected override void OnUpdate()
+        {
+            if (!NoEquipmentDurabilityLoss.Instance.IsEnabled)
+            {
+                return;
+            }
 
-			foreach (var (allTrigger, entity) in SystemAPI.Query<RefRW<ReduceDurabilityOfAllEquipmentTriggerCD>>().WithEntityAccess())
-			{
-				allTrigger.ValueRW.damage = 0;
-				allTrigger.ValueRW.percentage = 0f;
-				SystemAPI.SetComponentEnabled<ReduceDurabilityOfAllEquipmentTriggerCD>(entity, false);
-			}
+            foreach (var (allTrigger, entity) in SystemAPI.Query<RefRW<ReduceDurabilityOfAllEquipmentTriggerCD>>().WithEntityAccess())
+            {
+                allTrigger.ValueRW.damage = 0;
+                allTrigger.ValueRW.percentage = 0f;
+                SystemAPI.SetComponentEnabled<ReduceDurabilityOfAllEquipmentTriggerCD>(entity, false);
+            }
 
-			foreach (var (equippedTrigger, entity) in SystemAPI.Query<RefRW<ReduceDurabilityOfEquippedTriggerCD>>().WithEntityAccess())
-			{
-				equippedTrigger.ValueRW.triggerCounter = 0;
-				SystemAPI.SetComponentEnabled<ReduceDurabilityOfEquippedTriggerCD>(entity, false);
-			}
+            foreach (var (equippedTrigger, entity) in SystemAPI.Query<RefRW<ReduceDurabilityOfEquippedTriggerCD>>().WithEntityAccess())
+            {
+                equippedTrigger.ValueRW.triggerCounter = 0;
+                SystemAPI.SetComponentEnabled<ReduceDurabilityOfEquippedTriggerCD>(entity, false);
+            }
 
-			foreach (var equippedObject in SystemAPI.Query<RefRW<EquippedObjectCD>>())
-			{
-				if (equippedObject.ValueRO.containedObject.objectID is ObjectID.None or ObjectID.CattleCage)
-				{
-					continue;
-				}
+            foreach (var equippedObject in SystemAPI.Query<RefRW<EquippedObjectCD>>())
+            {
+                if (equippedObject.ValueRO.containedObject.objectID is ObjectID.None or ObjectID.CattleCage)
+                {
+                    continue;
+                }
 
-				if (!SystemAPI.HasComponent<DurabilityCD>(equippedObject.ValueRO.equipmentPrefab))
-				{
-					continue;
-				}
+                if (!SystemAPI.HasComponent<DurabilityCD>(equippedObject.ValueRO.equipmentPrefab))
+                {
+                    continue;
+                }
 
-				var durabilityComponent = SystemAPI.GetComponent<DurabilityCD>(equippedObject.ValueRO.equipmentPrefab);
-				equippedObject.ValueRW.containedObject.objectData.amount = durabilityComponent.IsReinforced(equippedObject.ValueRW.containedObject.objectData.amount)
-					? durabilityComponent.maxDurability * 2
-					: durabilityComponent.maxDurability;
-			}
+                var durabilityComponent = SystemAPI.GetComponent<DurabilityCD>(equippedObject.ValueRO.equipmentPrefab);
+                equippedObject.ValueRW.containedObject.objectData.amount = durabilityComponent.IsReinforced(equippedObject.ValueRW.containedObject.objectData.amount)
+                    ? durabilityComponent.maxDurability * 2
+                    : durabilityComponent.maxDurability;
+            }
 
-			base.OnUpdate();
-		}
-	}
+            base.OnUpdate();
+        }
+    }
 }

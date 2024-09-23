@@ -34,32 +34,33 @@ namespace CK_QOL.Features.ItemPickUpNotifier
 	///     <see cref="Systems.ItemPickUpNotificationSystem" />.
 	/// </remarks>
 	internal sealed class ItemPickUpNotifier : FeatureBase<ItemPickUpNotifier>
-	{
-		public ItemPickUpNotifier()
-		{
-			ApplyConfigurations();
-		}
+    {
+        public ItemPickUpNotifier()
+        {
+            ApplyConfigurations();
+        }
 
-		#region IFeature
+        #region IFeature
 
-		public override string Name => nameof(ItemPickUpNotifier);
-		public override string DisplayName => "Item Pick-Up Notifier";
-		public override string Description => "Notifies when picking up items from the ground.";
-		public override FeatureType FeatureType => FeatureType.Client;
+        public override string Name => nameof(ItemPickUpNotifier);
+        public override string DisplayName => "Item Pick-Up Notifier";
+        public override string Description => "Notifies when picking up items from the ground.";
+        public override FeatureType FeatureType => FeatureType.Client;
 
-		#endregion IFeature
+        #endregion IFeature
 
-		#region Configurations
+        #region Configurations
 
-		internal float AggregateDelay { get; private set; }
+        internal float AggregateDelay { get; private set; }
 
-		private void ApplyConfigurations()
-		{
-			ConfigBase.Create(this);
-			IsEnabled = ItemPickUpNotifierConfig.ApplyIsEnabled(this);
-			AggregateDelay = ItemPickUpNotifierConfig.ApplyAggregateDelay(this);
-		}
+        private void ApplyConfigurations()
+        {
+            ConfigBase.Create(this);
+            IsEnabled = ItemPickUpNotifierConfig.ApplyIsEnabled(this);
+            AggregateDelay = ItemPickUpNotifierConfig.ApplyAggregateDelay(this);
+        }
 
-		#endregion Configurations
-	}
+        #endregion Configurations
+
+    }
 }

@@ -32,29 +32,30 @@ namespace CK_QOL.Features.NoEquipmentDurabilityLoss
 	///     <see cref="NoEquipmentDurabilityLossSystem" />.
 	/// </remarks>
 	internal sealed class NoEquipmentDurabilityLoss : FeatureBase<NoEquipmentDurabilityLoss>
-	{
-		public NoEquipmentDurabilityLoss()
-		{
-			ApplyConfigurations();
-		}
+    {
+        public NoEquipmentDurabilityLoss()
+        {
+            ApplyConfigurations();
+        }
 
-		#region Configuration
+        #region Configuration
 
-		private void ApplyConfigurations()
-		{
-			ConfigBase.Create(this);
-			IsEnabled = NoEquipmentDurabilityLossConfig.ApplyIsEnabled(this);
-		}
+        private void ApplyConfigurations()
+        {
+            ConfigBase.Create(this);
+            IsEnabled = NoEquipmentDurabilityLossConfig.ApplyIsEnabled(this);
+        }
 
-		#endregion Configuration
+        #endregion Configuration
 
-		#region IFeature
+        #region IFeature
 
-		public override string Name => nameof(NoEquipmentDurabilityLoss);
-		public override string DisplayName => "No Equipment Durability Loss";
-		public override string Description => "Removes the durability loss of equipment.";
-		public override FeatureType FeatureType => FeatureType.Server;
+        public override string Name => nameof(NoEquipmentDurabilityLoss);
+        public override string DisplayName => "No Equipment Durability Loss";
+        public override string Description => "Removes the durability loss of equipment.";
+        public override FeatureType FeatureType => FeatureType.Server;
 
-		#endregion IFeature
-	}
+        #endregion IFeature
+
+    }
 }

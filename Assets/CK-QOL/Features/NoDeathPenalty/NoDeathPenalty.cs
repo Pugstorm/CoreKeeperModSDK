@@ -40,39 +40,40 @@ namespace CK_QOL.Features.NoDeathPenalty
 	///     its functionality.
 	/// </remarks>
 	internal sealed class NoDeathPenalty : FeatureBase<NoDeathPenalty>
-	{
-		public NoDeathPenalty()
-		{
-			ApplyConfigurations();
-		}
+    {
+        public NoDeathPenalty()
+        {
+            ApplyConfigurations();
+        }
 
-		public override void Execute()
-		{
-			if (!CanExecute())
-			{
-				return;
-			}
+        public override void Execute()
+        {
+            if (!CanExecute())
+            {
+                return;
+            }
 
-			API.ModLoader.ApplyHarmonyPatch(Entry.ModInfo.ModId, typeof(InventoryCreatePatches));
-		}
+            API.ModLoader.ApplyHarmonyPatch(Entry.ModInfo.ModId, typeof(InventoryCreatePatches));
+        }
 
-		#region Configuration
+        #region Configuration
 
-		private void ApplyConfigurations()
-		{
-			ConfigBase.Create(this);
-			IsEnabled = NoDeathPenaltyConfig.ApplyIsEnabled(this);
-		}
+        private void ApplyConfigurations()
+        {
+            ConfigBase.Create(this);
+            IsEnabled = NoDeathPenaltyConfig.ApplyIsEnabled(this);
+        }
 
-		#endregion Configuration
+        #endregion Configuration
 
-		#region IFeature
+        #region IFeature
 
-		public override string Name => nameof(NoDeathPenalty);
-		public override string DisplayName => "No Death Penalty";
-		public override string Description => "Removes the behaviour, that the inventory gets lost after death.";
-		public override FeatureType FeatureType => FeatureType.Server;
+        public override string Name => nameof(NoDeathPenalty);
+        public override string DisplayName => "No Death Penalty";
+        public override string Description => "Removes the behaviour, that the inventory gets lost after death.";
+        public override FeatureType FeatureType => FeatureType.Server;
 
-		#endregion IFeature
-	}
+        #endregion IFeature
+
+    }
 }

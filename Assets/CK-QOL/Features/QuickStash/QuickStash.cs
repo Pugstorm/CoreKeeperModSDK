@@ -55,149 +55,150 @@ namespace CK_QOL.Features.QuickStash
 	///     including singleton instantiation, configuration management, and execution control.
 	/// </remarks>
 	internal sealed class QuickStash : FeatureBase<QuickStash>
-	{
-		public QuickStash()
-		{
-			ApplyConfigurations();
-			ApplyKeyBinds();
-		}
+    {
+        public QuickStash()
+        {
+            ApplyConfigurations();
+            ApplyKeyBinds();
+        }
 
-		public override bool CanExecute()
-		{
-			return base.CanExecute()
-			       && Entry.RewiredPlayer != null
-			       && (Manager.main.currentSceneHandler?.isInGame ?? false)
-			       && Manager.main.player?.playerInventoryHandler != null;
-		}
+        public override bool CanExecute()
+        {
+            return base.CanExecute()
+                && Entry.RewiredPlayer != null
+                && (Manager.main.currentSceneHandler?.isInGame ?? false)
+                && Manager.main.player?.playerInventoryHandler != null;
+        }
 
-		public override void Execute()
-		{
-			if (!CanExecute())
-			{
-				return;
-			}
+        public override void Execute()
+        {
+            if (!CanExecute())
+            {
+                return;
+            }
 
-			var player = Manager.main.player;
-			var playerInventoryHandler = player.playerInventoryHandler;
+            var player = Manager.main.player;
+            var playerInventoryHandler = player.playerInventoryHandler;
 
-			// Get nearby chests within the configured range and limit
-			var nearbyChests = ChestHelper.GetNearbyChests(MaxRange)
-				.Take(MaxChests)
-				.ToList();
+            // Get nearby chests within the configured range and limit
+            var nearbyChests = ChestHelper.GetNearbyChests(MaxRange)
+                .Take(MaxChests)
+                .ToList();
 
-			if (!nearbyChests.Any())
-			{
-				TextHelper.DisplayText("Quick Stash: No chests found", Rarity.Legendary);
+            if (!nearbyChests.Any())
+            {
+                TextHelper.DisplayText("Quick Stash: No chests found", Rarity.Legendary);
 
-				return;
-			}
+                return;
+            }
 
-			var stashedIntoChestsCount = 0;
+            var stashedIntoChestsCount = 0;
 
-			foreach (var chest in nearbyChests)
-			{
-				var chestInventoryHandler = chest.inventoryHandler;
-				if (chestInventoryHandler == null)
-				{
-					continue;
-				}
+            foreach (var chest in nearbyChests)
+            {
+                var chestInventoryHandler = chest.inventoryHandler;
+                if (chestInventoryHandler == null)
+                {
+                    continue;
+                }
 
-				// Iterate through the player's inventory, skipping equipment slots (0-9).
-				for (var playerInventorySlotIndex = PlayerController.MAX_EQUIPMENT_SLOTS; playerInventorySlotIndex < playerInventoryHandler.size; playerInventorySlotIndex++)
-				{
-					var itemData = playerInventoryHandler.GetObjectData(playerInventorySlotIndex);
-					if (itemData.objectID == ObjectID.None)
-					{
-						continue;
-					}
+                // Iterate through the player's inventory, skipping equipment slots (0-9).
+                for (var playerInventorySlotIndex = PlayerController.MAX_EQUIPMENT_SLOTS; playerInventorySlotIndex < playerInventoryHandler.size; playerInventorySlotIndex++)
+                {
+                    var itemData = playerInventoryHandler.GetObjectData(playerInventorySlotIndex);
+                    if (itemData.objectID == ObjectID.None)
+                    {
+                        continue;
+                    }
 
-					var objectInfo = PugDatabase.GetObjectInfo(itemData.objectID);
-					if (!objectInfo.isStackable)
-					{
-						continue;
-					}
+                    var objectInfo = PugDatabase.GetObjectInfo(itemData.objectID);
+                    if (!objectInfo.isStackable)
+                    {
+                        continue;
+                    }
 
-					var chestSlot = GetIndexOfItemInInventory(chestInventoryHandler, itemData.objectID);
-					if (chestSlot == -1)
-					{
-						continue;
-					}
+                    var chestSlot = GetIndexOfItemInInventory(chestInventoryHandler, itemData.objectID);
+                    if (chestSlot == -1)
+                    {
+                        continue;
+                    }
 
-					playerInventoryHandler.TryMoveTo(player, playerInventorySlotIndex, chestInventoryHandler, chestSlot);
-					stashedIntoChestsCount++;
-				}
-			}
+                    playerInventoryHandler.TryMoveTo(player, playerInventorySlotIndex, chestInventoryHandler, chestSlot);
+                    stashedIntoChestsCount++;
+                }
+            }
 
-			TextHelper.DisplayText(stashedIntoChestsCount == 0
-				? "Quick Stash: Nothing to stack"
-				: $"Quick Stash: {stashedIntoChestsCount} chests", Rarity.Legendary);
-		}
+            TextHelper.DisplayText(stashedIntoChestsCount == 0
+                ? "Quick Stash: Nothing to stack"
+                : $"Quick Stash: {stashedIntoChestsCount} chests", Rarity.Legendary);
+        }
 
-		public override void Update()
-		{
-			if (!CanExecute())
-			{
-				return;
-			}
+        public override void Update()
+        {
+            if (!CanExecute())
+            {
+                return;
+            }
 
-			if (Entry.RewiredPlayer.GetButtonDown(KeyBindName))
-			{
-				Execute();
-			}
-		}
+            if (Entry.RewiredPlayer.GetButtonDown(KeyBindName))
+            {
+                Execute();
+            }
+        }
 
-		/// <summary>
-		///     Searches the player's inventory for an item that matches the specified <see cref="ObjectID" />.
-		/// </summary>
-		/// <param name="inventoryHandler">The inventory handler responsible for managing the inventory.</param>
-		/// <param name="objectID">The ID of the object to search for.</param>
-		/// <returns>
-		///     The index of the first item found that matches the specified <see cref="ObjectID" />.
-		///     If no item is found, returns -1.
-		/// </returns>
-		private static int GetIndexOfItemInInventory(InventoryHandler inventoryHandler, ObjectID objectID)
-		{
-			for (var i = 0; i < inventoryHandler.size; i++)
-			{
-				var objectData = inventoryHandler.GetObjectData(i);
-				if (objectData.objectID == objectID)
-				{
-					return i;
-				}
-			}
+        /// <summary>
+        ///     Searches the player's inventory for an item that matches the specified <see cref="ObjectID" />.
+        /// </summary>
+        /// <param name="inventoryHandler">The inventory handler responsible for managing the inventory.</param>
+        /// <param name="objectID">The ID of the object to search for.</param>
+        /// <returns>
+        ///     The index of the first item found that matches the specified <see cref="ObjectID" />.
+        ///     If no item is found, returns -1.
+        /// </returns>
+        private static int GetIndexOfItemInInventory(InventoryHandler inventoryHandler, ObjectID objectID)
+        {
+            for (var i = 0; i < inventoryHandler.size; i++)
+            {
+                var objectData = inventoryHandler.GetObjectData(i);
+                if (objectData.objectID == objectID)
+                {
+                    return i;
+                }
+            }
 
-			return -1;
-		}
+            return -1;
+        }
 
 
-		#region IFeature
+        #region IFeature
 
-		public override string Name => nameof(QuickStash);
-		public override string DisplayName => "Quick Stash";
-		public override string Description => "Allows quick stashing of inventory items into nearby chests.";
-		public override FeatureType FeatureType => FeatureType.Client;
+        public override string Name => nameof(QuickStash);
+        public override string DisplayName => "Quick Stash";
+        public override string Description => "Allows quick stashing of inventory items into nearby chests.";
+        public override FeatureType FeatureType => FeatureType.Client;
 
-		#endregion IFeature
+        #endregion IFeature
 
-		#region Configuration
+        #region Configuration
 
-		internal string KeyBindName => $"{ModSettings.ShortName}_{Name}";
-		internal float MaxRange { get; private set; }
-		internal int MaxChests { get; private set; }
+        internal string KeyBindName => $"{ModSettings.ShortName}_{Name}";
+        internal float MaxRange { get; private set; }
+        internal int MaxChests { get; private set; }
 
-		private void ApplyConfigurations()
-		{
-			ConfigBase.Create(this);
-			IsEnabled = QuickStashConfig.ApplyIsEnabled(this);
-			MaxRange = QuickStashConfig.ApplyMaxRange(this);
-			MaxChests = QuickStashConfig.ApplyMaxChests(this);
-		}
+        private void ApplyConfigurations()
+        {
+            ConfigBase.Create(this);
+            IsEnabled = QuickStashConfig.ApplyIsEnabled(this);
+            MaxRange = QuickStashConfig.ApplyMaxRange(this);
+            MaxChests = QuickStashConfig.ApplyMaxChests(this);
+        }
 
-		private void ApplyKeyBinds()
-		{
-			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.A, ModifierKey.Control);
-		}
+        private void ApplyKeyBinds()
+        {
+            RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.A, ModifierKey.Control);
+        }
 
-		#endregion Configuration
-	}
+        #endregion Configuration
+
+    }
 }

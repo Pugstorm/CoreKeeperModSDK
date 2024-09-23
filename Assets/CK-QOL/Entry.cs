@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using CK_QOL.Core;
 using CK_QOL.Core.Features;
@@ -19,132 +18,126 @@ using CoreLib.RewiredExtension;
 using CoreLib.Util.Extensions;
 using PugMod;
 using Rewired;
-using Object = UnityEngine.Object;
+using Object=UnityEngine.Object;
 
 namespace CK_QOL
 {
-	public class Entry : IMod
-	{
-		private readonly List<IFeature> _features = new();
-		internal static LoadedMod ModInfo { get; private set; }
-		internal static Player RewiredPlayer { get; private set; }
+    public class Entry : IMod
+    {
+        private readonly List<IFeature> _features = new();
+        internal static LoadedMod ModInfo { get; private set; }
+        internal static Player RewiredPlayer { get; private set; }
 
-		#region IMod
+        #region IMod
 
-		public void EarlyInit()
-		{
-			ModLogger.Info($"{ModSettings.Name} v{ModSettings.Version} by {ModSettings.Author} with contributors {ModSettings.Contributors}");
+        public void EarlyInit()
+        {
+            ModLogger.Info($"{ModSettings.Name} v{ModSettings.Version} by {ModSettings.Author} with contributors {ModSettings.Contributors}");
 
-			ModInfo = this.GetModInfo();
-			if (ModInfo is null)
-			{
-				ModLogger.Error("Failed to load!");
-				Shutdown();
+            ModInfo = this.GetModInfo();
+            if (ModInfo is null)
+            {
+                ModLogger.Error("Failed to load!");
+                Shutdown();
 
-				return;
-			}
+                return;
+            }
 
-			CoreLibMod.LoadModules(typeof(LocalizationModule));
-			CoreLibMod.LoadModule(typeof(RewiredExtensionModule));
+            CoreLibMod.LoadModules(typeof(LocalizationModule));
+            CoreLibMod.LoadModule(typeof(RewiredExtensionModule));
 
-			RewiredExtensionModule.rewiredStart += () => RewiredPlayer = ReInput.players.GetPlayer(0);
+            RewiredExtensionModule.rewiredStart += () => RewiredPlayer = ReInput.players.GetPlayer(0);
 
-			ModLogger.Info("Loading features..");
+            ModLogger.Info("Loading features..");
 
-			_features.AddRange(new IFeature[]
-			{
-				CraftingRange.Instance,
-				QuickStash.Instance,
-				ItemPickUpNotifier.Instance,
-				NoDeathPenalty.Instance,
-				NoEquipmentDurabilityLoss.Instance,
-				QuickHeal.Instance,
-				QuickEat.Instance,
-				QuickSummon.Instance,
-				ShiftClick.Instance,
-				ChestAutoUnlock.Instance
-			});
+            _features.AddRange(new IFeature[]
+            {
+                CraftingRange.Instance,
+                QuickStash.Instance,
+                ItemPickUpNotifier.Instance,
+                NoDeathPenalty.Instance,
+                NoEquipmentDurabilityLoss.Instance,
+                QuickHeal.Instance,
+                QuickEat.Instance,
+                QuickSummon.Instance,
+                ShiftClick.Instance,
+                ChestAutoUnlock.Instance
+            });
 
-			foreach (var feature in _features.OrderBy(feature => feature.IsEnabled))
-			{
-				ModLogger.Info($"{feature.DisplayName} ({feature.FeatureType})");
+            foreach (var feature in _features.OrderBy(feature => feature.IsEnabled))
+            {
+                ModLogger.Info($"{feature.DisplayName} ({feature.FeatureType})");
 
-				if (feature.IsEnabled)
-				{
-					switch (feature)
-					{
-						case CraftingRange { IsEnabled: true } craftingRange:
-							ModLogger.Info($"{nameof(craftingRange.MaxRange)}: {craftingRange.MaxRange} ");
-							ModLogger.Info($"{nameof(craftingRange.MaxChests)}: {craftingRange.MaxChests}");
+                if (feature.IsEnabled)
+                {
+                    switch (feature)
+                    {
+                        case CraftingRange { IsEnabled: true } craftingRange:
+                            ModLogger.Info($"{nameof(craftingRange.MaxRange)}: {craftingRange.MaxRange} ");
+                            ModLogger.Info($"{nameof(craftingRange.MaxChests)}: {craftingRange.MaxChests}");
 
-							break;
-						case QuickStash { IsEnabled: true } quickStash:
-							ModLogger.Info($"{nameof(quickStash.MaxRange)}: {quickStash.MaxRange} ");
-							ModLogger.Info($"{nameof(quickStash.MaxChests)}: {quickStash.MaxChests}");
+                            break;
+                        case QuickStash { IsEnabled: true } quickStash:
+                            ModLogger.Info($"{nameof(quickStash.MaxRange)}: {quickStash.MaxRange} ");
+                            ModLogger.Info($"{nameof(quickStash.MaxChests)}: {quickStash.MaxChests}");
 
-							break;
-						case ItemPickUpNotifier { IsEnabled: true } itemPickUpNotifier:
-							ModLogger.Info($"{nameof(itemPickUpNotifier.AggregateDelay)}: {itemPickUpNotifier.AggregateDelay}");
+                            break;
+                        case ItemPickUpNotifier { IsEnabled: true } itemPickUpNotifier:
+                            ModLogger.Info($"{nameof(itemPickUpNotifier.AggregateDelay)}: {itemPickUpNotifier.AggregateDelay}");
 
-							break;
-						case NoDeathPenalty { IsEnabled: true } noDeathPenalty:
+                            break;
+                        case QuickHeal { IsEnabled: true } quickHeal:
+                            ModLogger.Info($"{nameof(quickHeal.EquipmentSlotIndex)}: {quickHeal.EquipmentSlotIndex}");
 
-							break;
-						case NoEquipmentDurabilityLoss { IsEnabled: true } noEquipmentDurabilityLoss:
+                            break;
+                        case QuickEat { IsEnabled: true } quickEat:
+                            ModLogger.Info($"{nameof(quickEat.EquipmentSlotIndex)}: {quickEat.EquipmentSlotIndex}");
 
-							break;
-						case QuickHeal { IsEnabled: true } quickHeal:
-							ModLogger.Info($"{nameof(quickHeal.EquipmentSlotIndex)}: {quickHeal.EquipmentSlotIndex}");
+                            break;
+                        case QuickSummon { IsEnabled: true } quickSummon:
+                            ModLogger.Info($"{nameof(quickSummon.EquipmentSlotIndex)}: {quickSummon.EquipmentSlotIndex}");
 
-							break;
-						case QuickEat { IsEnabled: true } quickEat:
-							ModLogger.Info($"{nameof(quickEat.EquipmentSlotIndex)}: {quickEat.EquipmentSlotIndex}");
+                            break;
+                        case NoDeathPenalty { IsEnabled: true } noDeathPenalty:
+                        case NoEquipmentDurabilityLoss { IsEnabled: true } noEquipmentDurabilityLoss:
+                        case ShiftClick { IsEnabled: true } shiftClick:
+                        case ChestAutoUnlock { IsEnabled: true } chestAutoUnlock:
 
-							break;
-						case QuickSummon { IsEnabled: true } quickSummon:
-							ModLogger.Info($"{nameof(quickSummon.EquipmentSlotIndex)}: {quickSummon.EquipmentSlotIndex}");
-							ModLogger.Info($"{nameof(quickSummon.TomeType)}: {Enum.GetName(typeof(TomeType), quickSummon.TomeType)}");
+                            break;
+                    }
+                }
+                else
+                {
+                    ModLogger.Info("Disabled");
+                }
+            }
 
-							break;
-						case ShiftClick { IsEnabled: true } shiftClick:
+            ModLogger.Info(".. all features loaded.");
+        }
 
-							break;
-						case ChestAutoUnlock { IsEnabled: true } chestAutoUnlock:
+        public void Init()
+        {
+            ModLogger.Info("Loaded successfully.");
+        }
 
-							break;
-					}
-				}
-				else
-				{
-					ModLogger.Info("Disabled");
-				}
-			}
+        public void Shutdown()
+        {
+            ModLogger.Warn("Shutdown initiated.");
+        }
 
-			ModLogger.Info(".. all features loaded.");
-		}
+        public void ModObjectLoaded(Object obj)
+        {
+        }
 
-		public void Init()
-		{
-			ModLogger.Info("Loaded successfully.");
-		}
+        public void Update()
+        {
+            foreach (var feature in _features.Where(feature => feature.IsEnabled))
+            {
+                feature.Update();
+            }
+        }
 
-		public void Shutdown()
-		{
-			ModLogger.Warn("Shutdown initiated.");
-		}
+        #endregion IMod
 
-		public void ModObjectLoaded(Object obj)
-		{
-		}
-
-		public void Update()
-		{
-			foreach (var feature in _features.Where(feature => feature.IsEnabled))
-			{
-				feature.Update();
-			}
-		}
-
-		#endregion IMod
-	}
+    }
 }

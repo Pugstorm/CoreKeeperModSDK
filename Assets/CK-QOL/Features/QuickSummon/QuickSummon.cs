@@ -47,9 +47,9 @@ namespace CK_QOL.Features.QuickSummon
 	///     functionalities.
 	/// </remarks>
 	internal sealed class QuickSummon : FeatureBase<QuickSummon>
-	{
-		private int _fromSlotIndex = -1;
-		private int _previousSlotIndex = -1;
+    {
+        private int _fromSlotIndex = -1;
+        private int _previousSlotIndex = -1;
 
         public QuickSummon()
         {
@@ -60,9 +60,9 @@ namespace CK_QOL.Features.QuickSummon
         public override bool CanExecute()
         {
             return base.CanExecute()
-                   && Entry.RewiredPlayer != null
-                   && Manager.main.player != null
-                   && !(Manager.input?.textInputIsActive ?? false);
+                && Entry.RewiredPlayer != null
+                && Manager.main.player != null
+                && !(Manager.input?.textInputIsActive ?? false);
         }
 
         public override void Execute()
@@ -92,8 +92,8 @@ namespace CK_QOL.Features.QuickSummon
                 ExecuteTome(2); // Tome of the Dead
             }
 
-            if (Entry.RewiredPlayer.GetButtonUp(KeyBindNameX) || 
-                Entry.RewiredPlayer.GetButtonUp(KeyBindNameK) || 
+            if (Entry.RewiredPlayer.GetButtonUp(KeyBindNameX) ||
+                Entry.RewiredPlayer.GetButtonUp(KeyBindNameK) ||
                 Entry.RewiredPlayer.GetButtonUp(KeyBindNameL))
             {
                 SwapBackToPreviousSlot();
@@ -109,29 +109,28 @@ namespace CK_QOL.Features.QuickSummon
                 CastSummonSpell(player);
             }
         }
-		/// <summary>
-		///     Attempts to find a summoning tome in the player's inventory.
-
+        /// <summary>
+        ///     Attempts to find a summoning tome in the player's inventory.
         private bool TryFindSummonTome(PlayerController player, int tomeSlotIndex)
         {
             _previousSlotIndex = player.equippedSlotIndex;
             _fromSlotIndex = -1;
 
-            ObjectID tomeID = tomeSlotIndex switch
+            var tomeID = tomeSlotIndex switch
             {
                 0 => ObjectID.TomeOfRange,
                 1 => ObjectID.TomeOfOrbit,
                 2 => ObjectID.TomeOfMelee,
                 _ => ObjectID.None
             };
-			// Check if the summoning tome is in the predefined slot.
+            // Check if the summoning tome is in the predefined slot.
             if (IsSummonTome(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex), tomeID))
             {
                 _fromSlotIndex = EquipmentSlotIndex;
                 return true;
             }
 
-			// If the tome is not in the predefined slot, search through the inventory.
+            // If the tome is not in the predefined slot, search through the inventory.
             var playerInventorySize = player.playerInventoryHandler.size;
             for (var playerInventoryIndex = 0; playerInventoryIndex < playerInventorySize; playerInventoryIndex++)
             {
@@ -145,46 +144,46 @@ namespace CK_QOL.Features.QuickSummon
             return false;
         }
 
-		/// <summary>
-		///     Checks if the provided object data corresponds to the currently configured summoning tome.
-		/// </summary>
+        /// <summary>
+        ///     Checks if the provided object data corresponds to the currently configured summoning tome.
+        /// </summary>
         private bool IsSummonTome(ObjectDataCD objectData, ObjectID tomeID)
         {
             return objectData.objectID == tomeID;
         }
 
-		/// <summary>
-		///     Equips the summoning tome, casts the summon spell, and swaps back to the previous item.
-		/// </summary>
-		/// <param name="player">The player controller.</param>
+        /// <summary>
+        ///     Equips the summoning tome, casts the summon spell, and swaps back to the previous item.
+        /// </summary>
+        /// <param name="player">The player controller.</param>
         private void CastSummonSpell(PlayerController player)
         {
-			// Swap the item to the correct slot and equip it.
+            // Swap the item to the correct slot and equip it.
             if (_fromSlotIndex != EquipmentSlotIndex)
             {
                 player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
             }
 
-			player.EquipSlot(EquipmentSlotIndex);
+            player.EquipSlot(EquipmentSlotIndex);
 
-			// Reset input history and re-equip the item.
+            // Reset input history and re-equip the item.
             var inputHistory = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
             inputHistory.secondInteractUITriggered = true;
             EntityUtility.SetComponentData(player.entity, player.world, inputHistory);
 
-			// Simulate "right-click" or "use" action on the item.
-			// Swap back to the original item.
+            // Simulate "right-click" or "use" action on the item.
+            // Swap back to the original item.
             if (_fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
             {
                 player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
             }
-			// Setting it here makes it somehow "smoother"...?
-			EntityUtility.SetComponentData(player.entity, player.world, inputHistory);
+            // Setting it here makes it somehow "smoother"...?
+            EntityUtility.SetComponentData(player.entity, player.world, inputHistory);
         }
 
-		/// <summary>
-		///     Swaps back to the previously equipped slot after casting the summon spell.
-		/// </summary>
+        /// <summary>
+        ///     Swaps back to the previously equipped slot after casting the summon spell.
+        /// </summary>
         private void SwapBackToPreviousSlot()
         {
             if (_previousSlotIndex == -1)
@@ -226,5 +225,6 @@ namespace CK_QOL.Features.QuickSummon
         }
 
         #endregion Configurations
+
     }
 }

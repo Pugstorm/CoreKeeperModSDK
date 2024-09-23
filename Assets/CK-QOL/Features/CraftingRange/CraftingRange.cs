@@ -38,49 +38,50 @@ namespace CK_QOL.Features.CraftingRange
 	///     including singleton instantiation, configuration management, and execution control.
 	/// </remarks>
 	internal sealed class CraftingRange : FeatureBase<CraftingRange>
-	{
-		public CraftingRange()
-		{
-			ApplyConfigurations();
-		}
+    {
+        public CraftingRange()
+        {
+            ApplyConfigurations();
+        }
 
-		internal List<Chest> Chests { get; } = new();
+        internal List<Chest> Chests { get; } = new();
 
-		public override void Execute()
-		{
-			if (!CanExecute()) return;
+        public override void Execute()
+        {
+            if (!CanExecute()) return;
 
-			Chests.Clear();
+            Chests.Clear();
 
-			var nearbyChests = ChestHelper.GetNearbyChests(MaxRange)
-				.Take(MaxChests)
-				.ToList();
+            var nearbyChests = ChestHelper.GetNearbyChests(MaxRange)
+                .Take(MaxChests)
+                .ToList();
 
-			Chests.AddRange(nearbyChests);
-		}
+            Chests.AddRange(nearbyChests);
+        }
 
-		#region IFeature
+        #region IFeature
 
-		public override string Name => nameof(CraftingRange);
-		public override string DisplayName => "Crafting Range";
-		public override string Description => "Extends the crafting range for different kinds of work benches.";
-		public override FeatureType FeatureType => FeatureType.Client;
+        public override string Name => nameof(CraftingRange);
+        public override string DisplayName => "Crafting Range";
+        public override string Description => "Extends the crafting range for different kinds of work benches.";
+        public override FeatureType FeatureType => FeatureType.Client;
 
-		#endregion IFeature
+        #endregion IFeature
 
-		#region Configuration
+        #region Configuration
 
-		internal float MaxRange { get; private set; }
-		internal int MaxChests { get; private set; }
+        internal float MaxRange { get; private set; }
+        internal int MaxChests { get; private set; }
 
-		private void ApplyConfigurations()
-		{
-			ConfigBase.Create(this);
-			IsEnabled = CraftingRangeConfig.ApplyIsEnabled(this);
-			MaxRange = CraftingRangeConfig.ApplyMaxRange(this);
-			MaxChests = CraftingRangeConfig.ApplyMaxChests(this);
-		}
+        private void ApplyConfigurations()
+        {
+            ConfigBase.Create(this);
+            IsEnabled = CraftingRangeConfig.ApplyIsEnabled(this);
+            MaxRange = CraftingRangeConfig.ApplyMaxRange(this);
+            MaxChests = CraftingRangeConfig.ApplyMaxChests(this);
+        }
 
-		#endregion Configuration
-	}
+        #endregion Configuration
+
+    }
 }
