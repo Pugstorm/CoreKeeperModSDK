@@ -97,29 +97,37 @@ namespace CK_QOL.Features.ShiftClick
 			}
 		}
 
-        /// <summary>
-        ///     Handles moving items from the chest to the player's inventory.
-        /// </summary>
-        /// <param name="player">The player controller managing the inventory.</param>
-        /// <param name="chestHandler">The chest's inventory handler.</param>
-        /// <param name="playerHandler">The player's inventory handler.</param>
-        /// <param name="objectID">The object id of the item being moved.</param>
-        /// <param name="index">The index of the item in the chest's inventory.</param>
-        private static void HandleChestSlot(PlayerController player, InventoryHandler chestHandler, InventoryHandler playerHandler, ObjectID objectID, int index)
+		/// <summary>
+		///     Handles moving items from the chest to the player's inventory.
+		/// </summary>
+		/// <param name="player">The player controller managing the inventory.</param>
+		/// <param name="chestHandler">The chest's inventory handler.</param>
+		/// <param name="playerHandler">The player's inventory handler.</param>
+		/// <param name="objectID">The object id of the item being moved.</param>
+		/// <param name="index">The index of the item in the chest's inventory.</param>
+		/// <remarks>
+		///     Inventory slots will be considered before equipment slots.
+		/// </remarks>
+		private static void HandleChestSlot(PlayerController player, InventoryHandler chestHandler, InventoryHandler playerHandler, ObjectID objectID, int index)
 		{
-			var availableSlot = InventoryHandlerHelper.GetNextAvailableIndex(playerHandler, objectID);
+			var availableSlot = InventoryHandlerHelper.GetNextAvailableIndex(playerHandler, objectID, InventoryHandlerHelper.PlayerBackpackStartingIndex);
+			if (availableSlot == InventoryHandlerHelper.InvalidIndex)
+			{
+				availableSlot = InventoryHandlerHelper.GetNextAvailableIndex(playerHandler, objectID);
+			}
+
 			InventoryHandlerHelper.MoveItem(player, chestHandler, playerHandler, index, availableSlot);
 		}
 
-        /// <summary>
-        ///     Handles moving items within the player's inventory or to a chest.
-        /// </summary>
-        /// <param name="player">The player controller managing the inventory.</param>
-        /// <param name="playerHandler">The player's inventory handler.</param>
-        /// <param name="chestHandler">The chest's inventory handler.</param>
-        /// <param name="objectID">The object id of the item being moved.</param>
-        /// <param name="index">The index of the item in the player's inventory.</param>
-        private static void HandlePlayerSlot(PlayerController player, InventoryHandler playerHandler, InventoryHandler chestHandler, ObjectID objectID, int index)
+		/// <summary>
+		///     Handles moving items within the player's inventory or to a chest.
+		/// </summary>
+		/// <param name="player">The player controller managing the inventory.</param>
+		/// <param name="playerHandler">The player's inventory handler.</param>
+		/// <param name="chestHandler">The chest's inventory handler.</param>
+		/// <param name="objectID">The object id of the item being moved.</param>
+		/// <param name="index">The index of the item in the player's inventory.</param>
+		private static void HandlePlayerSlot(PlayerController player, InventoryHandler playerHandler, InventoryHandler chestHandler, ObjectID objectID, int index)
 		{
 			if (IgnoredItemTypes.Contains(PugDatabase.GetObjectInfo(objectID).objectType))
 			{
@@ -133,16 +141,26 @@ namespace CK_QOL.Features.ShiftClick
 			}
 			else
 			{
-				var availableSlot = InventoryHandlerHelper.GetNextAvailableIndex(playerHandler, objectID, index);
+				var availableSlot = InventoryHandlerHelper.InvalidIndex;
+
+				if (index < InventoryHandlerHelper.PlayerBackpackStartingIndex)
+				{
+					availableSlot = InventoryHandlerHelper.GetNextAvailableIndex(playerHandler, objectID, InventoryHandlerHelper.PlayerBackpackStartingIndex);
+				}
+				else
+				{
+					availableSlot = InventoryHandlerHelper.GetNextAvailableIndex(playerHandler, objectID, limitIndex: InventoryHandlerHelper.PlayerBackpackStartingIndex);
+				}
+
 				InventoryHandlerHelper.MoveItem(player, playerHandler, playerHandler, index, availableSlot);
 			}
 		}
 
-        /// <summary>
-        ///     Determines if any ignored UI elements, such as crafting or repair UIs, are open.
-        /// </summary>
-        /// <returns>True if any ignored UI elements are open, otherwise false.</returns>
-        private static bool IsAnyIgnoredUIOpen()
+		/// <summary>
+		///     Determines if any ignored UI elements, such as crafting or repair UIs, are open.
+		/// </summary>
+		/// <returns>True if any ignored UI elements are open, otherwise false.</returns>
+		private static bool IsAnyIgnoredUIOpen()
 		{
 			return new[]
 			{

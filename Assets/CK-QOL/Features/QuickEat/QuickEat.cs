@@ -36,7 +36,7 @@ namespace CK_QOL.Features.QuickEat
 
 		public override string Name => nameof(QuickEat);
 		public override string DisplayName => "Quick Eat";
-		public override string Description => "Quickly equips a eatable item (prefers cooked one), consumes it, and swaps back to the previous item.";
+		public override string Description => "Quickly equips or switches the preferred eatable item, consumes it, and swaps back to the previous item.";
 		public override FeatureType FeatureType => FeatureType.Client;
 
 		#endregion IFeature

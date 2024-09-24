@@ -20,10 +20,10 @@ namespace CK_QOL.Features.ItemPickUpNotifier
 
 		internal static float ApplyAggregateDelay(ItemPickUpNotifier feature)
 		{
-			var acceptableValues = new AcceptableValueRange<float>(1f, 30f);
+			var acceptableValues = new AcceptableValueRange<float>(1f, 10f);
 			var description = new ConfigDescription("The delay in seconds to aggregate picked up items before displaying the notification.", acceptableValues);
 			var definition = new ConfigDefinition(feature.Name, nameof(feature.AggregateDelay));
-			var entry = Config.Bind(definition, 1.5f, description);
+			var entry = Config.Bind(definition, 2f, description);
 
 			return entry.Value;
 		}

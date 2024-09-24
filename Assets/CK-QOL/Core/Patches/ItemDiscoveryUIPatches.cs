@@ -5,26 +5,26 @@ using UnityEngine;
 
 namespace CK_QOL.Core.Patches
 {
-    /// <summary>
-    ///     Contains Harmony patches for the <see cref="ItemDiscoveryUI" /> class to display custom texts in-game.
-    /// </summary>
-    [HarmonyPatch(typeof(ItemDiscoveryUI))]
+	/// <summary>
+	///     Contains Harmony patches for the <see cref="ItemDiscoveryUI" /> class to display custom texts in-game.
+	/// </summary>
+	[HarmonyPatch(typeof(ItemDiscoveryUI))]
 	internal static class ItemDiscoveryUIPatches
 	{
 		private const int MaxActiveTexts = 5;
 		private static readonly Queue<(string text, Rarity rarity)> NotificationQueue = new();
 		private static bool _isProcessingQueue;
 
-        /// <summary>
-        ///     Harmony prefix patch for the <see cref="ItemDiscoveryUI.ShowDiscoveredItem(List{string}, Rarity)" /> method.
-        ///     Modifies the behavior to handle custom mod text prefixed with <see cref="ModSettings.ShortName" /> and customizes
-        ///     the text display.
-        /// </summary>
-        /// <returns>
-        ///     <see langword="false" /> if the patch modifies the behavior to skip the original method execution;
-        ///     otherwise, <see langword="true" /> to continue with the original method execution.
-        /// </returns>
-        [HarmonyPrefix]
+		/// <summary>
+		///     Harmony prefix patch for the <see cref="ItemDiscoveryUI.ShowDiscoveredItem(List{string}, Rarity)" /> method.
+		///     Modifies the behavior to handle custom mod text prefixed with <see cref="ModSettings.ShortName" /> and customizes
+		///     the text display.
+		/// </summary>
+		/// <returns>
+		///     <see langword="false" /> if the patch modifies the behavior to skip the original method execution;
+		///     otherwise, <see langword="true" /> to continue with the original method execution.
+		/// </returns>
+		[HarmonyPrefix]
 		[HarmonyPatch(nameof(ItemDiscoveryUI.ShowDiscoveredItem), typeof(List<string>), typeof(Rarity))]
 		[SuppressMessage("ReSharper", "InconsistentNaming")]
 		private static bool ShowDiscoveredItem(ItemDiscoveryUI __instance, ref List<string> texts, Rarity rarity)
@@ -43,11 +43,11 @@ namespace CK_QOL.Core.Patches
 			return false;
 		}
 
-        /// <summary>
-        ///     Processes the notification queue to display notifications while respecting the maximum active text limit.
-        /// </summary>
-        /// <returns>An enumerator for the coroutine that processes the notification queue.</returns>
-        private static IEnumerator<WaitForSeconds> ProcessNotificationQueue(ItemDiscoveryUI instance)
+		/// <summary>
+		///     Processes the notification queue to display notifications while respecting the maximum active text limit.
+		/// </summary>
+		/// <returns>An enumerator for the coroutine that processes the notification queue.</returns>
+		private static IEnumerator<WaitForSeconds> ProcessNotificationQueue(ItemDiscoveryUI instance)
 		{
 			_isProcessingQueue = true;
 
@@ -65,10 +65,10 @@ namespace CK_QOL.Core.Patches
 			_isProcessingQueue = false;
 		}
 
-        /// <summary>
-        ///     Activates a notification on the screen by using available or newly instantiated text objects.
-        /// </summary>
-        private static void ActivateNotification(ItemDiscoveryUI instance, string text, Rarity rarity)
+		/// <summary>
+		///     Activates a notification on the screen by using available or newly instantiated text objects.
+		/// </summary>
+		private static void ActivateNotification(ItemDiscoveryUI instance, string text, Rarity rarity)
 		{
 			int discoveryTextsIndex;
 			for (discoveryTextsIndex = 0; discoveryTextsIndex < instance.discoveryTexts.Count; ++discoveryTextsIndex)

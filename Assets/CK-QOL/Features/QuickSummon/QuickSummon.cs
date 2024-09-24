@@ -34,7 +34,7 @@ namespace CK_QOL.Features.QuickSummon
 
 		public override string Name => nameof(QuickSummon);
 		public override string DisplayName => "Quick Summon";
-		public override string Description => "Quickly equips a summoning tome, casts a summon spell, and swaps back to the previous item.";
+		public override string Description => "Quickly equips or switches the preferred summoning tome, casts a summon spell, and swaps back to the previous item.";
 		public override FeatureType FeatureType => FeatureType.Client;
 
 		#endregion IFeature

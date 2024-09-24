@@ -57,32 +57,33 @@ namespace CK_QOL.Features.QuickStash
 
 			if (!nearbyChests.Any())
 			{
-				TextHelper.DisplayNotification("Quick Stash: No chests found", Rarity.Legendary);
+				TextHelper.DisplayText("No available chests to stash found!");
 
 				return;
 			}
 
 			var stashedIntoChestsCount = 0;
 
-			foreach (var chest in nearbyChests)
+			// Iterate through the player's inventory, skipping equipment slots (0-9).
+			for (var playerInventorySlotIndex = InventoryHandlerHelper.PlayerBackpackStartingIndex; playerInventorySlotIndex < playerInventoryHandler.size; playerInventorySlotIndex++)
 			{
-				var chestInventoryHandler = chest.inventoryHandler;
-				if (chestInventoryHandler == null)
+				var itemData = playerInventoryHandler.GetObjectData(playerInventorySlotIndex);
+				if (itemData.objectID == ObjectID.None)
 				{
 					continue;
 				}
 
-				// Iterate through the player's inventory, skipping equipment slots (0-9).
-				for (var playerInventorySlotIndex = PlayerController.MAX_EQUIPMENT_SLOTS; playerInventorySlotIndex < playerInventoryHandler.size; playerInventorySlotIndex++)
+				var objectInfo = PugDatabase.GetObjectInfo(itemData.objectID);
+				if (objectInfo == null || objectInfo.objectID == ObjectID.None || !objectInfo.isStackable)
 				{
-					var itemData = playerInventoryHandler.GetObjectData(playerInventorySlotIndex);
-					if (itemData.objectID == ObjectID.None)
-					{
-						continue;
-					}
+					continue;
+				}
 
-					var objectInfo = PugDatabase.GetObjectInfo(itemData.objectID);
-					if (!objectInfo.isStackable)
+				// Search through nearby chests to find a matching item to stack with.
+				foreach (var chest in nearbyChests)
+				{
+					var chestInventoryHandler = chest.inventoryHandler;
+					if (chestInventoryHandler == null)
 					{
 						continue;
 					}
@@ -93,14 +94,18 @@ namespace CK_QOL.Features.QuickStash
 						continue;
 					}
 
+					// Move the item from the player's inventory to the chest and count the stash.
 					playerInventoryHandler.TryMoveTo(player, playerInventorySlotIndex, chestInventoryHandler, chestSlot);
 					stashedIntoChestsCount++;
+
+					// Break out of the chest loop since the item has been moved.
+					break;
 				}
 			}
 
-			TextHelper.DisplayNotification(stashedIntoChestsCount == 0
-				? "Quick Stash: Nothing to stack"
-				: $"Quick Stash: {stashedIntoChestsCount} chests", Rarity.Legendary);
+			TextHelper.DisplayText(stashedIntoChestsCount == 0
+				? "Nothing could be stashed."
+				: $"Stashed into {stashedIntoChestsCount} chests.");
 		}
 
 		#region IFeature

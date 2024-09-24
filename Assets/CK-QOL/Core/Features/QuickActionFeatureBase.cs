@@ -8,13 +8,11 @@ namespace CK_QOL.Core.Features
 	internal abstract class QuickActionFeatureBase<TFeature> : FeatureBase<TFeature>
 		where TFeature : QuickActionFeatureBase<TFeature>, new()
 	{
-		private const float ShortPressThreshold = 0.2f; // 200 milliseconds
-		private const float LongPressThreshold = 1.5f; // 700 milliseconds
+		private bool _actionExecuted;
+		private ObjectID _lastSelectedObjectID = ObjectID.None;
+
 		protected int FromSlotIndex = InventoryHandlerHelper.InvalidIndex;
 		protected int PreviousSlotIndex = InventoryHandlerHelper.InvalidIndex;
-
-		private bool _actionExecuted = false;
-		private ObjectID _lastSelectedObjectID = ObjectID.None;
 
 		protected virtual Func<KeyValuePair<int, ObjectDataCD>, object> SortingFunction => _ => 0;
 
@@ -35,23 +33,27 @@ namespace CK_QOL.Core.Features
 				return;
 			}
 
-			if (Entry.RewiredPlayer.GetButtonTimedPressUp(KeyBindName, 0f, LongPressThreshold))
+			FromSlotIndex = InventoryHandlerHelper.InvalidIndex;
+
+			if (Entry.RewiredPlayer.GetButtonSinglePressDown(KeyBindName))
 			{
-				ModLogger.Error("Short Press Released - Executing");
+				if (_lastSelectedObjectID == ObjectID.None)
+				{
+					SwitchToNextItem();
+				}
+
 				Execute();
 				_actionExecuted = true;
 			}
 
-			else if (Entry.RewiredPlayer.GetButtonTimedPressDown(KeyBindName, LongPressThreshold))
+			if (Entry.RewiredPlayer.GetButtonDoublePressDown(KeyBindName))
 			{
-				ModLogger.Error("Long Press Detected - Switching to Next Item");
 				SwitchToNextItem();
 				_actionExecuted = true;
 			}
 
 			if (Entry.RewiredPlayer.GetButtonUp(KeyBindName) && _actionExecuted)
 			{
-				ModLogger.Error("Button Released - Swapping Back to Previous Item");
 				SwapBackToPreviousItem();
 				_actionExecuted = false;
 			}
@@ -65,7 +67,6 @@ namespace CK_QOL.Core.Features
 			}
 
 			var player = Manager.main.player;
-
 			if (TryFindSpecificObjectID(player, _lastSelectedObjectID) || TryFindTargetItem(player))
 			{
 				TriggerAction(player);
@@ -97,7 +98,6 @@ namespace CK_QOL.Core.Features
 
 			// Search through the player's inventory for the specific objectID.
 			var foundIndex = InventoryHandlerHelper.GetIndexOfItem(playerInventoryHandler, objectID);
-
 			if (foundIndex == InventoryHandlerHelper.InvalidIndex)
 			{
 				return false;
@@ -117,12 +117,15 @@ namespace CK_QOL.Core.Features
 		///     The index to start searching from (defaults to <see cref="InventoryHandlerHelper.DefaultStartingIndex" />).
 		/// </param>
 		/// <returns>True if a target item was found, otherwise false.</returns>
+		/// <remarks>
+		///     When <paramref name="startingIndex" /> is not equal to its default value of
+		///     <see cref="InventoryHandlerHelper.DefaultStartingIndex" />,
+		///     a new search will be forced to find the next possible item.
+		/// </remarks>
 		protected virtual bool TryFindTargetItem(PlayerController player, int startingIndex = InventoryHandlerHelper.DefaultStartingIndex)
 		{
-			FromSlotIndex = InventoryHandlerHelper.InvalidIndex;
-
 			// First check predefined equipment slot.
-			if (IsTargetItem(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex)))
+			if (startingIndex == InventoryHandlerHelper.DefaultStartingIndex && IsTargetItem(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex)))
 			{
 				FromSlotIndex = EquipmentSlotIndex;
 
@@ -158,17 +161,29 @@ namespace CK_QOL.Core.Features
 		///     equipped item.
 		///     If no item is found, it will wrap around and search from the beginning of the inventory.
 		/// </summary>
-		protected virtual void SwitchToNextItem()
+		protected virtual bool SwitchToNextItem()
 		{
 			var player = Manager.main.player;
+			var foundItem = TryFindTargetItem(player, FromSlotIndex + 1);
 
-			if (!TryFindTargetItem(player, FromSlotIndex + 1))
+			if (!foundItem && FromSlotIndex != InventoryHandlerHelper.InvalidIndex)
 			{
 				// If nothing was found, wrap around and start from the beginning.
-				TryFindTargetItem(player);
+				foundItem = TryFindTargetItem(player);
 			}
 
-			TriggerAction(player);
+			if (!foundItem)
+			{
+				return false;
+			}
+
+			var item = player.playerInventoryHandler.GetContainedObjectData(FromSlotIndex);
+			var text = PlayerController.GetObjectName(item, true).text;
+			var rarity = PugDatabase.GetObjectInfo(item.objectData.objectID).rarity;
+
+			TextHelper.DisplayText(text, rarity);
+
+			return true;
 		}
 
 		/// <summary>
@@ -197,11 +212,6 @@ namespace CK_QOL.Core.Features
 		{
 			var player = Manager.main.player;
 
-			// Simulate "right-click" or "use" action on the item.
-			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
-			inputHistoryConsume.secondInteractUITriggered = true;
-			EntityUtility.SetComponentData(player.entity, player.world, inputHistoryConsume);
-			
 			// Swap back to the original item.
 			if (FromSlotIndex != EquipmentSlotIndex)
 			{

@@ -26,7 +26,7 @@ namespace CK_QOL.Features.QuickHeal
 
 		public override string Name => nameof(QuickHeal);
 		public override string DisplayName => "Quick Heal";
-		public override string Description => "Quickly equips a healable item (prefers potion), consumes it, and swaps back to the previous item.";
+		public override string Description => "Quickly equips or switches the preferred healable item, consumes it, and swaps back to the previous item.";
 		public override FeatureType FeatureType => FeatureType.Client;
 
 		#endregion IFeature
