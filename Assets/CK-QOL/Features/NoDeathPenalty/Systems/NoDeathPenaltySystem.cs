@@ -33,35 +33,36 @@ namespace CK_QOL.Features.NoDeathPenalty.Systems
 	///     running in the server simulation context to handle inventory management logic in real-time.
 	/// </remarks>
 	[WorldSystemFilter(WorldSystemFilterFlags.ServerSimulation)]
-    [UpdateInGroup(typeof(PredictedSimulationSystemGroup))]
-    [UpdateAfter(typeof(UpdateHealthSystemGroup))]
-    [UpdateBefore(typeof(InitMoveInventorySystem))]
-    public partial class NoDeathPenaltySystem : PugSimulationSystemBase
-    {
-        protected override void OnCreate()
-        {
-            if (!NoDeathPenalty.Instance.IsEnabled) return;
+	[UpdateInGroup(typeof(PredictedSimulationSystemGroup))]
+	[UpdateAfter(typeof(UpdateHealthSystemGroup))]
+	[UpdateBefore(typeof(InitMoveInventorySystem))]
+	public partial class NoDeathPenaltySystem : PugSimulationSystemBase
+	{
+		protected override void OnCreate()
+		{
+			if (!NoDeathPenalty.Instance.IsEnabled) return;
 
-            base.OnCreate();
+			base.OnCreate();
 
-            RequireForUpdate<InventoryChangeBuffer>();
-        }
+			RequireForUpdate<InventoryChangeBuffer>();
+		}
 
-        protected override void OnUpdate()
-        {
-            if (!NoDeathPenalty.Instance.IsEnabled) return;
+		protected override void OnUpdate()
+		{
+			if (!NoDeathPenalty.Instance.IsEnabled) return;
 
-            var initialMoveInventoryFromLookup = GetComponentLookup<InitialMoveInventoryFromCD>();
+			var initialMoveInventoryFromLookup = GetComponentLookup<InitialMoveInventoryFromCD>();
 
-            Entities
-                .WithAll<InitialMoveInventoryFromCD>()
-                .ForEach((Entity entity, ref InitialMoveInventoryFromCD initialMoveInventoryFromCD) => {
-                    initialMoveInventoryFromLookup.SetComponentEnabled(entity, false);
-                    initialMoveInventoryFromCD.entityFrom = Entity.Null;
-                })
-                .Schedule();
+			Entities
+				.WithAll<InitialMoveInventoryFromCD>()
+				.ForEach((Entity entity, ref InitialMoveInventoryFromCD initialMoveInventoryFromCD) =>
+				{
+					initialMoveInventoryFromLookup.SetComponentEnabled(entity, false);
+					initialMoveInventoryFromCD.entityFrom = Entity.Null;
+				})
+				.Schedule();
 
-            base.OnUpdate();
-        }
-    }
+			base.OnUpdate();
+		}
+	}
 }

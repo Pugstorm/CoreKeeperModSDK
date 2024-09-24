@@ -50,162 +50,161 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
     ///     running in the client-side simulation context to handle item pick-up notifications in real-time.
     /// </remarks>
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
-    [UpdateInGroup(typeof(InventorySystemGroup))]
-    [BurstCompile(DisableDirectCall = true)]
-    public partial class ItemPickUpNotificationSystem : PugSimulationSystemBase
-    {
+	[UpdateInGroup(typeof(InventorySystemGroup))]
+	[BurstCompile(DisableDirectCall = true)]
+	public partial class ItemPickUpNotificationSystem : PugSimulationSystemBase
+	{
+		private Dictionary<int, PickupEntry> _cachedPickups;
+		private Entity _localPlayerEntity;
 
-        private Dictionary<int, PickupEntry> _cachedPickups;
-        private Entity _localPlayerEntity;
+		protected override void OnCreate()
+		{
+			if (isServer || !ItemPickUpNotifier.Instance.IsEnabled)
+			{
+				return;
+			}
 
-        protected override void OnCreate()
-        {
-            if (isServer || !ItemPickUpNotifier.Instance.IsEnabled)
-            {
-                return;
-            }
+			base.OnCreate();
+			RequireForUpdate<InventoryChangeBuffer>();
 
-            base.OnCreate();
-            RequireForUpdate<InventoryChangeBuffer>();
+			_cachedPickups = new Dictionary<int, PickupEntry>();
+		}
 
-            _cachedPickups = new Dictionary<int, PickupEntry>();
-        }
+		protected override void OnDestroy()
+		{
+			_cachedPickups.Clear();
+			base.OnDestroy();
+		}
 
-        protected override void OnDestroy()
-        {
-            _cachedPickups.Clear();
-            base.OnDestroy();
-        }
+		protected override void OnUpdate()
+		{
+			if (isServer || !ItemPickUpNotifier.Instance.IsEnabled)
+			{
+				return;
+			}
 
-        protected override void OnUpdate()
-        {
-            if (isServer || !ItemPickUpNotifier.Instance.IsEnabled)
-            {
-                return;
-            }
+			if (_localPlayerEntity == Entity.Null)
+			{
+				var playerController = Manager.main?.player;
+				if (playerController?.isLocal ?? false)
+				{
+					_localPlayerEntity = playerController.entity;
+				}
+				else
+				{
+					return;
+				}
+			}
 
-            if (_localPlayerEntity == Entity.Null)
-            {
-                var playerController = Manager.main?.player;
-                if (playerController?.isLocal ?? false)
-                {
-                    _localPlayerEntity = playerController.entity;
-                }
-                else
-                {
-                    return;
-                }
-            }
+			var containedObjectsBufferLookup = GetBufferLookup<ContainedObjectsBuffer>(true);
+			var cachedPickups = _cachedPickups;
+			var localPlayerEntity = _localPlayerEntity;
 
-            var containedObjectsBufferLookup = GetBufferLookup<ContainedObjectsBuffer>(true);
-            var cachedPickups = _cachedPickups;
-            var localPlayerEntity = _localPlayerEntity;
+			// ReSharper disable once Unity.Entities.MustBeSurroundedWithRefRwRo
+			foreach (var inventoryChanges in SystemAPI.Query<DynamicBuffer<InventoryChangeBuffer>>())
+			{
+				foreach (var change in inventoryChanges)
+				{
+					if (change.inventoryChangeData.inventoryAction != InventoryAction.MoveOrDropAllItems)
+					{
+						continue;
+					}
 
-            // ReSharper disable once Unity.Entities.MustBeSurroundedWithRefRwRo
-            foreach (var inventoryChanges in SystemAPI.Query<DynamicBuffer<InventoryChangeBuffer>>())
-            {
-                foreach (var change in inventoryChanges)
-                {
-                    if (change.inventoryChangeData.inventoryAction != InventoryAction.MoveOrDropAllItems)
-                    {
-                        continue;
-                    }
+					if (change.playerEntity != _localPlayerEntity)
+					{
+						continue;
+					}
 
-                    if (change.playerEntity != _localPlayerEntity)
-                    {
-                        continue;
-                    }
+					var sourceInventory = change.inventoryChangeData.inventory1;
+					if (!containedObjectsBufferLookup.HasBuffer(sourceInventory))
+					{
+						continue;
+					}
 
-                    var sourceInventory = change.inventoryChangeData.inventory1;
-                    if (!containedObjectsBufferLookup.HasBuffer(sourceInventory))
-                    {
-                        continue;
-                    }
+					var itemsBuffer = containedObjectsBufferLookup[sourceInventory];
 
-                    var itemsBuffer = containedObjectsBufferLookup[sourceInventory];
+					foreach (var item in itemsBuffer)
+					{
+						if (item.objectID == ObjectID.None)
+						{
+							continue;
+						}
 
-                    foreach (var item in itemsBuffer)
-                    {
-                        if (item.objectID == ObjectID.None)
-                        {
-                            continue;
-                        }
+						var amount = item.amount;
+						if (PugDatabase.GetObjectInfo(item.objectID, item.variation) is { isStackable: false })
+						{
+							amount = 1;
+						}
 
-                        var amount = item.amount;
-                        if (PugDatabase.GetObjectInfo(item.objectID, item.variation) is { isStackable: false })
-                        {
-                            amount = 1;
-                        }
+						var objectIdHash = item.objectData.objectID.GetHashCode();
 
-                        var objectIdHash = item.objectData.objectID.GetHashCode();
+						if (cachedPickups.TryGetValue(objectIdHash, out var existingEntry))
+						{
+							existingEntry.TotalAmount += amount;
+							if (existingEntry.TotalAmount != existingEntry.LastTotalAmount)
+							{
+								existingEntry.TimeSinceLastChange = 0f;
+								existingEntry.LastTotalAmount = existingEntry.TotalAmount;
+							}
+						}
+						else
+						{
+							var text = PlayerController.GetObjectName(item, true).text;
+							var rarity = PugDatabase.GetObjectInfo(item.objectData.objectID).rarity;
 
-                        if (cachedPickups.TryGetValue(objectIdHash, out var existingEntry))
-                        {
-                            existingEntry.TotalAmount += amount;
-                            if (existingEntry.TotalAmount != existingEntry.LastTotalAmount)
-                            {
-                                existingEntry.TimeSinceLastChange = 0f;
-                                existingEntry.LastTotalAmount = existingEntry.TotalAmount;
-                            }
-                        }
-                        else
-                        {
-                            var text = PlayerController.GetObjectName(item, true).text;
-                            var rarity = PugDatabase.GetObjectInfo(item.objectData.objectID).rarity;
+							cachedPickups[objectIdHash] = new PickupEntry
+							{
+								TotalAmount = amount,
+								LastTotalAmount = amount,
+								Rarity = rarity,
+								DisplayName = text,
+								TimeSinceLastChange = 0f
+							};
+						}
+					}
+				}
+			}
 
-                            cachedPickups[objectIdHash] = new PickupEntry
-                            {
-                                TotalAmount = amount,
-                                LastTotalAmount = amount,
-                                Rarity = rarity,
-                                DisplayName = text,
-                                TimeSinceLastChange = 0f
-                            };
-                        }
-                    }
-                }
-            }
+			UpdateTimersAndHandleNotifications();
 
-            UpdateTimersAndHandleNotifications();
-
-            base.OnUpdate();
-        }
+			base.OnUpdate();
+		}
 
         /// <summary>
         ///     Updates the timers for all cached pickups and handles the display of notifications for items whose amounts
         ///     haven't changed for the defined delay.
         /// </summary>
         private void UpdateTimersAndHandleNotifications()
-        {
-            var aggregateDelay = ItemPickUpNotifier.Instance.AggregateDelay;
-            var notifiedPickups = new List<int>();
+		{
+			var aggregateDelay = ItemPickUpNotifier.Instance.AggregateDelay;
+			var notifiedPickups = new List<int>();
 
-            foreach (var (objectIdHash, pickupEntry) in _cachedPickups)
-            {
-                // Increment the time since the last change for this item.
-                pickupEntry.TimeSinceLastChange += SystemAPI.Time.DeltaTime;
+			foreach (var (objectIdHash, pickupEntry) in _cachedPickups)
+			{
+				// Increment the time since the last change for this item.
+				pickupEntry.TimeSinceLastChange += SystemAPI.Time.DeltaTime;
 
-                // If time since last change exceeds the aggregate delay, we notify.
-                if (pickupEntry.TimeSinceLastChange >= aggregateDelay)
-                {
-                    TextHelper.DisplayNotification($"{pickupEntry.DisplayName} x{pickupEntry.TotalAmount}", pickupEntry.Rarity);
-                    notifiedPickups.Add(objectIdHash);
-                }
-            }
+				// If time since last change exceeds the aggregate delay, we notify.
+				if (pickupEntry.TimeSinceLastChange >= aggregateDelay)
+				{
+					TextHelper.DisplayNotification($"{pickupEntry.DisplayName} x{pickupEntry.TotalAmount}", pickupEntry.Rarity);
+					notifiedPickups.Add(objectIdHash);
+				}
+			}
 
-            foreach (var objectIdHash in notifiedPickups)
-            {
-                _cachedPickups.Remove(objectIdHash);
-            }
-        }
+			foreach (var objectIdHash in notifiedPickups)
+			{
+				_cachedPickups.Remove(objectIdHash);
+			}
+		}
 
-        private class PickupEntry
-        {
-            public int TotalAmount { get; set; }
-            public int LastTotalAmount { get; set; }
-            public Rarity Rarity { get; set; }
-            public FixedString64Bytes DisplayName { get; set; }
-            public float TimeSinceLastChange { get; set; }
-        }
-    }
+		private class PickupEntry
+		{
+			public int TotalAmount { get; set; }
+			public int LastTotalAmount { get; set; }
+			public Rarity Rarity { get; set; }
+			public FixedString64Bytes DisplayName { get; set; }
+			public float TimeSinceLastChange { get; set; }
+		}
+	}
 }

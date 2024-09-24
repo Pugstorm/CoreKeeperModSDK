@@ -7,42 +7,43 @@ using Rewired;
 
 namespace CK_QOL.Features.QuickSummon
 {
-    internal sealed class QuickSummon : QuickActionFeatureBase<QuickSummon>
-    {
-        private readonly ObjectID[] _tomeIDs =
-        {
-            ObjectID.TomeOfRange,
-            ObjectID.TomeOfOrbit,
-            ObjectID.TomeOfMelee
-        };
+	internal sealed class QuickSummon : QuickActionFeatureBase<QuickSummon>
+	{
+		private readonly ObjectID[] _tomeIDs =
+		{
+			ObjectID.TomeOfRange,
+			ObjectID.TomeOfOrbit,
+			ObjectID.TomeOfMelee
+		};
 
-        public QuickSummon()
-        {
-            ConfigBase.Create(this);
-            RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.F);
-        }
+		public QuickSummon()
+		{
+			ConfigBase.Create(this);
+			IsEnabled = QuickSummonConfig.ApplyIsEnabled(this);
+			EquipmentSlotIndex = QuickSummonConfig.ApplyEquipmentSlotIndex(this);
 
-        protected override bool IsTargetItem(ObjectDataCD objectData)
-        {
-            return _tomeIDs.Contains(objectData.objectID);
-        }
+			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.F);
+		}
 
-        #region IFeature
+		protected override bool IsTargetItem(ObjectDataCD objectData)
+		{
+			return _tomeIDs.Contains(objectData.objectID);
+		}
 
-        public override string Name => nameof(QuickSummon);
-        public override string DisplayName => "Quick Summon";
-        public override string Description => "Quickly equips a summoning tome, casts a summon spell, and swaps back to the previous item.";
-        public override FeatureType FeatureType => FeatureType.Client;
+		#region IFeature
 
-        #endregion IFeature
+		public override string Name => nameof(QuickSummon);
+		public override string DisplayName => "Quick Summon";
+		public override string Description => "Quickly equips a summoning tome, casts a summon spell, and swaps back to the previous item.";
+		public override FeatureType FeatureType => FeatureType.Client;
 
-        #region Configurations
+		#endregion IFeature
 
-        public override bool IsEnabled => QuickSummonConfig.ApplyIsEnabled(this);
-        public override int EquipmentSlotIndex => QuickSummonConfig.ApplyEquipmentSlotIndex(this);
-        protected override string KeyBindName => $"{ModSettings.ShortName}_{Name}";
+		#region Configurations
 
-        #endregion Configurations
+		public override int EquipmentSlotIndex { get; }
+		protected override string KeyBindName => $"{ModSettings.ShortName}_{Name}";
 
-    }
+		#endregion Configurations
+	}
 }

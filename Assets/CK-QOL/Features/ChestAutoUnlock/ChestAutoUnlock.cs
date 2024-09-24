@@ -6,88 +6,82 @@ using CK_QOL.Core.Helpers;
 
 namespace CK_QOL.Features.ChestAutoUnlock
 {
-    internal sealed class ChestAutoUnlock : FeatureBase<ChestAutoUnlock>
-    {
-        public ChestAutoUnlock()
-        {
-            ConfigBase.Create(this);
-        }
+	internal sealed class ChestAutoUnlock : FeatureBase<ChestAutoUnlock>
+	{
+		public ChestAutoUnlock()
+		{
+			ConfigBase.Create(this);
+			IsEnabled = ChestAutoUnlockConfig.ApplyIsEnabled(this);
+		}
 
-        #region Configuration
+		public override bool CanExecute()
+		{
+			return base.CanExecute()
+			       && Manager.main.player?.playerInventoryHandler != null
+			       && Manager.ui.isChestInventoryUIShowing
+			       && ((Manager.main.player?.activeInventoryHandler?.entityMonoBehaviour as Chest)?.inventoryHandler?.HasValidInventorySlotRequirementBuffer() ?? false);
+		}
 
-        public override bool IsEnabled => ChestAutoUnlockConfig.ApplyIsEnabled(this);
+		public override void Update()
+		{
+			if (!CanExecute())
+			{
+				return;
+			}
 
-        #endregion Configuration
+			Execute();
+		}
 
-        public override bool CanExecute()
-        {
-            return base.CanExecute()
-                && Manager.main.player?.playerInventoryHandler != null
-                && Manager.ui.isChestInventoryUIShowing
-                && ((Manager.main.player?.activeInventoryHandler?.entityMonoBehaviour as Chest)?.inventoryHandler?.HasValidInventorySlotRequirementBuffer() ?? false);
-        }
+		public override void Execute()
+		{
+			var player = Manager.main.player;
+			var chest = player.activeInventoryHandler?.entityMonoBehaviour as Chest;
 
-        public override void Update()
-        {
-            if (!CanExecute())
-            {
-                return;
-            }
+			var requiredObjectIDs = InventoryHandlerHelper.GetRequiredObjectIDs(chest!.inventoryHandler);
+			if (!requiredObjectIDs.Any())
+			{
+				return;
+			}
 
-            Execute();
-        }
+			if (PlayerHasAllRequiredItems(player, requiredObjectIDs))
+			{
+				TransferRequiredItemsToChest(player, chest, requiredObjectIDs);
+			}
+		}
 
-        public override void Execute()
-        {
-            var player = Manager.main.player;
-            var chest = player.activeInventoryHandler?.entityMonoBehaviour as Chest;
+		private static bool PlayerHasAllRequiredItems(PlayerController player, IEnumerable<ObjectID> requiredObjectIDs)
+		{
+			return requiredObjectIDs
+				.Select(objectID => InventoryHandlerHelper.GetIndexOfItem(player.playerInventoryHandler, objectID))
+				.All(playerItemIndex => playerItemIndex != InventoryHandlerHelper.InvalidIndex);
+		}
 
-            var requiredObjectIDs = InventoryHandlerHelper.GetRequiredObjectIDs(chest!.inventoryHandler);
-            if (!requiredObjectIDs.Any())
-            {
-                return;
-            }
+		private static void TransferRequiredItemsToChest(PlayerController player, Chest chest, IEnumerable<ObjectID> requiredObjectIDs)
+		{
+			var playerInventory = player.playerInventoryHandler;
+			var chestInventory = chest.inventoryHandler;
 
-            if (PlayerHasAllRequiredItems(player, requiredObjectIDs))
-            {
-                TransferRequiredItemsToChest(player, chest, requiredObjectIDs);
-            }
-        }
+			foreach (var objectID in requiredObjectIDs)
+			{
+				var playerItemIndex = InventoryHandlerHelper.GetIndexOfItem(playerInventory, objectID);
+				var chestEmptySlotIndex = InventoryHandlerHelper.GetNextAvailableIndex(chestInventory);
 
-        private static bool PlayerHasAllRequiredItems(PlayerController player, IEnumerable<ObjectID> requiredObjectIDs)
-        {
-            return requiredObjectIDs
-                .Select(objectID => InventoryHandlerHelper.GetIndexOfItem(player.playerInventoryHandler, objectID))
-                .All(playerItemIndex => playerItemIndex != InventoryHandlerHelper.InvalidIndex);
-        }
+				if (chestEmptySlotIndex == InventoryHandlerHelper.InvalidIndex)
+				{
+					return;
+				}
 
-        private static void TransferRequiredItemsToChest(PlayerController player, Chest chest, IEnumerable<ObjectID> requiredObjectIDs)
-        {
-            var playerInventory = player.playerInventoryHandler;
-            var chestInventory = chest.inventoryHandler;
+				InventoryHandlerHelper.MoveItem(player, playerInventory, chestInventory, playerItemIndex, chestEmptySlotIndex);
+			}
+		}
 
-            foreach (var objectID in requiredObjectIDs)
-            {
-                var playerItemIndex = InventoryHandlerHelper.GetIndexOfItem(playerInventory, objectID);
-                var chestEmptySlotIndex = InventoryHandlerHelper.GetNextAvailableIndex(chestInventory);
+		#region IFeature
 
-                if (chestEmptySlotIndex == InventoryHandlerHelper.InvalidIndex)
-                {
-                    return;
-                }
+		public override string Name => nameof(ChestAutoUnlock);
+		public override string DisplayName => "Chest Auto Unlock";
+		public override string Description => "Allows quick unlocking of locked chests by using available keys.";
+		public override FeatureType FeatureType => FeatureType.Client;
 
-                InventoryHandlerHelper.MoveItem(player, playerInventory, chestInventory, playerItemIndex, chestEmptySlotIndex);
-            }
-        }
-
-        #region IFeature
-
-        public override string Name => nameof(ChestAutoUnlock);
-        public override string DisplayName => "Chest Auto Unlock";
-        public override string Description => "Allows quick unlocking of locked chests by using available keys.";
-        public override FeatureType FeatureType => FeatureType.Client;
-
-        #endregion IFeature
-
-    }
+		#endregion IFeature
+	}
 }

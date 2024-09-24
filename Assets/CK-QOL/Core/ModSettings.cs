@@ -1,15 +1,15 @@
 namespace CK_QOL.Core
 {
-    internal static class ModSettings
-    {
-        public const string Name = "CK QOF";
+	internal static class ModSettings
+	{
+		public const string Name = "CK QOF";
 
-        public const string ShortName = "CK_QOL";
+		public const string ShortName = "CK_QOL";
 
-        public const string Version = "1.8.2";
+		public const string Version = "1.8.2";
 
-        public const string Author = "DrSalzstreuer";
+		public const string Author = "DrSalzstreuer";
 
-        public const string Contributors = "spintermind, Fehdra & Trolxu";
-    }
+		public const string Contributors = "spintermind, Fehdra & Trolxu";
+	}
 }

@@ -3,27 +3,21 @@ using CK_QOL.Core.Features;
 
 namespace CK_QOL.Features.NoDeathPenalty
 {
-    internal sealed class NoDeathPenalty : FeatureBase<NoDeathPenalty>
-    {
-        public NoDeathPenalty()
-        {
-            ConfigBase.Create(this);
-        }
+	internal sealed class NoDeathPenalty : FeatureBase<NoDeathPenalty>
+	{
+		public NoDeathPenalty()
+		{
+			ConfigBase.Create(this);
+			IsEnabled = NoDeathPenaltyConfig.ApplyIsEnabled(this);
+		}
 
-        #region Configuration
+		#region IFeature
 
-        public override bool IsEnabled => NoDeathPenaltyConfig.ApplyIsEnabled(this);
+		public override string Name => nameof(NoDeathPenalty);
+		public override string DisplayName => "No Death Penalty";
+		public override string Description => "Removes the behaviour, that the inventory gets lost after death.";
+		public override FeatureType FeatureType => FeatureType.Server;
 
-        #endregion Configuration
-
-        #region IFeature
-
-        public override string Name => nameof(NoDeathPenalty);
-        public override string DisplayName => "No Death Penalty";
-        public override string Description => "Removes the behaviour, that the inventory gets lost after death.";
-        public override FeatureType FeatureType => FeatureType.Server;
-
-        #endregion IFeature
-
-    }
+		#endregion IFeature
+	}
 }

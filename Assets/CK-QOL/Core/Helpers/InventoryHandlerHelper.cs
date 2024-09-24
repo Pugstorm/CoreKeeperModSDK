@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 
 namespace CK_QOL.Core.Helpers
@@ -13,7 +14,7 @@ namespace CK_QOL.Core.Helpers
     ///     space, and handling required items in chests.
     /// </remarks>
     internal static class InventoryHandlerHelper
-    {
+	{
         /// <summary>
         ///     Constant representing an invalid index in the inventory.
         /// </summary>
@@ -41,18 +42,18 @@ namespace CK_QOL.Core.Helpers
         ///     or <see cref="InvalidIndex" /> if no matching item is found.
         /// </returns>
         internal static int GetIndexOfItem(InventoryHandler inventoryHandler, ObjectID objectID, int startingIndex = DefaultStartingIndex, int skipIndex = InvalidIndex)
-        {
-            for (var i = startingIndex; i < inventoryHandler.size; i++)
-            {
-                var objectData = inventoryHandler.GetObjectData(i);
-                if (objectData.objectID == objectID && i != skipIndex)
-                {
-                    return i;
-                }
-            }
+		{
+			for (var i = startingIndex; i < inventoryHandler.size; i++)
+			{
+				var objectData = inventoryHandler.GetObjectData(i);
+				if (objectData.objectID == objectID && i != skipIndex)
+				{
+					return i;
+				}
+			}
 
-            return InvalidIndex;
-        }
+			return InvalidIndex;
+		}
 
         /// <summary>
         ///     Finds the next available empty slot in the inventory, starting from the specified index.
@@ -64,18 +65,18 @@ namespace CK_QOL.Core.Helpers
         ///     found.
         /// </returns>
         internal static int GetNextAvailableIndex(InventoryHandler inventoryHandler, int startingIndex = DefaultStartingIndex)
-        {
-            for (var i = startingIndex; i < inventoryHandler.size; i++)
-            {
-                var objectData = inventoryHandler.GetObjectData(i);
-                if (objectData.objectID == ObjectID.None)
-                {
-                    return i;
-                }
-            }
+		{
+			for (var i = startingIndex; i < inventoryHandler.size; i++)
+			{
+				var objectData = inventoryHandler.GetObjectData(i);
+				if (objectData.objectID == ObjectID.None)
+				{
+					return i;
+				}
+			}
 
-            return InvalidIndex;
-        }
+			return InvalidIndex;
+		}
 
         /// <summary>
         ///     Finds the next available empty slot or stackable slot for the specified <paramref name="objectID" />.
@@ -88,23 +89,24 @@ namespace CK_QOL.Core.Helpers
         ///     found.
         /// </returns>
         internal static int GetNextAvailableIndex(InventoryHandler inventoryHandler, ObjectID objectID, int startingIndex = DefaultStartingIndex)
-        {
-            if (objectID == ObjectID.None)
-            {
-                return GetNextAvailableIndex(inventoryHandler, startingIndex);
-            }
+		{
+			if (objectID == ObjectID.None)
+			{
+				return GetNextAvailableIndex(inventoryHandler, startingIndex);
+			}
 
-            var objectInfo = PugDatabase.GetObjectInfo(objectID);
-            if (objectInfo is { isStackable: false })
-            {
-                return GetNextAvailableIndex(inventoryHandler, startingIndex);
-            }
+			var objectInfo = PugDatabase.GetObjectInfo(objectID);
+			if (objectInfo is { isStackable: false })
+			{
+				return GetNextAvailableIndex(inventoryHandler, startingIndex);
+			}
 
-            var indexOfItem = GetIndexOfItem(inventoryHandler, objectID, startingIndex);
-            return indexOfItem == InvalidIndex
-                ? GetNextAvailableIndex(inventoryHandler, startingIndex)
-                : indexOfItem;
-        }
+			var indexOfItem = GetIndexOfItem(inventoryHandler, objectID, startingIndex);
+
+			return indexOfItem == InvalidIndex
+				? GetNextAvailableIndex(inventoryHandler, startingIndex)
+				: indexOfItem;
+		}
 
         /// <summary>
         ///     Moves an item from the source inventory to the target inventory.
@@ -119,14 +121,14 @@ namespace CK_QOL.Core.Helpers
         ///     the movement will not be performed.
         /// </remarks>
         internal static void MoveItem(PlayerController player, InventoryHandler sourceHandler, InventoryHandler targetHandler, int sourceIndex, int targetIndex)
-        {
-            if (sourceIndex == InvalidIndex || targetIndex == InvalidIndex)
-            {
-                return;
-            }
+		{
+			if (sourceIndex == InvalidIndex || targetIndex == InvalidIndex)
+			{
+				return;
+			}
 
-            sourceHandler.TryMoveTo(player, sourceIndex, targetHandler, targetIndex);
-        }
+			sourceHandler.TryMoveTo(player, sourceIndex, targetHandler, targetIndex);
+		}
 
         /// <summary>
         ///     Retrieves the required object IDs from the slot requirements of the inventory.
@@ -137,18 +139,28 @@ namespace CK_QOL.Core.Helpers
         ///     If the inventory has no slot requirements, an empty collection is returned.
         /// </returns>
         internal static ObjectID[] GetRequiredObjectIDs(InventoryHandler inventoryHandler)
-        {
-            if (!inventoryHandler.HasValidInventorySlotRequirementBuffer())
-            {
-                return Enumerable.Empty<ObjectID>().ToArray();
-            }
+		{
+			if (!inventoryHandler.HasValidInventorySlotRequirementBuffer())
+			{
+				return Enumerable.Empty<ObjectID>().ToArray();
+			}
 
-            if (!EntityUtility.TryGetBuffer<InventorySlotRequirementBuffer>(inventoryHandler.inventoryEntity, inventoryHandler.entityMonoBehaviour.world, out var inventorySlotRequirementBuffer))
-            {
-                return Enumerable.Empty<ObjectID>().ToArray();
-            }
+			if (!EntityUtility.TryGetBuffer<InventorySlotRequirementBuffer>(inventoryHandler.inventoryEntity, inventoryHandler.entityMonoBehaviour.world, out var inventorySlotRequirementBuffer))
+			{
+				return Enumerable.Empty<ObjectID>().ToArray();
+			}
 
-            return inventorySlotRequirementBuffer.SelectMany(slotRequirement => slotRequirement.acceptsObjectIds).ToArray();
-        }
-    }
+			var acceptedObjectIds = new List<ObjectID>();
+
+			foreach (var slotRequirement in inventorySlotRequirementBuffer)
+			{
+				foreach (var objectId in slotRequirement.acceptsObjectIds)
+				{
+					acceptedObjectIds.Add(objectId);
+				}
+			}
+
+			return acceptedObjectIds.ToArray();
+		}
+	}
 }

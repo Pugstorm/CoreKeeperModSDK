@@ -6,44 +6,45 @@ using CK_QOL.Core.Helpers;
 
 namespace CK_QOL.Features.CraftingRange
 {
-    internal sealed class CraftingRange : FeatureBase<CraftingRange>
-    {
-        public CraftingRange()
-        {
-            ConfigBase.Create(this);
-        }
+	internal sealed class CraftingRange : FeatureBase<CraftingRange>
+	{
+		public CraftingRange()
+		{
+			ConfigBase.Create(this);
+			IsEnabled = CraftingRangeConfig.ApplyIsEnabled(this);
+			MaxRange = CraftingRangeConfig.ApplyMaxRange(this);
+			MaxChests = CraftingRangeConfig.ApplyMaxChests(this);
+		}
 
-        internal List<Chest> Chests { get; } = new();
+		internal List<Chest> Chests { get; } = new();
 
-        public override void Execute()
-        {
-            if (!CanExecute()) return;
+		public override void Execute()
+		{
+			if (!CanExecute()) return;
 
-            Chests.Clear();
+			Chests.Clear();
 
-            var nearbyChests = ChestHelper.GetNearbyChests(MaxRange)
-                .Take(MaxChests)
-                .ToList();
+			var nearbyChests = ChestHelper.GetNearbyChests(MaxRange)
+				.Take(MaxChests)
+				.ToList();
 
-            Chests.AddRange(nearbyChests);
-        }
+			Chests.AddRange(nearbyChests);
+		}
 
-        #region IFeature
+		#region IFeature
 
-        public override string Name => nameof(CraftingRange);
-        public override string DisplayName => "Crafting Range";
-        public override string Description => "Extends the crafting range for all kind of work benches.";
-        public override FeatureType FeatureType => FeatureType.Client;
+		public override string Name => nameof(CraftingRange);
+		public override string DisplayName => "Crafting Range";
+		public override string Description => "Extends the crafting range for all kind of work benches.";
+		public override FeatureType FeatureType => FeatureType.Client;
 
-        #endregion IFeature
+		#endregion IFeature
 
-        #region Configuration
+		#region Configuration
 
-        public override bool IsEnabled => CraftingRangeConfig.ApplyIsEnabled(this);
-        internal float MaxRange => CraftingRangeConfig.ApplyMaxRange(this);
-        internal int MaxChests => CraftingRangeConfig.ApplyMaxChests(this);
+		internal float MaxRange { get; }
+		internal int MaxChests { get; }
 
-        #endregion Configuration
-
-    }
+		#endregion Configuration
+	}
 }

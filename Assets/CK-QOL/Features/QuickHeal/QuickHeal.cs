@@ -6,35 +6,36 @@ using Rewired;
 
 namespace CK_QOL.Features.QuickHeal
 {
-    internal sealed class QuickHeal : QuickActionFeatureBase<QuickHeal>
-    {
-        public QuickHeal()
-        {
-            ConfigBase.Create(this);
-            RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.G);
-        }
+	internal sealed class QuickHeal : QuickActionFeatureBase<QuickHeal>
+	{
+		public QuickHeal()
+		{
+			ConfigBase.Create(this);
+			IsEnabled = QuickHealConfig.ApplyIsEnabled(this);
+			EquipmentSlotIndex = QuickHealConfig.ApplyEquipmentSlotIndex(this);
 
-        protected override bool IsTargetItem(ObjectDataCD objectData)
-        {
-            return objectData.objectID is ObjectID.HealingPotion or ObjectID.GreaterHealingPotion;
-        }
+			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.G);
+		}
 
-        #region IFeature
+		protected override bool IsTargetItem(ObjectDataCD objectData)
+		{
+			return objectData.objectID is ObjectID.HealingPotion or ObjectID.GreaterHealingPotion;
+		}
 
-        public override string Name => nameof(QuickHeal);
-        public override string DisplayName => "Quick Heal";
-        public override string Description => "Quickly equips a healable item (prefers potion), consumes it, and swaps back to the previous item.";
-        public override FeatureType FeatureType => FeatureType.Client;
+		#region IFeature
 
-        #endregion IFeature
+		public override string Name => nameof(QuickHeal);
+		public override string DisplayName => "Quick Heal";
+		public override string Description => "Quickly equips a healable item (prefers potion), consumes it, and swaps back to the previous item.";
+		public override FeatureType FeatureType => FeatureType.Client;
 
-        #region Configurations
+		#endregion IFeature
 
-        public override bool IsEnabled => QuickHealConfig.ApplyIsEnabled(this);
-        public override int EquipmentSlotIndex => QuickHealConfig.ApplyEquipmentSlotIndex(this);
-        protected override string KeyBindName => $"{ModSettings.ShortName}_{Name}";
+		#region Configurations
 
-        #endregion Configurations
+		public override int EquipmentSlotIndex { get; }
+		protected override string KeyBindName => $"{ModSettings.ShortName}_{Name}";
 
-    }
+		#endregion Configurations
+	}
 }
