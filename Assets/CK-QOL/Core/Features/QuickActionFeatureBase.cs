@@ -12,6 +12,8 @@ namespace CK_QOL.Core.Features
 		protected int FromSlotIndex = InventoryHandlerHelper.InvalidIndex;
 		protected int PreviousSlotIndex = InventoryHandlerHelper.InvalidIndex;
 
+		private ObjectID _lastSelectedObjectID = ObjectID.None;
+		
 		protected virtual Func<KeyValuePair<int, ObjectDataCD>, object> SortingFunction => _ => 0;
 
 		protected abstract bool IsTargetItem(ObjectDataCD objectData);
@@ -51,12 +53,46 @@ namespace CK_QOL.Core.Features
 			}
 
 			var player = Manager.main.player;
-			if (TryFindTargetItem(player))
+			
+			if (TryFindSpecificObjectID(player, _lastSelectedObjectID) || TryFindTargetItem(player))
 			{
 				TriggerAction(player);
 			}
 		}
 
+		/// <summary>
+		///     Attempts to find the specific ObjectID in the player's inventory.
+		/// </summary>
+		/// <param name="player">The player controller.</param>
+		/// <param name="objectID">The ObjectID to search for.</param>
+		/// <returns>True if the objectID is found, otherwise false.</returns>
+		protected virtual bool TryFindSpecificObjectID(PlayerController player, ObjectID objectID)
+		{
+			if (objectID == ObjectID.None)
+			{
+				return false;
+			}
+
+			var playerInventoryHandler = player.playerInventoryHandler;
+
+			// First check predefined equipment slot.
+			if (playerInventoryHandler.GetObjectData(EquipmentSlotIndex).objectID == objectID)
+			{
+				FromSlotIndex = EquipmentSlotIndex;
+				return true;
+			}
+
+			// Search through the player's inventory for the specific objectID.
+			var foundIndex = InventoryHandlerHelper.GetIndexOfItem(playerInventoryHandler, objectID);
+			if (foundIndex != InventoryHandlerHelper.InvalidIndex)
+			{
+				FromSlotIndex = foundIndex;
+				return true;
+			}
+
+			return false;
+		}
+		
         /// <summary>
         ///     Attempts to find the target item in the player's inventory and triggers the action.
         ///     If it finds the item, it updates the <see cref="FromSlotIndex" /> with the found index.
@@ -68,7 +104,6 @@ namespace CK_QOL.Core.Features
         /// <returns>True if a target item was found, otherwise false.</returns>
         protected virtual bool TryFindTargetItem(PlayerController player, int startingIndex = InventoryHandlerHelper.DefaultStartingIndex)
 		{
-			PreviousSlotIndex = player.equippedSlotIndex;
 			FromSlotIndex = InventoryHandlerHelper.InvalidIndex;
 
 			// First check predefined equipment slot.
@@ -98,7 +133,8 @@ namespace CK_QOL.Core.Features
 			// Apply sorting logic defined by the derived class.
 			var sortedItems = targetItems.OrderBy(SortingFunction).FirstOrDefault();
 			FromSlotIndex = sortedItems.Key;
-
+			_lastSelectedObjectID = sortedItems.Value.objectID;
+			
 			return FromSlotIndex != InventoryHandlerHelper.InvalidIndex;
 		}
 
@@ -126,6 +162,8 @@ namespace CK_QOL.Core.Features
         /// <param name="player">The player controller.</param>
         protected virtual void TriggerAction(PlayerController player)
 		{
+			PreviousSlotIndex = player.equippedSlotIndex;
+			
 			// Swap the item to the correct slot and equip it.
 			if (FromSlotIndex != EquipmentSlotIndex)
 			{
@@ -161,6 +199,7 @@ namespace CK_QOL.Core.Features
 
 			// Swaps back to the previously equipped slot after the action is completed.
 			Manager.main.player.EquipSlot(PreviousSlotIndex);
+			PreviousSlotIndex = InventoryHandlerHelper.InvalidIndex;
 		}
 
 		#region Configuration

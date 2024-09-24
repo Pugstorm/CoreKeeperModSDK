@@ -22,7 +22,7 @@ namespace CK_QOL.Features.QuickSummon
 			IsEnabled = QuickSummonConfig.ApplyIsEnabled(this);
 			EquipmentSlotIndex = QuickSummonConfig.ApplyEquipmentSlotIndex(this);
 
-			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.F);
+			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.X);
 		}
 
 		protected override bool IsTargetItem(ObjectDataCD objectData)
