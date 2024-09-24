@@ -8,38 +8,6 @@ using Rewired;
 
 namespace CK_QOL.Features.ShiftClick
 {
-    /// <summary>
-    ///     Represents the "Shift + Click" feature, allowing players to quickly move items between their inventory and
-    ///     other containers such as chests. This feature provides a key binding that enables users to transfer items
-    ///     with a simple key and mouse click combination.
-    ///     The class manages the following functionalities:
-    ///     <list type="bullet">
-    ///         <item>
-    ///             <description>
-    ///                 Configuration of the feature's enabled state and key bindings for quickly moving items between
-    ///                 inventories (<see cref="ApplyKeyBinds" /> method).
-    ///             </description>
-    ///         </item>
-    ///         <item>
-    ///             <description>
-    ///                 Executes the logic for determining which items are being clicked, then moves them to the target
-    ///                 inventory if an appropriate slot is available (<see cref="Execute" /> method).
-    ///             </description>
-    ///         </item>
-    ///         <item>
-    ///             ,
-    ///             <description>
-    ///                 Monitors key inputs and manages the movement of items between the player's inventory and other
-    ///                 inventories, such as chests, using the Shift + Click shortcut (<see cref="Update" /> method).
-    ///             </description>
-    ///         </item>
-    ///     </list>
-    /// </summary>
-    /// <remarks>
-    ///     This class extends the <see cref="FeatureBase{TFeature}" /> base class to inherit common feature behavior,
-    ///     including singleton instantiation, configuration management, and execution control.
-    ///     It provides an optimized mechanism for item management using input handling and inventory management.
-    /// </remarks>
     internal sealed class ShiftClick : FeatureBase<ShiftClick>
     {
         private static readonly ObjectType[] IgnoredItemTypes =
@@ -57,8 +25,10 @@ namespace CK_QOL.Features.ShiftClick
 
         public ShiftClick()
         {
-            ApplyConfigurations();
-            ApplyKeyBinds();
+            ConfigBase.Create(this);
+
+            RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.LeftShift);
+            RewiredExtensionModule.SetDefaultControllerBinding(KeyBindName, GamepadTemplate.elementId_rightTrigger);
         }
 
         public override bool CanExecute()
@@ -69,6 +39,22 @@ namespace CK_QOL.Features.ShiftClick
                 && Manager.main.player?.playerInventoryHandler != null
                 && Manager.ui.isPlayerInventoryShowing
                 && !IsAnyIgnoredUIOpen();
+        }
+
+        public override void Update()
+        {
+            if (!CanExecute())
+            {
+                return;
+            }
+
+            var isModifierKeyHeldDown = Entry.RewiredPlayer.GetButton(KeyBindName);
+            var hasInteractedWithUI = Entry.RewiredPlayer.GetButtonDown((int)PlayerInput.InputType.UI_INTERACT);
+
+            if (isModifierKeyHeldDown && hasInteractedWithUI)
+            {
+                Execute();
+            }
         }
 
         public override void Execute()
@@ -164,26 +150,15 @@ namespace CK_QOL.Features.ShiftClick
 
         public override string Name => nameof(ShiftClick);
         public override string DisplayName => "Shift + Click";
-        public override string Description => "Allows quick moving of items between inventories.";
+        public override string Description => "Allows quick moving of items between different inventories.";
         public override FeatureType FeatureType => FeatureType.Client;
 
         #endregion IFeature
 
         #region Configuration
 
-        internal string KeyBindName => $"{ModSettings.ShortName}_{Name}";
-
-        private void ApplyConfigurations()
-        {
-            ConfigBase.Create(this);
-            IsEnabled = ShiftClickConfig.ApplyIsEnabled(this);
-        }
-
-        private void ApplyKeyBinds()
-        {
-            RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.LeftShift);
-            RewiredExtensionModule.SetDefaultControllerBinding(KeyBindName, GamepadTemplate.elementId_rightTrigger);
-        }
+        public override bool IsEnabled => ShiftClickConfig.ApplyIsEnabled(this);
+        private string KeyBindName => $"{ModSettings.ShortName}_{Name}";
 
         #endregion Configuration
 

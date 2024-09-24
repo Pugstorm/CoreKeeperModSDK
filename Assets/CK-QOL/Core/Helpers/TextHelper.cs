@@ -22,7 +22,7 @@ namespace CK_QOL.Core.Helpers
 	    ///     Adds the text to the notification queue to be processed by <see cref="ItemDiscoveryUIPatches" />.
 	    /// </remarks>
 	    /// <seealso cref="UIManager.ShowDiscoveredItemText" />
-	    internal static void DisplayText(string text, Rarity rarity = Rarity.Poor)
+	    internal static void DisplayNotification(string text, Rarity rarity = Rarity.Poor)
         {
             text = $"{ModSettings.ShortName}{text}";
             Manager.ui.ShowDiscoveredItemText(new List<string>

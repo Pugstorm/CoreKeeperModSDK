@@ -188,7 +188,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
                 // If time since last change exceeds the aggregate delay, we notify.
                 if (pickupEntry.TimeSinceLastChange >= aggregateDelay)
                 {
-                    TextHelper.DisplayText($"{pickupEntry.DisplayName} x{pickupEntry.TotalAmount}", pickupEntry.Rarity);
+                    TextHelper.DisplayNotification($"{pickupEntry.DisplayName} x{pickupEntry.TotalAmount}", pickupEntry.Rarity);
                     notifiedPickups.Add(objectIdHash);
                 }
             }

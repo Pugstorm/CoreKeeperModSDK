@@ -65,7 +65,7 @@ namespace CK_QOL.Core.Features
         public abstract string DisplayName { get; }
         public abstract string Description { get; }
         public abstract FeatureType FeatureType { get; }
-        public bool IsEnabled { get; protected set; }
+        public abstract bool IsEnabled { get; }
 
         #endregion IFeature
 
