@@ -33,8 +33,6 @@ namespace CK_QOL.Core.Features
 				return;
 			}
 
-			FromSlotIndex = InventoryHandlerHelper.InvalidIndex;
-
 			if (Entry.RewiredPlayer.GetButtonSinglePressDown(KeyBindName))
 			{
 				if (_lastSelectedObjectID == ObjectID.None)
@@ -161,7 +159,7 @@ namespace CK_QOL.Core.Features
 		///     equipped item.
 		///     If no item is found, it will wrap around and search from the beginning of the inventory.
 		/// </summary>
-		protected virtual bool SwitchToNextItem()
+		protected virtual void SwitchToNextItem()
 		{
 			var player = Manager.main.player;
 			var foundItem = TryFindTargetItem(player, FromSlotIndex + 1);
@@ -174,7 +172,7 @@ namespace CK_QOL.Core.Features
 
 			if (!foundItem)
 			{
-				return false;
+				return;
 			}
 
 			var item = player.playerInventoryHandler.GetContainedObjectData(FromSlotIndex);
@@ -182,8 +180,6 @@ namespace CK_QOL.Core.Features
 			var rarity = PugDatabase.GetObjectInfo(item.objectData.objectID).rarity;
 
 			TextHelper.DisplayText(text, rarity);
-
-			return true;
 		}
 
 		/// <summary>
@@ -201,7 +197,12 @@ namespace CK_QOL.Core.Features
 			}
 
 			player.EquipSlot(EquipmentSlotIndex);
-
+			
+			// Fake an interaction to clear the buffer.
+			var fakeHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
+			fakeHistoryConsume.secondInteractUITriggered = false;
+			EntityUtility.SetComponentData(player.entity, player.world, fakeHistoryConsume);
+			
 			// Simulate "right-click" or "use" action on the item.
 			var inputHistoryConsume = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
 			inputHistoryConsume.secondInteractUITriggered = true;
@@ -218,6 +219,8 @@ namespace CK_QOL.Core.Features
 				player.playerInventoryHandler.Swap(player, FromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
 			}
 
+			FromSlotIndex = InventoryHandlerHelper.InvalidIndex;
+			
 			if (PreviousSlotIndex == InventoryHandlerHelper.InvalidIndex)
 			{
 				return;
