@@ -6,63 +6,52 @@ namespace CK_QOL.Features.NoDeathPenalty.Systems
 {
 	/// <summary>
 	///     Represents the system responsible for preventing inventory loss due to player death within the game's server-side
-	///     simulation.
-	///     This system operates by disabling components that trigger inventory movement on player death, ensuring that the
-	///     player's inventory is not transferred or lost when they die.
-	///     The system performs the following functions:
-	///     <list type="bullet">
-	///         <item>
-	///             <description>
-	///                 Disables the <see cref="InitialMoveInventoryFromCD" /> component on relevant entities to
-	///                 prevent inventory movement triggered by player death.
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Clears references to the entity from which the inventory would normally be moved, ensuring
-	///                 that no unintended inventory transfer occurs.
-	///             </description>
-	///         </item>
-	///     </list>
-	///     This system is controlled by the <see cref="NoDeathPenalty" /> feature, which provides configuration settings and
-	///     determines whether the system should be active based on the feature's enabled state.
+	///     simulation. This system operates by disabling components that trigger inventory movement on player death, ensuring
+	///     that the player's inventory is not transferred or lost when they die.
 	/// </summary>
 	/// <remarks>
-	///     The <see cref="NoDeathPenaltySystem" /> class extends <see cref="PugSimulationSystemBase" /> to integrate with the
-	///     game's server-side simulation framework,
-	///     running in the server simulation context to handle inventory management logic in real-time.
+	///     The <see cref="NoDeathPenaltySystem" /> class integrates with the server-side simulation, handling inventory
+	///     management logic in real-time to prevent inventory loss after death.
 	/// </remarks>
 	[WorldSystemFilter(WorldSystemFilterFlags.ServerSimulation)]
 	[UpdateInGroup(typeof(PredictedSimulationSystemGroup))]
 	[UpdateAfter(typeof(UpdateHealthSystemGroup))]
 	[UpdateBefore(typeof(InitMoveInventorySystem))]
-	public partial class NoDeathPenaltySystem : PugSimulationSystemBase
+	public partial struct NoDeathPenaltySystem : ISystem
 	{
-		protected override void OnCreate()
+		/// <summary>
+		///     Called when the system is created, sets up required components and conditions.
+		/// </summary>
+		public void OnCreate(ref SystemState state)
 		{
-			if (!NoDeathPenalty.Instance.IsEnabled) return;
+			if (!NoDeathPenalty.Instance.IsEnabled)
+			{
+				return;
+			}
 
-			base.OnCreate();
-
-			RequireForUpdate<InventoryChangeBuffer>();
+			// Require the InventoryChangeBuffer for the system to update
+			state.RequireForUpdate<InventoryChangeBuffer>();
 		}
 
-		protected override void OnUpdate()
+		/// <summary>
+		///     Called when the system is updated, prevents inventory loss on player death.
+		/// </summary>
+		public void OnUpdate(ref SystemState state)
 		{
-			if (!NoDeathPenalty.Instance.IsEnabled) return;
+			if (!NoDeathPenalty.Instance.IsEnabled)
+			{
+				return;
+			}
 
-			var initialMoveInventoryFromLookup = GetComponentLookup<InitialMoveInventoryFromCD>();
+			// Query for entities with InitialMoveInventoryFromCD component
+			var initialMoveInventoryFromLookup = SystemAPI.GetComponentLookup<InitialMoveInventoryFromCD>();
 
-			Entities
-				.WithAll<InitialMoveInventoryFromCD>()
-				.ForEach((Entity entity, ref InitialMoveInventoryFromCD initialMoveInventoryFromCD) =>
-				{
-					initialMoveInventoryFromLookup.SetComponentEnabled(entity, false);
-					initialMoveInventoryFromCD.entityFrom = Entity.Null;
-				})
-				.Schedule();
-
-			base.OnUpdate();
+			// Use SystemAPI Query to modify the inventory movement logic
+			foreach (var (initialMoveInventoryFromCD, entity) in SystemAPI.Query<RefRW<InitialMoveInventoryFromCD>>().WithEntityAccess())
+			{
+				initialMoveInventoryFromLookup.SetComponentEnabled(entity, false);
+				initialMoveInventoryFromCD.ValueRW.entityFrom = Entity.Null;
+			}
 		}
 	}
 }

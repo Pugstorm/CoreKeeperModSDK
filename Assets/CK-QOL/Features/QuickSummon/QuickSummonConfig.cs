@@ -1,28 +1,37 @@
-using System.Diagnostics.CodeAnalysis;
 using CK_QOL.Core.Config;
-using CK_QOL.Core.Features;
 using CoreLib.Data.Configuration;
 
 namespace CK_QOL.Features.QuickSummon
 {
-	[SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
-	internal sealed class QuickSummonConfig : ConfigBase
+	/// <summary>
+	///     Configuration class for the <see cref="QuickSummon" /> feature, handling key binding, enabled state, and equipment slot.
+	///     This class uses <see cref="ConfigBase{TFeature}" /> to manage the configuration settings for QuickSummon.
+	/// </summary>
+	internal sealed class QuickSummonConfig : ConfigBase<QuickSummon>
 	{
-		internal static bool ApplyIsEnabled(IFeature feature)
+		/// <summary>
+		///     Initializes a new instance of the <see cref="QuickSummonConfig" /> class for the given feature.
+		/// </summary>
+		/// <param name="feature">The <see cref="QuickSummon" /> feature being configured.</param>
+		public QuickSummonConfig(QuickSummon feature) : base(feature)
 		{
-			var acceptableValues = new AcceptableValueList<bool>(true, false);
-			var description = new ConfigDescription($"Enable the '{feature.DisplayName}' ({feature.FeatureType}) feature? {feature.Description}", acceptableValues);
-			var definition = new ConfigDefinition(feature.Name, nameof(feature.IsEnabled));
-			var entry = Config.Bind(definition, false, description);
-
-			return entry.Value;
 		}
 
-		internal static int ApplyEquipmentSlotIndex(QuickSummon feature)
+		/// <summary>
+		///     Overrides the default enabled value for <see cref="QuickSummon" />.
+		/// </summary>
+		protected override bool DefaultIsEnabled => true;
+
+		/// <summary>
+		///     Applies the equipment slot index setting for QuickSummon.
+		/// </summary>
+		/// <returns>The index of the equipment slot.</returns>
+		public int ApplyEquipmentSlotIndex()
 		{
 			var acceptableValues = new AcceptableValueRange<int>(0, 9);
-			var description = new ConfigDescription("Set the summoning tome slot index. It's the count/number of the slot minus 1.", acceptableValues);
-			var definition = new ConfigDefinition(feature.Name, nameof(feature.EquipmentSlotIndex));
+			var description = new ConfigDescription("The equipment slot index for summoning tomes.", acceptableValues);
+			var definition = new ConfigDefinition(Feature.Name, nameof(Feature.EquipmentSlotIndex));
+
 			var entry = Config.Bind(definition, 0, description);
 
 			return entry.Value;

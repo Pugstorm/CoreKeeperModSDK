@@ -5,13 +5,15 @@ namespace CK_QOL.Core.Helpers
 {
 	/// <summary>
 	///     A static helper class that provides utility functions to manage item movements, search for available slots,
-	///     and transfer items between inventories in the game. It also defines constants and methods to interact
-	///     with the inventory system efficiently.
+	///     and transfer items between inventories in the game.
+	///     The class includes methods to search for specific items in inventories, find available empty slots, and handle
+	///     interactions between player and chest inventories. It also provides support for moving items from one inventory to
+	///     another and checking slot requirements.
 	/// </summary>
 	/// <remarks>
-	///     This class interacts with the inventory system through various methods that help in searching, moving, and
-	///     organizing items. It centralizes the core logic needed for manipulating inventory slots, checking available
-	///     space, and handling required items in chests.
+	///     This class interacts with the inventory system through various methods that centralize the core logic needed for
+	///     manipulating inventory slots, moving items, and handling specific object interactions like stackable items and slot
+	///     requirements in chests.
 	/// </remarks>
 	internal static class InventoryHandlerHelper
 	{
@@ -32,6 +34,8 @@ namespace CK_QOL.Core.Helpers
 
 		/// <summary>
 		///     Searches for the first occurrence of an item with the specified <paramref name="objectID" /> in the inventory.
+		///     This method iterates over the inventory starting from the specified index and returns the index of the first
+		///     matching item.
 		/// </summary>
 		/// <param name="inventoryHandler">The inventory handler responsible for managing the inventory.</param>
 		/// <param name="objectID">The object ID to search for within the inventory.</param>
@@ -42,15 +46,21 @@ namespace CK_QOL.Core.Helpers
 		///     The index of the first occurrence of the item with the specified <paramref name="objectID" />,
 		///     or <see cref="InvalidIndex" /> if no matching item is found.
 		/// </returns>
+		/// <remarks>
+		///     This method is particularly useful when looking for stackable items or when trying to determine if a specific
+		///     object already exists in an inventory.
+		/// </remarks>
 		internal static int GetIndexOfItem(InventoryHandler inventoryHandler, ObjectID objectID, int startingIndex = DefaultStartingIndex, int skipIndex = InvalidIndex, int limitIndex = int.MaxValue)
 		{
-			for (var i = startingIndex; i < inventoryHandler.size; i++)
+			if (inventoryHandler == null || objectID == ObjectID.None)
 			{
-				if (i >= limitIndex)
-				{
-					break;
-				}
+				ModLogger.Error("Invalid inventory handler or object ID.");
 
+				return InvalidIndex;
+			}
+
+			for (var i = startingIndex; i < inventoryHandler.size && i < limitIndex; i++)
+			{
 				var objectData = inventoryHandler.GetObjectData(i);
 				if (objectData.objectID == objectID && i != skipIndex)
 				{
@@ -63,6 +73,7 @@ namespace CK_QOL.Core.Helpers
 
 		/// <summary>
 		///     Finds the next available empty slot in the inventory, starting from the specified index.
+		///     An empty slot is represented by an <see cref="ObjectID.None" /> value.
 		/// </summary>
 		/// <param name="inventoryHandler">The inventory handler managing the inventory.</param>
 		/// <param name="startingIndex">The index to start searching from (defaults to <see cref="DefaultStartingIndex" />).</param>
@@ -80,6 +91,7 @@ namespace CK_QOL.Core.Helpers
 
 		/// <summary>
 		///     Finds the next available empty slot or stackable slot for the specified <paramref name="objectID" />.
+		///     This method looks for an empty slot or a slot where the specified object can be stacked (if the object is stackable).
 		/// </summary>
 		/// <param name="inventoryHandler">The inventory handler managing the inventory.</param>
 		/// <param name="objectID">The object ID to find a slot for.</param>
@@ -90,7 +102,9 @@ namespace CK_QOL.Core.Helpers
 		///     The index of the next available slot that can stack the item, or <see cref="InvalidIndex" /> if no suitable slot is
 		///     found.
 		/// </returns>
-		/// <seealso cref="GetNextAvailableIndex(InventoryHandler, int, int, int)" />
+		/// <remarks>
+		///     This method is useful for features like auto-stashing or quick stacking of items.
+		/// </remarks>
 		internal static int GetNextAvailableIndex(InventoryHandler inventoryHandler, ObjectID objectID, int startingIndex = DefaultStartingIndex, int skipIndex = InvalidIndex, int limitIndex = int.MaxValue)
 		{
 			if (objectID == ObjectID.None)
@@ -106,13 +120,12 @@ namespace CK_QOL.Core.Helpers
 
 			var indexOfItem = GetIndexOfItem(inventoryHandler, objectID, startingIndex, skipIndex, limitIndex);
 
-			return indexOfItem == InvalidIndex
-				? GetNextAvailableIndex(inventoryHandler, startingIndex, skipIndex, limitIndex)
-				: indexOfItem;
+			return indexOfItem == InvalidIndex ? GetNextAvailableIndex(inventoryHandler, startingIndex, skipIndex, limitIndex) : indexOfItem;
 		}
 
 		/// <summary>
 		///     Moves an item from the source inventory to the target inventory.
+		///     If either the source or target index is invalid, the movement will not be performed.
 		/// </summary>
 		/// <param name="player">The player controller handling the movement.</param>
 		/// <param name="sourceHandler">The inventory handler for the source inventory.</param>
@@ -120,13 +133,22 @@ namespace CK_QOL.Core.Helpers
 		/// <param name="sourceIndex">The index of the item in the source inventory.</param>
 		/// <param name="targetIndex">The index of the slot in the target inventory to move the item to.</param>
 		/// <remarks>
-		///     If either the <paramref name="sourceIndex" /> or the <paramref name="targetIndex" /> is invalid,
-		///     the movement will not be performed.
+		///     This method allows you to seamlessly move items between player inventory and chest inventory, handling all checks
+		///     internally.
 		/// </remarks>
 		internal static void MoveItem(PlayerController player, InventoryHandler sourceHandler, InventoryHandler targetHandler, int sourceIndex, int targetIndex)
 		{
+			if (sourceHandler == null || targetHandler == null)
+			{
+				ModLogger.Error("Invalid source or target inventory handler.");
+
+				return;
+			}
+
 			if (sourceIndex == InvalidIndex || targetIndex == InvalidIndex)
 			{
+				ModLogger.Warn("Invalid move operation: source or target index is invalid.");
+
 				return;
 			}
 
@@ -135,6 +157,8 @@ namespace CK_QOL.Core.Helpers
 
 		/// <summary>
 		///     Retrieves the required object IDs from the slot requirements of the inventory.
+		///     This method is useful for chest auto-unlock features, where the player must have specific items in the inventory
+		///     to open the chest.
 		/// </summary>
 		/// <param name="inventoryHandler">The inventory handler managing the inventory with slot requirements.</param>
 		/// <returns>
@@ -143,13 +167,17 @@ namespace CK_QOL.Core.Helpers
 		/// </returns>
 		internal static ObjectID[] GetRequiredObjectIDs(InventoryHandler inventoryHandler)
 		{
-			if (!inventoryHandler.HasValidInventorySlotRequirementBuffer())
+			if (inventoryHandler == null || !inventoryHandler.HasValidInventorySlotRequirementBuffer())
 			{
+				ModLogger.Warn("Invalid inventory handler or no valid slot requirements.");
+
 				return Enumerable.Empty<ObjectID>().ToArray();
 			}
 
 			if (!EntityUtility.TryGetBuffer<InventorySlotRequirementBuffer>(inventoryHandler.inventoryEntity, inventoryHandler.entityMonoBehaviour.world, out var inventorySlotRequirementBuffer))
 			{
+				ModLogger.Warn("Failed to get slot requirements buffer.");
+
 				return Enumerable.Empty<ObjectID>().ToArray();
 			}
 
@@ -157,10 +185,7 @@ namespace CK_QOL.Core.Helpers
 
 			foreach (var slotRequirement in inventorySlotRequirementBuffer)
 			{
-				foreach (var objectId in slotRequirement.acceptsObjectIds)
-				{
-					acceptedObjectIds.Add(objectId);
-				}
+				acceptedObjectIds.AddRange(slotRequirement.acceptsObjectIds);
 			}
 
 			return acceptedObjectIds.ToArray();

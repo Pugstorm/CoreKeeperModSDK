@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CK_QOL.Core.Patches;
 using CoreLib.Util;
@@ -47,6 +48,11 @@ namespace CK_QOL.Core.Helpers
 		/// <seealso cref="DefaultTextPosition" />
 		internal static void DisplayText(string text, Rarity rarity = Rarity.Poor, Vector3 position = default)
 		{
+			if (string.IsNullOrEmpty(text))
+			{
+				return;
+			}
+
 			if (position == default)
 			{
 				position = DefaultTextPosition;
@@ -55,7 +61,14 @@ namespace CK_QOL.Core.Helpers
 			var textManager = GameManagers.GetManager<TextManager>();
 			var color = Manager.text.GetRarityColor(rarity);
 
-			textManager.SpawnCoolText(text, position, color, TextManager.FontFace.thinSmall, 0.2f, 1, 2, 0.8f, 0.8f);
+			try
+			{
+				textManager.SpawnCoolText(text, position, color, TextManager.FontFace.thinSmall, 0.2f, 1, 2, 0.8f, 0.8f);
+			}
+			catch (Exception)
+			{
+				// ignored
+			}
 		}
 	}
 }

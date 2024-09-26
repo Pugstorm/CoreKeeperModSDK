@@ -1,6 +1,5 @@
 using System.Linq;
 using CK_QOL.Core;
-using CK_QOL.Core.Config;
 using CK_QOL.Core.Features;
 using CK_QOL.Core.Helpers;
 using CoreLib.RewiredExtension;
@@ -8,24 +7,26 @@ using Rewired;
 
 namespace CK_QOL.Features.QuickStash
 {
-	internal sealed class QuickStash : FeatureBase<QuickStash>
+	/// <summary>
+	///     Provides the "Quick Stash" feature, allowing players to quickly stash items from their inventory into nearby
+	///     chests. This feature works by automatically finding nearby chests and moving stackable items from the player's
+	///     inventory to matching items in the chests.
+	/// </summary>
+	internal sealed class QuickStash : FeatureBase<QuickStash>, IKeyBindableFeature
 	{
 		public QuickStash()
 		{
-			ConfigBase.Create(this);
-			IsEnabled = QuickStashConfig.ApplyIsEnabled(this);
-			MaxRange = QuickStashConfig.ApplyMaxRange(this);
-			MaxChests = QuickStashConfig.ApplyMaxChests(this);
+			var config = new QuickStashConfig(this);
+			IsEnabled = config.ApplyIsEnabled();
+			MaxRange = config.ApplyMaxRange();
+			MaxChests = config.ApplyMaxChests();
 
-			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.A, ModifierKey.Control);
+			SetupKeyBindings();
 		}
 
 		public override bool CanExecute()
 		{
-			return base.CanExecute()
-			       && Entry.RewiredPlayer != null
-			       && (Manager.main.currentSceneHandler?.isInGame ?? false)
-			       && Manager.main.player?.playerInventoryHandler != null;
+			return base.CanExecute() && Entry.RewiredPlayer != null && (Manager.main.currentSceneHandler?.isInGame ?? false) && Manager.main.player?.playerInventoryHandler != null;
 		}
 
 		public override void Update()
@@ -51,9 +52,7 @@ namespace CK_QOL.Features.QuickStash
 			var player = Manager.main.player;
 			var playerInventoryHandler = player.playerInventoryHandler;
 
-			var nearbyChests = ChestHelper.GetNearbyChests(MaxRange)
-				.Take(MaxChests)
-				.ToList();
+			var nearbyChests = ChestHelper.GetNearbyChests(MaxRange).Take(MaxChests).ToList();
 
 			if (!nearbyChests.Any())
 			{
@@ -103,9 +102,7 @@ namespace CK_QOL.Features.QuickStash
 				}
 			}
 
-			TextHelper.DisplayText(stashedIntoChestsCount == 0
-				? "Nothing could be stashed."
-				: $"Stashed into {stashedIntoChestsCount} chests.");
+			TextHelper.DisplayText(stashedIntoChestsCount == 0 ? "Nothing could be stashed." : $"Stashed into {stashedIntoChestsCount} chests.");
 		}
 
 		#region IFeature
@@ -119,9 +116,15 @@ namespace CK_QOL.Features.QuickStash
 
 		#region Configuration
 
-		private string KeyBindName => $"{ModSettings.ShortName}_{Name}";
 		internal float MaxRange { get; }
 		internal int MaxChests { get; }
+
+		public string KeyBindName => $"{ModSettings.ShortName}_{Name}";
+
+		public void SetupKeyBindings()
+		{
+			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.A, ModifierKey.Control);
+		}
 
 		#endregion Configuration
 	}

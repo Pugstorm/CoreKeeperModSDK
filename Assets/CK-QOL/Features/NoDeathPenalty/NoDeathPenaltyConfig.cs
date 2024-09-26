@@ -1,21 +1,20 @@
-using System.Diagnostics.CodeAnalysis;
 using CK_QOL.Core.Config;
-using CK_QOL.Core.Features;
-using CoreLib.Data.Configuration;
 
 namespace CK_QOL.Features.NoDeathPenalty
 {
-	[SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
-	internal sealed class NoDeathPenaltyConfig : ConfigBase
+	/// <summary>
+	///     Configuration class for the <see cref="NoDeathPenalty" /> feature, handling the enabled state.
+	///     This class uses <see cref="ConfigBase{TFeature}" /> to manage the configuration settings for NoDeathPenalty.
+	/// </summary>
+	internal sealed class NoDeathPenaltyConfig : ConfigBase<NoDeathPenalty>
 	{
-		internal static bool ApplyIsEnabled(IFeature feature)
+		public NoDeathPenaltyConfig(NoDeathPenalty feature) : base(feature)
 		{
-			var acceptableValues = new AcceptableValueList<bool>(true, false);
-			var description = new ConfigDescription($"Enable the '{feature.DisplayName}' ({feature.FeatureType}) feature? {feature.Description}", acceptableValues);
-			var definition = new ConfigDefinition(feature.Name, nameof(feature.IsEnabled));
-			var entry = Config.Bind(definition, false, description);
-
-			return entry.Value;
 		}
+
+		/// <summary>
+		///     Overrides the default enabled value for <see cref="NoDeathPenalty" />.
+		/// </summary>
+		protected override bool DefaultIsEnabled => false;
 	}
 }

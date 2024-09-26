@@ -1,6 +1,5 @@
 using System.Linq;
 using CK_QOL.Core;
-using CK_QOL.Core.Config;
 using CK_QOL.Core.Features;
 using CK_QOL.Core.Helpers;
 using CoreLib.RewiredExtension;
@@ -8,7 +7,12 @@ using Rewired;
 
 namespace CK_QOL.Features.ShiftClick
 {
-	internal sealed class ShiftClick : FeatureBase<ShiftClick>
+	/// <summary>
+	///     Provides the "Shift + Click" feature, allowing players to quickly move items between different inventories.
+	///     This feature is triggered by holding the Shift key (or controller equivalent) and interacting with an item in
+	///     the player's or chest inventory.
+	/// </summary>
+	internal sealed class ShiftClick : FeatureBase<ShiftClick>, IKeyBindableFeature
 	{
 		private static readonly ObjectType[] IgnoredItemTypes =
 		{
@@ -25,29 +29,25 @@ namespace CK_QOL.Features.ShiftClick
 
 		public ShiftClick()
 		{
-			ConfigBase.Create(this);
-			IsEnabled = ShiftClickConfig.ApplyIsEnabled(this);
+			var config = new ShiftClickConfig(this);
+			IsEnabled = config.ApplyIsEnabled();
 
-			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.LeftShift);
-			RewiredExtensionModule.SetDefaultControllerBinding(KeyBindName, GamepadTemplate.elementId_rightTrigger);
+			SetupKeyBindings();
 		}
 
-		#region Configuration
-
-		private string KeyBindName => $"{ModSettings.ShortName}_{Name}";
-
-		#endregion Configuration
-
+		/// <summary>
+		///     Determines if the Shift + Click feature can be executed based on game state and UI status.
+		/// </summary>
 		public override bool CanExecute()
 		{
-			return base.CanExecute()
-			       && Entry.RewiredPlayer != null
-			       && Manager.main.currentSceneHandler?.isInGame == true
-			       && Manager.main.player?.playerInventoryHandler != null
-			       && Manager.ui.isPlayerInventoryShowing
-			       && !IsAnyIgnoredUIOpen();
+			return base.CanExecute() && Entry.RewiredPlayer != null && Manager.main.currentSceneHandler?.isInGame == true && Manager.main.player?.playerInventoryHandler != null && Manager.ui.isPlayerInventoryShowing &&
+				!IsAnyIgnoredUIOpen();
 		}
 
+		/// <summary>
+		///     Monitors for player input and triggers the execution of the Shift + Click feature if the key is held and
+		///     an interaction is made with the UI.
+		/// </summary>
 		public override void Update()
 		{
 			if (!CanExecute())
@@ -64,6 +64,9 @@ namespace CK_QOL.Features.ShiftClick
 			}
 		}
 
+		/// <summary>
+		///     Executes the logic to move items between inventories based on the player's current selection.
+		/// </summary>
 		public override void Execute()
 		{
 			var player = Manager.main.player;
@@ -181,5 +184,17 @@ namespace CK_QOL.Features.ShiftClick
 		public override FeatureType FeatureType => FeatureType.Client;
 
 		#endregion IFeature
+
+		#region Configuration
+
+		public string KeyBindName => $"{ModSettings.ShortName}_{Name}";
+
+		public void SetupKeyBindings()
+		{
+			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.LeftShift);
+			RewiredExtensionModule.SetDefaultControllerBinding(KeyBindName, GamepadTemplate.elementId_rightTrigger);
+		}
+
+		#endregion Configuration
 	}
 }

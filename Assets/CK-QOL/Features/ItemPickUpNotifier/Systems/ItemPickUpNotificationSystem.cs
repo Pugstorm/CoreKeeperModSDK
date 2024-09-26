@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using CK_QOL.Core.Helpers;
 using Inventory;
-using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 
@@ -9,54 +8,23 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 {
 	/// <summary>
 	///     Represents the system responsible for managing and aggregating item pick-up notifications within the game client.
-	///     This system runs as part of the client-side simulation and listens for inventory changes related to item pickups,
-	///     collecting and displaying aggregated notifications to the player.
-	///     The system performs the following functions:
-	///     <list type="bullet">
-	///         <item>
-	///             <description>
-	///                 Monitors inventory changes to detect when items are picked up by the player,
-	///                 using the <see cref="InventoryChangeBuffer" /> component to track relevant events.
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Caches the details of picked-up items (e.g., total amount, rarity, and display name)
-	///                 using a <see cref="NativeParallelHashMap{TKey,TValue}" /> for efficient aggregation.
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Aggregates multiple pick-up events over a configurable delay period (
-	///                 <see cref="ItemPickUpNotifier.AggregateDelay" />),
-	///                 reducing notification spam by combining multiple events into a single message.
-	///             </description>
-	///         </item>
-	///         <item>
-	///             <description>
-	///                 Displays aggregated notifications to the player at regular intervals,
-	///                 utilizing the game's text display system to show the total items picked up within the specified delay
-	///                 period.
-	///             </description>
-	///         </item>
-	///     </list>
-	///     This system is enabled and controlled by the <see cref="ItemPickUpNotifier" /> feature,
-	///     which provides the necessary configuration settings and determines whether the system should be active based on the
-	///     feature's enabled state.
+	///     This system monitors inventory changes and aggregates multiple pick-up events over a configurable delay period
+	///     to reduce notification spam.
 	/// </summary>
 	/// <remarks>
-	///     The <see cref="ItemPickUpNotificationSystem" /> class extends <see cref="PugSimulationSystemBase" /> to integrate
-	///     with the game's simulation framework,
-	///     running in the client-side simulation context to handle item pick-up notifications in real-time.
+	///     The system listens for changes in the player's inventory and caches details of picked-up items. It uses an
+	///     aggregation delay to display notifications, combining multiple pick-up events into a single message.
 	/// </remarks>
 	[WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
 	[UpdateInGroup(typeof(InventorySystemGroup))]
-	[BurstCompile(DisableDirectCall = true)]
 	public partial class ItemPickUpNotificationSystem : PugSimulationSystemBase
 	{
 		private Dictionary<int, PickupEntry> _cachedPickups;
 		private Entity _localPlayerEntity;
 
+		/// <summary>
+		///     Called when the system is created. Initializes the cached pickups and sets up requirements for update.
+		/// </summary>
 		protected override void OnCreate()
 		{
 			if (isServer || !ItemPickUpNotifier.Instance.IsEnabled)
@@ -70,12 +38,18 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 			_cachedPickups = new Dictionary<int, PickupEntry>();
 		}
 
+		/// <summary>
+		///     Called when the system is destroyed. Clears the cached pickups.
+		/// </summary>
 		protected override void OnDestroy()
 		{
 			_cachedPickups.Clear();
 			base.OnDestroy();
 		}
 
+		/// <summary>
+		///     Called every update tick to monitor inventory changes and handle item pick-up notifications.
+		/// </summary>
 		protected override void OnUpdate()
 		{
 			if (isServer || !ItemPickUpNotifier.Instance.IsEnabled)
@@ -98,6 +72,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 
 			var containedObjectsBufferLookup = GetBufferLookup<ContainedObjectsBuffer>(true);
 
+			// Loop through inventory changes and track picked-up items.
 			// ReSharper disable once Unity.Entities.MustBeSurroundedWithRefRwRo
 			foreach (var inventoryChanges in SystemAPI.Query<DynamicBuffer<InventoryChangeBuffer>>())
 			{
@@ -177,7 +152,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 				// Increment the time since the last change for this item.
 				pickupEntry.TimeSinceLastChange += SystemAPI.Time.DeltaTime;
 
-				// If time since last change exceeds the aggregate delay, we notify.
+				// If time since last change exceeds the aggregate delay, notify the player.
 				if (pickupEntry.TimeSinceLastChange >= aggregateDelay)
 				{
 					TextHelper.DisplayNotification($"{pickupEntry.DisplayName} x{pickupEntry.TotalAmount}", pickupEntry.Rarity);
@@ -191,6 +166,9 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 			}
 		}
 
+		/// <summary>
+		///     Represents a cached pick-up entry, used to aggregate item amounts and manage notifications.
+		/// </summary>
 		private class PickupEntry
 		{
 			public int TotalAmount { get; set; }

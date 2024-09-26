@@ -2,6 +2,11 @@
 
 namespace CK_QOL.Features.CraftingRange.Patches
 {
+	/// <summary>
+	///     Harmony patch to modify the behavior of <see cref="UIManager.OnPlayerInventoryOpen" /> method.
+	///     This patch ensures that nearby chests are searched and stored when the player's inventory is opened, which
+	///     is useful for the <see cref="CraftingRange" /> feature.
+	/// </summary>
 	[HarmonyPatch(typeof(UIManager))]
 	internal static class UIManagerPatches
 	{

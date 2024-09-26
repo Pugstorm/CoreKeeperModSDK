@@ -1,4 +1,7 @@
 Key	Type	Desc	English	German	French (France)	Portuguese (Brazil)	Italian (Italy)	Japanese	Korean	Russian	Spanish	Ukrainian	Chinese (Simplified)	Chinese (Traditional)	Thai
-ControlMapper/CK_QOL-QuickStash	Text		Quick Stash	Schnelles Einlagern	Quick Stash	Quick Stash	Quick Stash	Quick Stash	Quick Stash	Quick Stash	Quick Stash	Quick Stash	Quick Stash	Quick Stash	Quick Stash
-ControlMapper/CK_QOL-QuickHeal	Text		Quick Heal	Schnelles Heilen	Quick Heal	Quick Heal	Quick Heal	Quick Heal	Quick Heal	Quick Heal	Quick Heal	Quick Heal	Quick Heal	Quick Heal	Quick Heal
-ControlMapper/CK_QOL-QuickEat	Text		Quick Eat	Schnelles Essen	Quick Eat	Quick Eat	Quick Eat	Quick Eat	Quick Eat	Quick Eat	Quick Eat	Quick Eat	Quick Eat	Quick Eat	Quick Eat
+ControlMapper/CK_QOL-QuickStash	Text	Quick Stash	Quick Stash	Schnelles Einlagern	Stockage Rapide	Depósito Rápido	Deposito Veloce	クイックスタッシュ	빠른 저장	Быстрое складирование	Almacenamiento Rápido	Швидке зберігання	快速存放	快速存放	การจัดเก็บอย่างรวดเร็ว
+ControlMapper/CK_QOL-QuickHeal	Text	Quick Heal	Quick Heal	Schnelles Heilen	Guérison Rapide	Cura Rápida	Cura Veloce	クイックヒール	빠른 치유	Быстрое исцеление	Curación Rápida	Швидке лікування	快速治愈	快速治癒	การรักษาอย่างรวดเร็ว
+ControlMapper/CK_QOL-QuickEat	Text	Quick Eat	Quick Eat	Schnelles Essen	Repas Rapide	Comida Rápida	Pasto Veloce	クイックイート	빠른 식사	Быстрое питание	Comida Rápida	Швидке харчування	快速进食	快速進食	การรับประทานอาหารอย่างรวดเร็ว
+ControlMapper/CK_QOL-QuickSummon	Text	Quick Summon	Quick Summon	Schnelles Beschwören	Invocation Rapide	Invocação Rápida	Invocazione Rapida	クイックサモン	빠른 소환	Быстрое призывание	Invocación Rápida	Швидке закликання	快速召唤	快速召喚	การอัญเชิญอย่างรวดเร็ว
+ControlMapper/CK_QOL-ShiftClick	Text	Shift + Click	Shift + Click	Shift + Klick	Shift + Clic	Shift + Clique	Shift + Clic	Shift + クリック	Shift + 클릭	Shift + Клик	Shift + Clic	Shift + Клік	Shift + 点击	Shift + 點擊	Shift + คลิก
+ControlMapper/CK_QOL-CraftingRange	Text	Crafting Range	Crafting Range	Handwerksbereich	Portée d'artisanat	Alcance de Fabricação	Portata di Creazione	クラフト範囲	제작 범위	Дальность создания	Alcance de Fabricación	Діапазон створення	制作范围	製作範圍	ระยะการประดิษฐ์

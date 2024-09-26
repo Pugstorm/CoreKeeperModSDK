@@ -1,22 +1,20 @@
-using System.Diagnostics.CodeAnalysis;
 using CK_QOL.Core.Config;
-using CK_QOL.Core.Features;
-using CoreLib.Data.Configuration;
 
 namespace CK_QOL.Features.ChestAutoUnlock
 {
-	[SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
-	internal sealed class ChestAutoUnlockConfig : ConfigBase
+	/// <summary>
+	///     Configuration class for the <see cref="ChestAutoUnlock" /> feature, handling the enabled state.
+	///     This class uses <see cref="ConfigBase{TFeature}" /> to manage the configuration settings for ChestAutoUnlock.
+	/// </summary>
+	internal sealed class ChestAutoUnlockConfig : ConfigBase<ChestAutoUnlock>
 	{
-		internal static bool ApplyIsEnabled(IFeature feature)
+		public ChestAutoUnlockConfig(ChestAutoUnlock feature) : base(feature)
 		{
-			var acceptableValues = new AcceptableValueList<bool>(true, false);
-			var description = new ConfigDescription($"Enable the '{feature.DisplayName}' ({feature.FeatureType}) feature? {feature.Description}", acceptableValues);
-			var definition = new ConfigDefinition(feature.Name, nameof(feature.IsEnabled));
-
-			var entry = Config.Bind(definition, true, description);
-
-			return entry.Value;
 		}
+
+		/// <summary>
+		///     Overrides the default enabled value for <see cref="ChestAutoUnlockConfig" />.
+		/// </summary>
+		protected override bool DefaultIsEnabled => true;
 	}
 }

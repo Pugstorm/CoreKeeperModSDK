@@ -1,42 +1,41 @@
-using System.Diagnostics.CodeAnalysis;
 using CK_QOL.Core.Config;
-using CK_QOL.Core.Features;
 using CoreLib.Data.Configuration;
 
 namespace CK_QOL.Features.CraftingRange
 {
-	[SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
-	internal sealed class CraftingRangeConfig : ConfigBase
+	/// <summary>
+	///     Provides configuration options for the "Crafting Range" feature, allowing customization of maximum range
+	///     and the number of chests that can be included in the crafting range.
+	/// </summary>
+	internal class CraftingRangeConfig : ConfigBase<CraftingRange>
 	{
-		internal static bool ApplyIsEnabled(IFeature feature)
+		public CraftingRangeConfig(CraftingRange feature) : base(feature)
 		{
-			var acceptableValues = new AcceptableValueList<bool>(true, false);
-			var description = new ConfigDescription($"Enable the '{feature.DisplayName}' ({feature.FeatureType}) feature? {feature.Description}", acceptableValues);
-			var definition = new ConfigDefinition(feature.Name, nameof(feature.IsEnabled));
-
-			var entry = Config.Bind(definition, true, description);
-
-			return entry.Value;
 		}
 
-		internal static float ApplyMaxRange(CraftingRange feature)
+		/// <summary>
+		///     Overrides the default enabled value for <see cref="CraftingRange" />.
+		/// </summary>
+		protected override bool DefaultIsEnabled => true;
+
+		public float ApplyMaxRange()
 		{
 			var acceptableValues = new AcceptableValueRange<float>(1f, 50f);
-			var description = new ConfigDescription("The maximum range to determine chests in proximity.", acceptableValues);
-			var definition = new ConfigDefinition(feature.Name, nameof(feature.MaxRange));
+			var description = new ConfigDescription("Maximum range to determine nearby chests.", acceptableValues);
+			var definition = new ConfigDefinition(Feature.Name, nameof(Feature.MaxRange));
 
 			var entry = Config.Bind(definition, 25f, description);
 
 			return entry.Value;
 		}
 
-		internal static int ApplyMaxChests(CraftingRange feature)
+		public int ApplyMaxChests()
 		{
-			var acceptableValues = new AcceptableValueRange<int>(1, 8);
-			var description = new ConfigDescription("The maximum amount of chests to include. Currently more than 8 chests will break the game.", acceptableValues);
-			var definition = new ConfigDefinition(feature.Name, nameof(feature.MaxChests));
+			var acceptableValues = new AcceptableValueRange<int>(1, 50);
+			var description = new ConfigDescription("Maximum number of chests to include in crafting range.", acceptableValues);
+			var definition = new ConfigDefinition(Feature.Name, nameof(Feature.MaxChests));
 
-			var entry = Config.Bind(definition, 8, description);
+			var entry = Config.Bind(definition, 10, description);
 
 			return entry.Value;
 		}

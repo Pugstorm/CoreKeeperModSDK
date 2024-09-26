@@ -10,9 +10,10 @@ namespace CK_QOL.Core.Helpers
 	/// </summary>
 	internal static class ChestHelper
 	{
-		private const string PoolChestName = "Pool Chest";
-		private const string PoolBossChestName = "Pool BossChest";
-		private const string PoolNonPaintableChestChestName = "Pool NonPaintableChest";
+		private const string PoolNameChest = "Pool Chest";
+		private const string PoolNameBossChest = "Pool BossChest";
+		private const string PoolNameNonPaintableChestChest = "Pool NonPaintableChest";
+		private const string PoolNameBigChestMod = "Pool Pool P_Graphical_BigChest";
 
 		/// <summary>
 		///     Retrieves a list of chests that are within a certain distance from the player.
@@ -38,19 +39,23 @@ namespace CK_QOL.Core.Helpers
 				return Enumerable.Empty<Chest>();
 			}
 
-			var poolChest = GameObject.Find(PoolChestName).transform;
-			var poolBossChest = GameObject.Find(PoolBossChestName).transform;
-			var poolNonPaintableChest = GameObject.Find(PoolNonPaintableChestChestName).transform;
+			var poolChest = GameObject.Find(PoolNameChest).transform;
+			var poolBossChest = GameObject.Find(PoolNameBossChest).transform;
+			var poolNonPaintableChest = GameObject.Find(PoolNameNonPaintableChestChest).transform;
+			var poolBigChestMod = GameObject.Find(PoolNameBigChestMod)?.transform;
 
 			var allChests = poolChest.GetAllChildren().Where(obj => obj.gameObject.activeSelf).ToList();
 			allChests.AddRange(poolBossChest.GetAllChildren().Where(obj => obj.gameObject.activeSelf).ToList());
 			allChests.AddRange(poolNonPaintableChest.GetAllChildren().Where(obj => obj.gameObject.activeSelf).ToList());
 
+			if (poolBigChestMod != null)
+			{
+				allChests.AddRange(poolBigChestMod.GetAllChildren().Where(obj => obj.gameObject.activeSelf).ToList());
+			}
+
 			var playerPosition = player.WorldPosition;
 
-			return allChests
-				.Select(chestTransform => chestTransform.GetComponent<Chest>())
-				.Where(chestComponent => chestComponent != null && MathHelpers.IsInRange(playerPosition, chestComponent.WorldPosition, maxDistance))
+			return allChests.Select(chestTransform => chestTransform.GetComponent<Chest>()).Where(chestComponent => chestComponent != null && MathHelpers.IsInRange(playerPosition, chestComponent.WorldPosition, maxDistance))
 				.OrderBy(chestComponent => Vector3.Distance(playerPosition, chestComponent.WorldPosition));
 		}
 	}

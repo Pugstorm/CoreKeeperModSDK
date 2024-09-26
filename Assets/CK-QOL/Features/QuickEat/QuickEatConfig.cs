@@ -1,28 +1,37 @@
-using System.Diagnostics.CodeAnalysis;
 using CK_QOL.Core.Config;
-using CK_QOL.Core.Features;
 using CoreLib.Data.Configuration;
 
 namespace CK_QOL.Features.QuickEat
 {
-	[SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
-	internal sealed class QuickEatConfig : ConfigBase
+	/// <summary>
+	///     Configuration class for the <see cref="QuickEat" /> feature, handling key binding, enabled state, and equipment slot.
+	///     This class uses <see cref="ConfigBase{TFeature}" /> to manage the configuration settings for QuickEat.
+	/// </summary>
+	internal sealed class QuickEatConfig : ConfigBase<QuickEat>
 	{
-		internal static bool ApplyIsEnabled(IFeature feature)
+		/// <summary>
+		///     Initializes a new instance of the <see cref="QuickEatConfig" /> class for the given feature.
+		/// </summary>
+		/// <param name="feature">The <see cref="QuickEat" /> feature being configured.</param>
+		public QuickEatConfig(QuickEat feature) : base(feature)
 		{
-			var acceptableValues = new AcceptableValueList<bool>(true, false);
-			var description = new ConfigDescription($"Enable the '{feature.DisplayName}' ({feature.FeatureType}) feature? {feature.Description}", acceptableValues);
-			var definition = new ConfigDefinition(feature.Name, nameof(feature.IsEnabled));
-			var entry = Config.Bind(definition, false, description);
-
-			return entry.Value;
 		}
 
-		internal static int ApplyEquipmentSlotIndex(QuickEat feature)
+		/// <summary>
+		///     Overrides the default enabled value for <see cref="QuickEat" />.
+		/// </summary>
+		protected override bool DefaultIsEnabled => true;
+
+		/// <summary>
+		///     Applies the equipment slot index setting for QuickEat.
+		/// </summary>
+		/// <returns>The index of the equipment slot.</returns>
+		public int ApplyEquipmentSlotIndex()
 		{
 			var acceptableValues = new AcceptableValueRange<int>(0, 9);
-			var description = new ConfigDescription("Set the Eatable slot index. It's the count/number of the slot minus 1.", acceptableValues);
-			var definition = new ConfigDefinition(feature.Name, nameof(feature.EquipmentSlotIndex));
+			var description = new ConfigDescription("The equipment slot index for eatable items.", acceptableValues);
+			var definition = new ConfigDefinition(Feature.Name, nameof(Feature.EquipmentSlotIndex));
+
 			var entry = Config.Bind(definition, 8, description);
 
 			return entry.Value;

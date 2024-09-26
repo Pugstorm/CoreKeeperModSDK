@@ -7,8 +7,7 @@ namespace CK_QOL.Core.Features
 	///     A base class for all features, implementing the IFeature interface and providing thread-safe singleton behavior.
 	/// </summary>
 	/// <typeparam name="TFeature">The type of the feature inheriting from FeatureBase.</typeparam>
-	internal abstract class FeatureBase<TFeature> : IFeature
-		where TFeature : FeatureBase<TFeature>, new()
+	internal abstract class FeatureBase<TFeature> : IFeature where TFeature : FeatureBase<TFeature>, new()
 	{
 		/// <summary>
 		///     Determines whether the feature can be executed.
