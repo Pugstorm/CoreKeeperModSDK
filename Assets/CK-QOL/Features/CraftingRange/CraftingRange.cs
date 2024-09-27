@@ -66,6 +66,5 @@ namespace CK_QOL.Features.CraftingRange
 		internal int MaxChests { get; }
 
 		#endregion Configuration
-
 	}
 }

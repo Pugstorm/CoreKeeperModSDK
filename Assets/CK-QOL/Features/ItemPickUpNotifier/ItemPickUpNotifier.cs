@@ -36,6 +36,5 @@ namespace CK_QOL.Features.ItemPickUpNotifier
 		public override FeatureType FeatureType => FeatureType.Client;
 
 		#endregion IFeature
-
 	}
 }

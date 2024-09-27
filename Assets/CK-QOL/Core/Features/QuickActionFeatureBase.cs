@@ -373,10 +373,7 @@ namespace CK_QOL.Core.Features
 		/// </summary>
 		public abstract string KeyBindName { get; }
 
-		public virtual void SetupKeyBindings()
-		{
-			throw new NotImplementedException();
-		}
+		public abstract void SetupKeyBindings();
 
 		/// <summary>
 		///     The equipment slot index used by the feature.
@@ -385,6 +382,5 @@ namespace CK_QOL.Core.Features
 		public abstract int EquipmentSlotIndex { get; }
 
 		#endregion Configuration
-
 	}
 }

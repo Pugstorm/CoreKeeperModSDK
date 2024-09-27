@@ -124,6 +124,5 @@ namespace CK_QOL.Features.ChestAutoUnlock
 		public override FeatureType FeatureType => FeatureType.Client;
 
 		#endregion IFeature
-
 	}
 }

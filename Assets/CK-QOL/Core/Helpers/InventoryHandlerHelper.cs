@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Inventory;
 using Unity.Entities;
 using UnityEngine;
 
@@ -241,7 +242,7 @@ namespace CK_QOL.Core.Helpers
 				var objectData = inventoryHandler.GetObjectData(i);
 				var removalAmount = Mathf.Min(objectData.amount, amount);
 
-				inventoryHandler.SetAmount(Manager.main.player, i, objectID, objectData.amount - removalAmount);
+				Create.SetAmount(inventoryHandler.inventoryEntity, i, objectID, objectData.amount - removalAmount);
 
 				amount -= removalAmount;
 

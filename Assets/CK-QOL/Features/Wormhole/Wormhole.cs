@@ -55,6 +55,5 @@ namespace CK_QOL.Features.Wormhole
 		public override FeatureType FeatureType => FeatureType.Client;
 
 		#endregion IFeature
-
 	}
 }

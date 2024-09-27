@@ -22,6 +22,5 @@ namespace CK_QOL.Features.NoDeathPenalty
 		public override FeatureType FeatureType => FeatureType.Server;
 
 		#endregion IFeature
-
 	}
 }

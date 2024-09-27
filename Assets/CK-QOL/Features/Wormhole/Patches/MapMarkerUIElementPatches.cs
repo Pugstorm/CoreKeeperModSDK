@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+using CK_QOL.Core;
 using CK_QOL.Core.Helpers;
 using HarmonyLib;
+using I2.Loc;
 using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
@@ -35,26 +37,33 @@ namespace CK_QOL.Features.Wormhole.Patches
 				return;
 			}
 
-			var currentPlayer = Manager.main.player;
-			var currentPlayerEntity = currentPlayer.entity;
+			Entity target;
 
-			// Ensure the marker is a player marker and not the current player
-			if (__instance.markerType != MapMarkerType.Player || __instance.player.entity == currentPlayerEntity)
+			if (__instance.markerType == MapMarkerType.Player && __instance.player != null)
+			{
+				target = __instance.player.entity;
+			}
+			else if (EntityUtility.HasComponentData<LocalTransform>(__instance.mapMarkerEntity, Manager.ecs.ClientWorld))
+			{
+				target = __instance.mapMarkerEntity;
+			}
+			else
 			{
 				return;
 			}
 
+			var currentPlayer = Manager.main.player;
 			var requiredGems = Wormhole.Instance.RequiredAncientGemstones;
 
-			// Check if the player has the required amount of Ancient Gemstones
 			if (!InventoryHandlerHelper.HasItemAmount(currentPlayer.playerInventoryHandler, ObjectID.AncientGemstone, requiredGems))
 			{
 				return;
 			}
 
-			// Remove the required Ancient Gemstones and teleport the player
-			InventoryHandlerHelper.RemoveItems(currentPlayer.playerInventoryHandler, ObjectID.AncientGemstone, requiredGems);
-			TeleportPlayerToPosition(currentPlayer, __instance.mapMarkerEntity);
+			if (TryTeleportPlayerToPosition(currentPlayer, target))
+			{
+				InventoryHandlerHelper.RemoveItems(currentPlayer.playerInventoryHandler, ObjectID.AncientGemstone, requiredGems);
+			}
 		}
 
 		/// <summary>
@@ -69,32 +78,41 @@ namespace CK_QOL.Features.Wormhole.Patches
 		[SuppressMessage("ReSharper", "InconsistentNaming")]
 		private static void GetHoverDescription(MapMarkerUIElement __instance, ref List<TextAndFormatFields> __result)
 		{
-			// Check if the Wormhole feature is enabled
 			if (!Wormhole.Instance.IsEnabled)
 			{
 				return;
 			}
 
-			// Get the current player
-			var currentPlayer = Manager.main.player;
-			var currentPlayerEntity = currentPlayer.entity;
+			var canTeleport = __instance.markerType == MapMarkerType.Player && __instance.player != null || EntityUtility.HasComponentData<LocalTransform>(__instance.mapMarkerEntity, Manager.ecs.ClientWorld);
 
-			// Check if the hovered marker is a player marker and not the current player
-			if (__instance.markerType != MapMarkerType.Player || __instance.player.entity == currentPlayerEntity)
+			TextAndFormatFields teleportDescription;
+			if (canTeleport)
 			{
-				return;
+				var currentPlayer = Manager.main.player;
+				var requiredGems = Wormhole.Instance.RequiredAncientGemstones;
+				var doesPlayerHasEnoughAncientGemstones = InventoryHandlerHelper.HasItemAmount(currentPlayer.playerInventoryHandler, ObjectID.AncientGemstone, requiredGems);
+
+				teleportDescription = new TextAndFormatFields
+				{
+					text = $"{ModSettings.ShortName}-{Wormhole.Instance.Name}",
+					color = doesPlayerHasEnoughAncientGemstones ? Color.green : Color.red,
+					formatFields = new[]
+					{
+						Wormhole.Instance.RequiredAncientGemstones.ToString(),
+						LocalizationManager.GetTranslation("Items/AncientGemstone")
+					}
+				};
+			}
+			else
+			{
+				teleportDescription = new TextAndFormatFields
+				{
+					text = $"{ModSettings.ShortName}-{Wormhole.Instance.Name}-InvalidTarget",
+					color = Color.red
+				};
 			}
 
-			var ancientGemstoneContainedBuffer = InventoryHandlerHelper.GetContainedObjectsBufferForObject(currentPlayer.playerInventoryHandler, ObjectID.AncientGemstone).FirstOrDefault();
-			var itemName = PlayerController.GetObjectName(ancientGemstoneContainedBuffer, true).text;
-
-			var teleportDescription = new TextAndFormatFields
-			{
-				text = $"Teleport: {Wormhole.Instance.RequiredAncientGemstones}x {itemName}",
-				color = Color.cyan,
-				dontLocalize = true
-			};
-
+			__result ??= new List<TextAndFormatFields>();
 			__result.Add(teleportDescription);
 		}
 
@@ -103,15 +121,23 @@ namespace CK_QOL.Features.Wormhole.Patches
 		/// </summary>
 		/// <param name="player">The player controller responsible for the teleportation.</param>
 		/// <param name="mapMarkerEntity">The entity representing the map marker to teleport to.</param>
-		private static void TeleportPlayerToPosition(PlayerController player, Entity mapMarkerEntity)
+		private static bool TryTeleportPlayerToPosition(PlayerController player, Entity mapMarkerEntity)
 		{
-			if (!EntityUtility.HasComponentData<LocalTransform>(mapMarkerEntity, player.world))
+			if (!EntityUtility.HasComponentData<LocalTransform>(mapMarkerEntity, Manager.ecs.ClientWorld))
 			{
-				return;
+				return false;
 			}
 
-			var markerTransform = EntityUtility.GetComponentData<LocalTransform>(mapMarkerEntity, player.world);
-			player.transform.position = markerTransform.Position;
+			var markerTransform = EntityUtility.GetComponentData<LocalTransform>(mapMarkerEntity, Manager.ecs.ClientWorld);
+			var offset = EntityUtility.GetObjectData(mapMarkerEntity, player.world).variation == 20 ? new float2(1f, 1f) : new float2(1f, -0.25f);
+
+			player.QueueInputAction(new UIInputActionData
+			{
+				action = UIInputAction.Teleport,
+				position = markerTransform.Position.ToFloat2() + offset
+			});
+
+			return true;
 		}
 	}
 }

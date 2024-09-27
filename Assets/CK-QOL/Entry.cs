@@ -12,6 +12,7 @@ using CK_QOL.Features.QuickHeal;
 using CK_QOL.Features.QuickStash;
 using CK_QOL.Features.QuickSummon;
 using CK_QOL.Features.ShiftClick;
+using CK_QOL.Features.Wormhole;
 using CoreLib;
 using CoreLib.Localization;
 using CoreLib.RewiredExtension;
@@ -91,7 +92,8 @@ namespace CK_QOL
 				QuickEat.Instance,
 				QuickSummon.Instance,
 				ShiftClick.Instance,
-				ChestAutoUnlock.Instance
+				ChestAutoUnlock.Instance,
+				Wormhole.Instance
 			});
 
 			foreach (var feature in _features.OrderBy(feature => feature.IsEnabled))
@@ -136,10 +138,14 @@ namespace CK_QOL
 						ModLogger.Info($"{nameof(quickSummon.EquipmentSlotIndex)}: {quickSummon.EquipmentSlotIndex}");
 
 						break;
-					case NoDeathPenalty { IsEnabled: true } noDeathPenalty:
-					case NoEquipmentDurabilityLoss { IsEnabled: true } noEquipmentDurabilityLoss:
-					case ShiftClick { IsEnabled: true } shiftClick:
-					case ChestAutoUnlock { IsEnabled: true } chestAutoUnlock:
+					case Wormhole { IsEnabled: true } wormhole:
+						ModLogger.Info($"{nameof(wormhole.RequiredAncientGemstones)}: {wormhole.RequiredAncientGemstones}");
+
+						break;
+					case NoDeathPenalty { IsEnabled: true }:
+					case NoEquipmentDurabilityLoss { IsEnabled: true }:
+					case ShiftClick { IsEnabled: true }:
+					case ChestAutoUnlock { IsEnabled: true }:
 
 						break;
 				}
