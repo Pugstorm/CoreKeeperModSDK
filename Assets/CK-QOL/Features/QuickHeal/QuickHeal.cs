@@ -84,5 +84,6 @@ namespace CK_QOL.Features.QuickHeal
 		}
 
 		#endregion Configurations
+
 	}
 }

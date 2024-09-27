@@ -12,7 +12,9 @@ namespace CK_QOL.Features.QuickStash
 		/// <summary>
 		///     Initializes a new instance of the <see cref="QuickStashConfig" /> class for the given feature.
 		/// </summary>
-		/// <param name="feature">The <see cref="QuickStash" /> feature being configured.</param>
+		/// <param name="feature">
+		///     The <see cref="QuickStash" /> feature being configured.
+		/// </param>
 		public QuickStashConfig(QuickStash feature) : base(feature)
 		{
 		}

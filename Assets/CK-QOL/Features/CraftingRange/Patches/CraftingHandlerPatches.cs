@@ -18,7 +18,7 @@ namespace CK_QOL.Features.CraftingRange.Patches
 		///     to include only the chests detected by the <see cref="CraftingRange" /> feature.
 		/// </summary>
 		[HarmonyPrefix]
-		[HarmonyPatch(nameof(CraftingHandler.GetAnyNearbyChests), new Type[] { })]
+		[HarmonyPatch(nameof(CraftingHandler.GetAnyNearbyChests), new Type[] {})]
 		[SuppressMessage("ReSharper", "InconsistentNaming")]
 		private static bool GetAnyNearbyChests(ref List<Chest> __result)
 		{

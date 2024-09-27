@@ -12,7 +12,9 @@ namespace CK_QOL.Features.QuickSummon
 		/// <summary>
 		///     Initializes a new instance of the <see cref="QuickSummonConfig" /> class for the given feature.
 		/// </summary>
-		/// <param name="feature">The <see cref="QuickSummon" /> feature being configured.</param>
+		/// <param name="feature">
+		///     The <see cref="QuickSummon" /> feature being configured.
+		/// </param>
 		public QuickSummonConfig(QuickSummon feature) : base(feature)
 		{
 		}

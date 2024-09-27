@@ -39,7 +39,10 @@ namespace CK_QOL.Features.CraftingRange
 		/// </summary>
 		public override void Execute()
 		{
-			if (!CanExecute()) return;
+			if (!CanExecute())
+			{
+				return;
+			}
 
 			Chests.Clear();
 
@@ -63,5 +66,6 @@ namespace CK_QOL.Features.CraftingRange
 		internal int MaxChests { get; }
 
 		#endregion Configuration
+
 	}
 }

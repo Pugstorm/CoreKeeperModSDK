@@ -12,7 +12,9 @@ namespace CK_QOL.Features.QuickHeal
 		/// <summary>
 		///     Initializes a new instance of the <see cref="QuickHealConfig" /> class for the given feature.
 		/// </summary>
-		/// <param name="feature">The <see cref="QuickHeal" /> feature being configured.</param>
+		/// <param name="feature">
+		///     The <see cref="QuickHeal" /> feature being configured.
+		/// </param>
 		public QuickHealConfig(QuickHeal feature) : base(feature)
 		{
 		}

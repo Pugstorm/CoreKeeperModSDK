@@ -12,7 +12,9 @@ namespace CK_QOL.Features.QuickEat
 		/// <summary>
 		///     Initializes a new instance of the <see cref="QuickEatConfig" /> class for the given feature.
 		/// </summary>
-		/// <param name="feature">The <see cref="QuickEat" /> feature being configured.</param>
+		/// <param name="feature">
+		///     The <see cref="QuickEat" /> feature being configured.
+		/// </param>
 		public QuickEatConfig(QuickEat feature) : base(feature)
 		{
 		}

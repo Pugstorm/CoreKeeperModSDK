@@ -85,5 +85,6 @@ namespace CK_QOL.Features.QuickEat
 		}
 
 		#endregion Configurations
+
 	}
 }

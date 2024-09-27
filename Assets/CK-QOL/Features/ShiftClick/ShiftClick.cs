@@ -40,8 +40,12 @@ namespace CK_QOL.Features.ShiftClick
 		/// </summary>
 		public override bool CanExecute()
 		{
-			return base.CanExecute() && Entry.RewiredPlayer != null && Manager.main.currentSceneHandler?.isInGame == true && Manager.main.player?.playerInventoryHandler != null && Manager.ui.isPlayerInventoryShowing &&
-				!IsAnyIgnoredUIOpen();
+			return base.CanExecute()
+				&& Entry.RewiredPlayer != null
+				&& Manager.main.currentSceneHandler?.isInGame == true
+				&& Manager.main.player?.playerInventoryHandler != null
+				&& Manager.ui.isPlayerInventoryShowing
+				&& !IsAnyIgnoredUIOpen();
 		}
 
 		/// <summary>
@@ -196,5 +200,6 @@ namespace CK_QOL.Features.ShiftClick
 		}
 
 		#endregion Configuration
+
 	}
 }

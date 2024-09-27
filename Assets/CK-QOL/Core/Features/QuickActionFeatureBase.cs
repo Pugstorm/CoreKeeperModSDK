@@ -385,5 +385,6 @@ namespace CK_QOL.Core.Features
 		public abstract int EquipmentSlotIndex { get; }
 
 		#endregion Configuration
+
 	}
 }

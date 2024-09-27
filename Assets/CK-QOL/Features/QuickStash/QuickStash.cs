@@ -127,5 +127,6 @@ namespace CK_QOL.Features.QuickStash
 		}
 
 		#endregion Configuration
+
 	}
 }

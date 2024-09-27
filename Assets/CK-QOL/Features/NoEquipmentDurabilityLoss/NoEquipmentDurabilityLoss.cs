@@ -22,5 +22,6 @@ namespace CK_QOL.Features.NoEquipmentDurabilityLoss
 		public override FeatureType FeatureType => FeatureType.Server;
 
 		#endregion IFeature
+
 	}
 }

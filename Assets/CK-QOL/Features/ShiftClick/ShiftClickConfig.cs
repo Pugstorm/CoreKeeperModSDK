@@ -11,7 +11,9 @@ namespace CK_QOL.Features.ShiftClick
 		/// <summary>
 		///     Initializes a new instance of the <see cref="ShiftClickConfig" /> class for the given feature.
 		/// </summary>
-		/// <param name="feature">The <see cref="ShiftClick" /> feature being configured.</param>
+		/// <param name="feature">
+		///     The <see cref="ShiftClick" /> feature being configured.
+		/// </param>
 		public ShiftClickConfig(ShiftClick feature) : base(feature)
 		{
 		}

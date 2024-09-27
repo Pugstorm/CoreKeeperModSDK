@@ -95,5 +95,6 @@ namespace CK_QOL.Features.QuickSummon
 		}
 
 		#endregion Configurations
+
 	}
 }

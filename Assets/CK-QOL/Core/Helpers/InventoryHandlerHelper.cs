@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Entities;
+using UnityEngine;
 
 namespace CK_QOL.Core.Helpers
 {
@@ -33,15 +35,33 @@ namespace CK_QOL.Core.Helpers
 		internal const int PlayerBackpackStartingIndex = PlayerController.MAX_EQUIPMENT_SLOTS;
 
 		/// <summary>
+		///     Checks if the specified inventory has at least the given amount of a particular item.
+		/// </summary>
+		/// <param name="inventoryHandler">The inventory handler instance.</param>
+		/// <param name="objectID">The item ID to check for.</param>
+		/// <param name="requiredAmount">The required amount of the item.</param>
+		/// <returns>True if the inventory has at least the required amount of the item; otherwise, false.</returns>
+		internal static bool HasItemAmount(InventoryHandler inventoryHandler, ObjectID objectID, int requiredAmount)
+		{
+			return inventoryHandler.GetExistingAmountOfObject(objectID) >= requiredAmount;
+		}
+
+		/// <summary>
 		///     Searches for the first occurrence of an item with the specified <paramref name="objectID" /> in the inventory.
 		///     This method iterates over the inventory starting from the specified index and returns the index of the first
 		///     matching item.
 		/// </summary>
 		/// <param name="inventoryHandler">The inventory handler responsible for managing the inventory.</param>
 		/// <param name="objectID">The object ID to search for within the inventory.</param>
-		/// <param name="startingIndex">The index to start searching from (defaults to <see cref="DefaultStartingIndex" />).</param>
-		/// <param name="skipIndex">An optional index to skip during the search (defaults to <see cref="InvalidIndex" />).</param>
-		/// <param name="limitIndex">An optional index to limit during the search (defaults to <see cref="int.MaxValue" />).</param>
+		/// <param name="startingIndex">
+		///     The index to start searching from (defaults to <see cref="DefaultStartingIndex" />).
+		/// </param>
+		/// <param name="skipIndex">
+		///     An optional index to skip during the search (defaults to <see cref="InvalidIndex" />).
+		/// </param>
+		/// <param name="limitIndex">
+		///     An optional index to limit during the search (defaults to <see cref="int.MaxValue" />).
+		/// </param>
 		/// <returns>
 		///     The index of the first occurrence of the item with the specified <paramref name="objectID" />,
 		///     or <see cref="InvalidIndex" /> if no matching item is found.
@@ -61,8 +81,7 @@ namespace CK_QOL.Core.Helpers
 
 			for (var i = startingIndex; i < inventoryHandler.size && i < limitIndex; i++)
 			{
-				var objectData = inventoryHandler.GetObjectData(i);
-				if (objectData.objectID == objectID && i != skipIndex)
+				if (inventoryHandler.HasObject(i, objectID) && i != skipIndex)
 				{
 					return i;
 				}
@@ -76,9 +95,15 @@ namespace CK_QOL.Core.Helpers
 		///     An empty slot is represented by an <see cref="ObjectID.None" /> value.
 		/// </summary>
 		/// <param name="inventoryHandler">The inventory handler managing the inventory.</param>
-		/// <param name="startingIndex">The index to start searching from (defaults to <see cref="DefaultStartingIndex" />).</param>
-		/// <param name="skipIndex">An optional index to skip during the search (defaults to <see cref="InvalidIndex" />).</param>
-		/// <param name="limitIndex">An optional index to limit during the search (defaults to <see cref="int.MaxValue" />).</param>
+		/// <param name="startingIndex">
+		///     The index to start searching from (defaults to <see cref="DefaultStartingIndex" />).
+		/// </param>
+		/// <param name="skipIndex">
+		///     An optional index to skip during the search (defaults to <see cref="InvalidIndex" />).
+		/// </param>
+		/// <param name="limitIndex">
+		///     An optional index to limit during the search (defaults to <see cref="int.MaxValue" />).
+		/// </param>
 		/// <returns>
 		///     The index of the first available empty slot in the inventory, or <see cref="InvalidIndex" /> if no empty slot is
 		///     found.
@@ -95,9 +120,15 @@ namespace CK_QOL.Core.Helpers
 		/// </summary>
 		/// <param name="inventoryHandler">The inventory handler managing the inventory.</param>
 		/// <param name="objectID">The object ID to find a slot for.</param>
-		/// <param name="startingIndex">The index to start searching from (defaults to <see cref="DefaultStartingIndex" />).</param>
-		/// <param name="skipIndex">An optional index to skip during the search (defaults to <see cref="InvalidIndex" />).</param>
-		/// <param name="limitIndex">An optional index to limit during the search (defaults to <see cref="int.MaxValue" />).</param>
+		/// <param name="startingIndex">
+		///     The index to start searching from (defaults to <see cref="DefaultStartingIndex" />).
+		/// </param>
+		/// <param name="skipIndex">
+		///     An optional index to skip during the search (defaults to <see cref="InvalidIndex" />).
+		/// </param>
+		/// <param name="limitIndex">
+		///     An optional index to limit during the search (defaults to <see cref="int.MaxValue" />).
+		/// </param>
 		/// <returns>
 		///     The index of the next available slot that can stack the item, or <see cref="InvalidIndex" /> if no suitable slot is
 		///     found.
@@ -189,6 +220,68 @@ namespace CK_QOL.Core.Helpers
 			}
 
 			return acceptedObjectIds.ToArray();
+		}
+
+		/// <summary>
+		///     Removes a specific amount of items from the inventory.
+		///     This method uses SetAmount to decrement the stack size instead of destroying the entire stack.
+		/// </summary>
+		/// <param name="inventoryHandler">The inventory handler instance.</param>
+		/// <param name="objectID">The item ID to remove.</param>
+		/// <param name="amount">The amount of the item to remove.</param>
+		public static void RemoveItems(InventoryHandler inventoryHandler, ObjectID objectID, int amount)
+		{
+			for (var i = 0; i < inventoryHandler.size; i++)
+			{
+				if (!inventoryHandler.HasObject(i, objectID))
+				{
+					continue;
+				}
+
+				var objectData = inventoryHandler.GetObjectData(i);
+				var removalAmount = Mathf.Min(objectData.amount, amount);
+
+				inventoryHandler.SetAmount(Manager.main.player, i, objectID, objectData.amount - removalAmount);
+
+				amount -= removalAmount;
+
+				if (amount <= 0)
+				{
+					break;
+				}
+			}
+		}
+
+		/// <summary>
+		///     Gets the <see cref="ContainedObjectsBuffer" /> entries for a specific <see cref="ObjectID" /> from the given <see cref="InventoryHandler" />.
+		/// </summary>
+		/// <param name="inventoryHandler">The inventory handler to search within.</param>
+		/// <param name="objectId">
+		///     The object ID to search for (e.g., <see cref="ObjectID.AncientGemstone" />).
+		/// </param>
+		/// <returns>
+		///     A list of <see cref="ContainedObjectsBuffer" /> containing the specified object ID.
+		/// </returns>
+		public static List<ContainedObjectsBuffer> GetContainedObjectsBufferForObject(InventoryHandler inventoryHandler, ObjectID objectId)
+		{
+			var containedObjects = new List<ContainedObjectsBuffer>();
+
+			if (inventoryHandler == null || inventoryHandler.inventoryEntity == Entity.Null)
+			{
+				return containedObjects;
+			}
+
+			var buffer = EntityUtility.GetBuffer<ContainedObjectsBuffer>(inventoryHandler.inventoryEntity, Manager.main.player.world);
+
+			foreach (var containedObject in buffer)
+			{
+				if (containedObject.objectID == objectId)
+				{
+					containedObjects.Add(containedObject);
+				}
+			}
+
+			return containedObjects;
 		}
 	}
 }

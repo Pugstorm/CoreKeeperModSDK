@@ -67,5 +67,6 @@ namespace CK_QOL.Core.Features
 		public bool IsEnabled { get; protected set; }
 
 		#endregion IFeature
+
 	}
 }
