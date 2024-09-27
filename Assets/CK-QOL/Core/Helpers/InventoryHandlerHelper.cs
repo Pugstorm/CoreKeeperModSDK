@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using Inventory;
 using Unity.Entities;
 using UnityEngine;
 
@@ -73,9 +72,9 @@ namespace CK_QOL.Core.Helpers
 		/// </remarks>
 		internal static int GetIndexOfItem(InventoryHandler inventoryHandler, ObjectID objectID, int startingIndex = DefaultStartingIndex, int skipIndex = InvalidIndex, int limitIndex = int.MaxValue)
 		{
-			if (inventoryHandler == null || objectID == ObjectID.None)
+			if (inventoryHandler == null)
 			{
-				ModLogger.Error("Invalid inventory handler or object ID.");
+				ModLogger.Warn("Invalid inventory handler.");
 
 				return InvalidIndex;
 			}
@@ -168,11 +167,11 @@ namespace CK_QOL.Core.Helpers
 		///     This method allows you to seamlessly move items between player inventory and chest inventory, handling all checks
 		///     internally.
 		/// </remarks>
-		internal static void MoveItem(PlayerController player, InventoryHandler sourceHandler, InventoryHandler targetHandler, int sourceIndex, int targetIndex)
+		internal static void MoveItem(PlayerController player, InventoryHandler sourceHandler, InventoryHandler targetHandler, int sourceIndex, int targetIndex, int amount = int.MaxValue)
 		{
 			if (sourceHandler == null || targetHandler == null)
 			{
-				ModLogger.Error("Invalid source or target inventory handler.");
+				ModLogger.Warn("Invalid source or target inventory handler.");
 
 				return;
 			}
@@ -184,7 +183,7 @@ namespace CK_QOL.Core.Helpers
 				return;
 			}
 
-			sourceHandler.TryMoveTo(player, sourceIndex, targetHandler, targetIndex);
+			sourceHandler.TryMoveTo(player, sourceIndex, targetHandler, targetIndex, amount);
 		}
 
 		/// <summary>
@@ -217,7 +216,10 @@ namespace CK_QOL.Core.Helpers
 
 			foreach (var slotRequirement in inventorySlotRequirementBuffer)
 			{
-				acceptedObjectIds.AddRange(slotRequirement.acceptsObjectIds);
+				foreach (var objectId in slotRequirement.acceptsObjectIds)
+				{
+					acceptedObjectIds.Add(objectId);
+				}
 			}
 
 			return acceptedObjectIds.ToArray();
@@ -232,24 +234,23 @@ namespace CK_QOL.Core.Helpers
 		/// <param name="amount">The amount of the item to remove.</param>
 		public static void RemoveItems(InventoryHandler inventoryHandler, ObjectID objectID, int amount)
 		{
-			for (var i = 0; i < inventoryHandler.size; i++)
+			var previousIndex = InvalidIndex;
+			while (true)
 			{
-				if (!inventoryHandler.HasObject(i, objectID))
-				{
-					continue;
-				}
-
-				var objectData = inventoryHandler.GetObjectData(i);
-				var removalAmount = Mathf.Min(objectData.amount, amount);
-
-				Create.SetAmount(inventoryHandler.inventoryEntity, i, objectID, objectData.amount - removalAmount);
-
-				amount -= removalAmount;
-
-				if (amount <= 0)
+				var indexOfItem = GetIndexOfItem(inventoryHandler, objectID, skipIndex: previousIndex);
+				if (indexOfItem == InvalidIndex || amount <= 0)
 				{
 					break;
 				}
+
+				var objectData = inventoryHandler.GetObjectData(indexOfItem);
+				var removalAmount = Mathf.Min(objectData.amount, amount);
+
+				MoveItem(Manager.main.player, inventoryHandler, Manager.main.player.trashCanHandler.inventoryHandler, indexOfItem, 0);
+				Manager.main.player.trashCanHandler.inventoryHandler.DestroyObject(Manager.main.player, 0, objectID);
+
+				amount -= removalAmount;
+				previousIndex = indexOfItem;
 			}
 		}
 

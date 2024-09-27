@@ -144,16 +144,9 @@ namespace CK_QOL.Features.ShiftClick
 			}
 			else
 			{
-				var availableSlot = InventoryHandlerHelper.InvalidIndex;
-
-				if (index < InventoryHandlerHelper.PlayerBackpackStartingIndex)
-				{
-					availableSlot = InventoryHandlerHelper.GetNextAvailableIndex(playerHandler, objectID, InventoryHandlerHelper.PlayerBackpackStartingIndex);
-				}
-				else
-				{
-					availableSlot = InventoryHandlerHelper.GetNextAvailableIndex(playerHandler, objectID, limitIndex: InventoryHandlerHelper.PlayerBackpackStartingIndex);
-				}
+				var availableSlot = index < InventoryHandlerHelper.PlayerBackpackStartingIndex
+					? InventoryHandlerHelper.GetNextAvailableIndex(playerHandler, objectID, InventoryHandlerHelper.PlayerBackpackStartingIndex, index)
+					: InventoryHandlerHelper.GetNextAvailableIndex(playerHandler, objectID, InventoryHandlerHelper.DefaultStartingIndex, index, InventoryHandlerHelper.PlayerBackpackStartingIndex);
 
 				InventoryHandlerHelper.MoveItem(player, playerHandler, playerHandler, index, availableSlot);
 			}

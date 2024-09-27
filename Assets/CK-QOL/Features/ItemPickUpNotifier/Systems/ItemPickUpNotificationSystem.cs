@@ -43,7 +43,7 @@ namespace CK_QOL.Features.ItemPickUpNotifier.Systems
 		/// </summary>
 		protected override void OnDestroy()
 		{
-			_cachedPickups.Clear();
+			_cachedPickups?.Clear();
 			base.OnDestroy();
 		}
 

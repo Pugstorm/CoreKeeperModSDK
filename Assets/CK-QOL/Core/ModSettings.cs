@@ -25,7 +25,7 @@ namespace CK_QOL.Core
 		/// <summary>
 		///     The current version of the mod.
 		/// </summary>
-		public const string Version = "1.9.0";
+		public const string Version = "1.9.1";
 
 		/// <summary>
 		///     The author of the mod.

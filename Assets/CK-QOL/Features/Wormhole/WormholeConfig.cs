@@ -24,7 +24,7 @@ namespace CK_QOL.Features.Wormhole
 
 		/// <summary>
 		///     Applies the configured number of Ancient Gemstones required for each teleportation.
-		///     The amount is configurable between 0 and 25, with a default of 2.
+		///     The amount is configurable between 0 and 25, with a default of 3.
 		/// </summary>
 		/// <returns>Returns the configured number of Ancient Gemstones required for teleportation.</returns>
 		public int ApplyRequiredAncientGemstones()
@@ -33,7 +33,7 @@ namespace CK_QOL.Features.Wormhole
 			var description = new ConfigDescription("The amount of Ancient Gemstones required for each teleportation.", acceptableValues);
 			var definition = new ConfigDefinition(Feature.Name, nameof(Feature.RequiredAncientGemstones));
 
-			var entry = Config.Bind(definition, 2, description);
+			var entry = Config.Bind(definition, 3, description);
 
 			return entry.Value;
 		}

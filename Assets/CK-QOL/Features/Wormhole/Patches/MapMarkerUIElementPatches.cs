@@ -5,7 +5,6 @@ using CK_QOL.Core.Helpers;
 using HarmonyLib;
 using I2.Loc;
 using Unity.Entities;
-using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
@@ -43,10 +42,10 @@ namespace CK_QOL.Features.Wormhole.Patches
 			{
 				target = __instance.player.entity;
 			}
-			else if (EntityUtility.HasComponentData<LocalTransform>(__instance.mapMarkerEntity, Manager.ecs.ClientWorld))
+			/*else if (EntityUtility.HasComponentData<LocalTransform>(__instance.mapMarkerEntity, Manager.ecs.ClientWorld))
 			{
 				target = __instance.mapMarkerEntity;
-			}
+			}*/
 			else
 			{
 				return;
@@ -83,34 +82,25 @@ namespace CK_QOL.Features.Wormhole.Patches
 				return;
 			}
 
-			var canTeleport = __instance.markerType == MapMarkerType.Player && __instance.player != null || EntityUtility.HasComponentData<LocalTransform>(__instance.mapMarkerEntity, Manager.ecs.ClientWorld);
-
-			TextAndFormatFields teleportDescription;
-			if (canTeleport)
+			if (__instance.markerType != MapMarkerType.Player || __instance.player != null /* || !EntityUtility.HasComponentData<LocalTransform>(__instance.mapMarkerEntity, Manager.ecs.ClientWorld)*/)
 			{
-				var currentPlayer = Manager.main.player;
-				var requiredGems = Wormhole.Instance.RequiredAncientGemstones;
-				var doesPlayerHasEnoughAncientGemstones = InventoryHandlerHelper.HasItemAmount(currentPlayer.playerInventoryHandler, ObjectID.AncientGemstone, requiredGems);
+				return;
+			}
 
-				teleportDescription = new TextAndFormatFields
-				{
-					text = $"{ModSettings.ShortName}-{Wormhole.Instance.Name}",
-					color = doesPlayerHasEnoughAncientGemstones ? Color.green : Color.red,
-					formatFields = new[]
-					{
-						Wormhole.Instance.RequiredAncientGemstones.ToString(),
-						LocalizationManager.GetTranslation("Items/AncientGemstone")
-					}
-				};
-			}
-			else
+			var currentPlayer = Manager.main.player;
+			var requiredGems = Wormhole.Instance.RequiredAncientGemstones;
+			var doesPlayerHasEnoughAncientGemstones = InventoryHandlerHelper.HasItemAmount(currentPlayer.playerInventoryHandler, ObjectID.AncientGemstone, requiredGems);
+
+			var teleportDescription = new TextAndFormatFields
 			{
-				teleportDescription = new TextAndFormatFields
+				text = $"{ModSettings.ShortName}-{Wormhole.Instance.Name}",
+				color = doesPlayerHasEnoughAncientGemstones ? Color.green : Color.red,
+				formatFields = new[]
 				{
-					text = $"{ModSettings.ShortName}-{Wormhole.Instance.Name}-InvalidTarget",
-					color = Color.red
-				};
-			}
+					Wormhole.Instance.RequiredAncientGemstones.ToString(),
+					LocalizationManager.GetTranslation("Items/AncientGemstone")
+				}
+			};
 
 			__result ??= new List<TextAndFormatFields>();
 			__result.Add(teleportDescription);
@@ -129,12 +119,12 @@ namespace CK_QOL.Features.Wormhole.Patches
 			}
 
 			var markerTransform = EntityUtility.GetComponentData<LocalTransform>(mapMarkerEntity, Manager.ecs.ClientWorld);
-			var offset = EntityUtility.GetObjectData(mapMarkerEntity, player.world).variation == 20 ? new float2(1f, 1f) : new float2(1f, -0.25f);
 
+			Manager.ui.mapUI.ToggleMap();
 			player.QueueInputAction(new UIInputActionData
 			{
 				action = UIInputAction.Teleport,
-				position = markerTransform.Position.ToFloat2() + offset
+				position = markerTransform.Position.ToFloat2()
 			});
 
 			return true;

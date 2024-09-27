@@ -13,7 +13,7 @@ namespace CK_QOL.Core.Helpers
 		private const string PoolNameChest = "Pool Chest";
 		private const string PoolNameBossChest = "Pool BossChest";
 		private const string PoolNameNonPaintableChestChest = "Pool NonPaintableChest";
-		private const string PoolNameBigChestMod = "Pool Pool P_Graphical_BigChest";
+		private const string PoolNameBigChestMod = "Pool P_Graphical_BigChest";
 
 		/// <summary>
 		///     Retrieves a list of chests that are within a certain distance from the player.
