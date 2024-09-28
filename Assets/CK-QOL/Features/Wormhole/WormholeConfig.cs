@@ -37,5 +37,16 @@ namespace CK_QOL.Features.Wormhole
 
 			return entry.Value;
 		}
+		
+		public bool ApplyAllMarkersAllowed()
+		{
+			var acceptableValues = new AcceptableValueList<bool>(true, false);
+			var description = new ConfigDescription("Are all markers allowed for teleportation?", acceptableValues);
+			var definition = new ConfigDefinition(Feature.Name, nameof(Feature.AllMarkersAllowed));
+
+			var entry = Config.Bind(definition, false, description);
+
+			return entry.Value;
+		}
 	}
 }

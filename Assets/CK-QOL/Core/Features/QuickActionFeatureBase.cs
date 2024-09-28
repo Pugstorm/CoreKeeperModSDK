@@ -47,8 +47,6 @@ namespace CK_QOL.Core.Features
 	/// </remarks>
 	internal abstract class QuickActionFeatureBase<TFeature> : FeatureBase<TFeature>, IKeyBindableFeature where TFeature : QuickActionFeatureBase<TFeature>, new()
 	{
-		private bool _actionExecuted;
-
 		protected int FromSlotIndex = InventoryHandlerHelper.InvalidIndex;
 		protected ObjectID LastSelectedObjectID = ObjectID.None;
 		protected int PreviousSlotIndex = InventoryHandlerHelper.InvalidIndex;
@@ -126,7 +124,6 @@ namespace CK_QOL.Core.Features
 
 				// Execute the quick action (e.g., equip and use item).
 				Execute();
-				_actionExecuted = true;
 			}
 
 			// Handle double key press: switch to the next item.
@@ -136,10 +133,9 @@ namespace CK_QOL.Core.Features
 			}
 
 			// Handle key release: equip the previous item if an action was performed.
-			if (Entry.RewiredPlayer.GetButtonUp(KeyBindName) && _actionExecuted)
+			if (Entry.RewiredPlayer.GetButtonSinglePressUp(KeyBindName))
 			{
 				EquipPreviousItem();
-				_actionExecuted = false;
 			}
 		}
 
@@ -346,7 +342,7 @@ namespace CK_QOL.Core.Features
 			inputHistoryConsume.secondInteractUITriggered = true;
 
 			// Swap back to the original item, if needed.
-			if (FromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(FromSlotIndex).objectID != ObjectID.None)
+			if (FromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex).objectID != ObjectID.None)
 			{
 				player.playerInventoryHandler.Swap(player, FromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
 			}

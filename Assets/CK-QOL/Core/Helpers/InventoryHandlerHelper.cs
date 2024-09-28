@@ -163,6 +163,7 @@ namespace CK_QOL.Core.Helpers
 		/// <param name="targetHandler">The inventory handler for the target inventory.</param>
 		/// <param name="sourceIndex">The index of the item in the source inventory.</param>
 		/// <param name="targetIndex">The index of the slot in the target inventory to move the item to.</param>
+		/// <param name="amount">The amount of the item to remove.</param>
 		/// <remarks>
 		///     This method allows you to seamlessly move items between player inventory and chest inventory, handling all checks
 		///     internally.
@@ -246,7 +247,7 @@ namespace CK_QOL.Core.Helpers
 				var objectData = inventoryHandler.GetObjectData(indexOfItem);
 				var removalAmount = Mathf.Min(objectData.amount, amount);
 
-				MoveItem(Manager.main.player, inventoryHandler, Manager.main.player.trashCanHandler.inventoryHandler, indexOfItem, 0);
+				MoveItem(Manager.main.player, inventoryHandler, Manager.main.player.trashCanHandler.inventoryHandler, indexOfItem, 0, amount);
 				Manager.main.player.trashCanHandler.inventoryHandler.DestroyObject(Manager.main.player, 0, objectID);
 
 				amount -= removalAmount;

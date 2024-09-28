@@ -20,15 +20,18 @@ namespace CK_QOL.Features.Wormhole
 			var config = new WormholeConfig(this);
 			IsEnabled = config.ApplyIsEnabled();
 			RequiredAncientGemstones = config.ApplyRequiredAncientGemstones();
+			AllMarkersAllowed = config.ApplyAllMarkersAllowed();
 		}
 
 		#region Configuration
 
 		/// <summary>
 		///     Gets the number of Ancient Gemstones required for each teleportation.
-		///     This value is configurable and defaults to 2 if not set in the configuration.
+		///     This value is configurable and defaults to 3 if not set in the configuration.
 		/// </summary>
 		internal int RequiredAncientGemstones { get; }
+
+		internal bool AllMarkersAllowed { get; }
 
 		#endregion Configuration
 
