@@ -1,4 +1,3 @@
-using System.Linq;
 using CK_QOL.Core;
 using CK_QOL.Core.Features;
 using CoreLib.RewiredExtension;
@@ -34,14 +33,11 @@ namespace CK_QOL.Features.QuickSummon
 	///     their previously equipped item. This class inherits from <see cref="QuickActionFeatureBase{TFeature}" /> to provide
 	///     common functionality for equipping and using items.
 	/// </remarks>
-	internal sealed class QuickSummon : QuickActionFeatureBase<QuickSummon>, IKeyBindableFeature
+	internal sealed class QuickSummon : FeatureBase<QuickSummon>
 	{
-		private readonly ObjectID[] _tomeIDs =
-		{
-			ObjectID.TomeOfRange,
-			ObjectID.TomeOfOrbit,
-			ObjectID.TomeOfMelee
-		};
+		private int _fromSlotIndex = -1;
+		private int _previousSlotIndex = -1;
+		private ObjectID _tomeID = ObjectID.None;
 
 		/// <summary>
 		///     Initializes a new instance of the <see cref="QuickSummon" /> class, applying configuration settings and binding
@@ -56,14 +52,132 @@ namespace CK_QOL.Features.QuickSummon
 			SetupKeyBindings();
 		}
 
-		/// <summary>
-		///     Checks if the given object data matches one of the predefined summoning tomes.
-		/// </summary>
-		/// <param name="objectData">The object data to check.</param>
-		/// <returns>True if the object is a summoning tome, otherwise false.</returns>
-		protected override bool IsTargetItem(ObjectDataCD objectData)
+		public override bool CanExecute()
 		{
-			return _tomeIDs.Contains(objectData.objectID);
+			return base.CanExecute() && Entry.RewiredPlayer != null && Manager.main.player != null && !(Manager.input?.textInputIsActive ?? false);
+		}
+
+		public override void Update()
+		{
+			if (!CanExecute())
+			{
+				return;
+			}
+
+			if (Entry.RewiredPlayer.GetButtonDown(KeyBindNameX))
+			{
+				_tomeID = ObjectID.TomeOfRange;
+				Execute();
+			}
+
+			if (Entry.RewiredPlayer.GetButtonDown(KeyBindNameK))
+			{
+				_tomeID = ObjectID.TomeOfOrbit;
+				Execute();
+			}
+
+			if (Entry.RewiredPlayer.GetButtonDown(KeyBindNameL))
+			{
+				_tomeID = ObjectID.TomeOfMelee;
+				Execute();
+			}
+
+			if (Entry.RewiredPlayer.GetButtonUp(KeyBindNameX) || Entry.RewiredPlayer.GetButtonUp(KeyBindNameK) || Entry.RewiredPlayer.GetButtonUp(KeyBindNameL))
+			{
+				_tomeID = ObjectID.None;
+				SwapBackToPreviousSlot();
+			}
+		}
+
+		public override void Execute()
+		{
+			var player = Manager.main.player;
+
+			if (TryFindSummonTome(player))
+			{
+				CastSummonSpell(player);
+			}
+		}
+
+		/// <summary>
+		///     Attempts to find a summoning tome in the player's inventory.
+		/// </summary>
+		private bool TryFindSummonTome(PlayerController player)
+		{
+			_previousSlotIndex = player.equippedSlotIndex;
+			_fromSlotIndex = -1;
+			// Check if the summoning tome is in the predefined slot.
+			if (IsSummonTome(player.playerInventoryHandler.GetObjectData(EquipmentSlotIndex), _tomeID))
+			{
+				_fromSlotIndex = EquipmentSlotIndex;
+
+				return true;
+			}
+
+			// If the tome is not in the predefined slot, search through the inventory.
+			var playerInventorySize = player.playerInventoryHandler.size;
+			for (var playerInventoryIndex = 0; playerInventoryIndex < playerInventorySize; playerInventoryIndex++)
+			{
+				if (IsSummonTome(player.playerInventoryHandler.GetObjectData(playerInventoryIndex), _tomeID))
+				{
+					_fromSlotIndex = playerInventoryIndex;
+
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		///     Checks if the provided object data corresponds to the currently configured summoning tome.
+		/// </summary>
+		private bool IsSummonTome(ObjectDataCD objectData, ObjectID tomeID)
+		{
+			return objectData.objectID == tomeID;
+		}
+
+		/// <summary>
+		///     Equips the summoning tome, casts the summon spell, and swaps back to the previous item.
+		/// </summary>
+		/// <param name="player">The player controller.</param>
+		private void CastSummonSpell(PlayerController player)
+		{
+			// Swap the item to the correct slot and equip it.
+			if (_fromSlotIndex != EquipmentSlotIndex)
+			{
+				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			}
+
+			player.EquipSlot(EquipmentSlotIndex);
+
+			// Reset input history and re-equip the item.
+			var inputHistory = EntityUtility.GetComponentData<ClientInputHistoryCD>(player.entity, player.world);
+			inputHistory.secondInteractUITriggered = true;
+			EntityUtility.SetComponentData(player.entity, player.world, inputHistory);
+
+			// Simulate "right-click" or "use" action on the item.
+			// Swap back to the original item.
+			if (_fromSlotIndex != EquipmentSlotIndex && player.playerInventoryHandler.GetObjectData(_fromSlotIndex).objectID != ObjectID.None)
+			{
+				player.playerInventoryHandler.Swap(player, _fromSlotIndex, player.playerInventoryHandler, EquipmentSlotIndex);
+			}
+
+			// Setting it here makes it somehow "smoother"...?
+			EntityUtility.SetComponentData(player.entity, player.world, inputHistory);
+		}
+
+		/// <summary>
+		///     Swaps back to the previously equipped slot after casting the summon spell.
+		/// </summary>
+		private void SwapBackToPreviousSlot()
+		{
+			if (_previousSlotIndex == -1)
+			{
+				return;
+			}
+
+			Manager.main.player.EquipSlot(_previousSlotIndex);
 		}
 
 		#region IFeature
@@ -84,14 +198,16 @@ namespace CK_QOL.Features.QuickSummon
 
 		#region Configurations
 
-		/// <inheritdoc />
-		public override int EquipmentSlotIndex { get; }
+		internal string KeyBindNameX => $"{ModSettings.ShortName}_{Name}-TomeOfTheDark";
+		internal string KeyBindNameK => $"{ModSettings.ShortName}_{Name}-TomeOfTheDeep";
+		internal string KeyBindNameL => $"{ModSettings.ShortName}_{Name}-TomeOfTheDead";
+		internal int EquipmentSlotIndex { get; }
 
-		public override string KeyBindName => $"{ModSettings.ShortName}_{Name}";
-
-		public override void SetupKeyBindings()
+		public void SetupKeyBindings()
 		{
-			RewiredExtensionModule.AddKeybind(KeyBindName, DisplayName, KeyboardKeyCode.X);
+			RewiredExtensionModule.AddKeybind(KeyBindNameX, "Quick Summon Tome of the Dark", KeyboardKeyCode.J);
+			RewiredExtensionModule.AddKeybind(KeyBindNameK, "Quick Summon Tome of the Deep", KeyboardKeyCode.K);
+			RewiredExtensionModule.AddKeybind(KeyBindNameL, "Quick Summon Tome of the Dead", KeyboardKeyCode.L);
 		}
 
 		#endregion Configurations

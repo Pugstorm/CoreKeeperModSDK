@@ -89,10 +89,10 @@ namespace CK_QOL.Features.Wormhole.Patches
 		///     Attempts to retrieve the target entity for the Wormhole action based on the given map marker instance.
 		/// </summary>
 		/// <param name="instance">
-		///     The <see cref="MapMarkerUIElement"/> instance representing the map marker being interacted with.
+		///     The <see cref="MapMarkerUIElement" /> instance representing the map marker being interacted with.
 		/// </param>
 		/// <param name="targetEntity">
-		///     When this method returns, contains the target <see cref="Entity"/> to act upon if the method returns <c>true</c>;
+		///     When this method returns, contains the target <see cref="Entity" /> to act upon if the method returns <c>true</c>;
 		///     otherwise, contains the default value.
 		/// </param>
 		/// <returns>
@@ -102,21 +102,21 @@ namespace CK_QOL.Features.Wormhole.Patches
 		///     This method determines whether the Wormhole feature can be activated based on the following conditions:
 		///     <list type="bullet">
 		///         <item>
-		///             <description>The Wormhole feature is enabled (<see cref="Wormhole.IsEnabled"/> is <c>true</c>).</description>
+		///             <description>The Wormhole feature is enabled (<see cref="Wormhole.IsEnabled" /> is <c>true</c>).</description>
 		///         </item>
 		///         <item>
 		///             <description>The current player is not the target player.</description>
 		///         </item>
 		///         <item>
 		///             <description>
-		///                 If the marker type is <see cref="MapMarkerType.Player"/>, the target player is not <c>null</c>,
+		///                 If the marker type is <see cref="MapMarkerType.Player" />, the target player is not <c>null</c>,
 		///                 and the target entity is set to the target player's entity.
 		///             </description>
 		///         </item>
 		///         <item>
 		///             <description>
-		///                 If the marker type is not <see cref="MapMarkerType.Player"/>, and <see cref="Wormhole.AllMarkersAllowed"/>
-		///                 is <c>true</c>, and the map marker entity has a valid <see cref="LocalTransform"/>,
+		///                 If the marker type is not <see cref="MapMarkerType.Player" />, and <see cref="Wormhole.AllMarkersAllowed" />
+		///                 is <c>true</c>, and the map marker entity has a valid <see cref="LocalTransform" />,
 		///                 the target entity is set to the map marker entity.
 		///             </description>
 		///         </item>

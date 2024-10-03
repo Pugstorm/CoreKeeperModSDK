@@ -37,7 +37,7 @@ namespace CK_QOL.Features.Wormhole
 
 			return entry.Value;
 		}
-		
+
 		public bool ApplyAllMarkersAllowed()
 		{
 			var acceptableValues = new AcceptableValueList<bool>(true, false);

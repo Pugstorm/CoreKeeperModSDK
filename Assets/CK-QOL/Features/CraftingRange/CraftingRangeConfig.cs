@@ -31,11 +31,11 @@ namespace CK_QOL.Features.CraftingRange
 
 		public int ApplyMaxChests()
 		{
-			var acceptableValues = new AcceptableValueRange<int>(1, 50);
-			var description = new ConfigDescription("Maximum number of chests to include in crafting range.", acceptableValues);
+			var acceptableValues = new AcceptableValueRange<int>(1, 8);
+			var description = new ConfigDescription("Maximum number of chests to include in crafting range. More then 8 will break the game, because of a game restriction.", acceptableValues);
 			var definition = new ConfigDefinition(Feature.Name, nameof(Feature.MaxChests));
 
-			var entry = Config.Bind(definition, 10, description);
+			var entry = Config.Bind(definition, 8, description);
 
 			return entry.Value;
 		}
