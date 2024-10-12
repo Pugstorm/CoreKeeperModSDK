@@ -192,9 +192,15 @@ namespace PugMod
 				if (IsInEditorFolder(asset, modDirectory))
 				{
 					continue;
-				}
-				
-				if (!asset.EndsWith(".cs"))
+                }
+
+                if (asset.EndsWith(".asmdef"))
+                {
+                    assetPaths.RemoveAt(i);
+                    continue;
+                }
+
+                if (!asset.EndsWith(".cs"))
 				{
 					continue;
 				}
