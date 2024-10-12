@@ -25,6 +25,7 @@
 
 # Visual Studio cache directory
 .vs/
+.vsconfig
 
 # Gradle cache directory
 .gradle/
@@ -76,3 +77,7 @@ crashlytics-build.properties
 
 # Jetbrains
 .idea/
+
+# Late Imported Game Files
+Assets/Plugins/**/*.meta
+Assets/Resources/ConditionsTable*
