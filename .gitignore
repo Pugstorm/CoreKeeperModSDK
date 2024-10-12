@@ -81,3 +81,6 @@ crashlytics-build.properties
 # Late Imported Game Files
 Assets/Plugins/**/*.meta
 Assets/Resources/ConditionsTable*
+
+# Ignore Mods Folder
+Assets/Mods*
