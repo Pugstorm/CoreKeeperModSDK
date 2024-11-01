@@ -11,7 +11,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64144
+                        "instanceID": 66176
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -27,7 +27,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64146
+                        "instanceID": 66178
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -43,7 +43,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64148
+                        "instanceID": 66180
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -59,7 +59,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64150
+                        "instanceID": 66182
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -80,7 +80,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -96,7 +96,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -112,7 +112,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -128,7 +128,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -144,7 +144,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 11,
                     "isUnique": false,
@@ -176,7 +176,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 48,
                     "isUnique": false,
@@ -192,7 +192,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 48,
                     "isUnique": false,
@@ -208,7 +208,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -229,7 +229,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64154
+                        "instanceID": 66186
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -245,7 +245,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64154
+                        "instanceID": 66186
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -261,7 +261,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64156
+                        "instanceID": 66188
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -277,7 +277,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64154
+                        "instanceID": 66186
                     },
                     "useSameDescAsId": 173,
                     "isUnique": false,
@@ -293,7 +293,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64154
+                        "instanceID": 66186
                     },
                     "useSameDescAsId": 173,
                     "isUnique": false,
@@ -309,7 +309,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64154
+                        "instanceID": 66186
                     },
                     "useSameDescAsId": 173,
                     "isUnique": false,
@@ -325,10 +325,10 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
-                    "isUnique": false,
+                    "isUnique": true,
                     "skipShowingSignInfrontOfValue": false,
                     "showDecimal": false,
                     "skipShowingStatText": false
@@ -389,7 +389,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64154
+                        "instanceID": 66186
                     },
                     "useSameDescAsId": 51,
                     "isUnique": false,
@@ -405,7 +405,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64154
+                        "instanceID": 66186
                     },
                     "useSameDescAsId": 51,
                     "isUnique": false,
@@ -490,7 +490,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64160
+                        "instanceID": 66192
                     },
                     "useSameDescAsId": 29,
                     "isUnique": false,
@@ -506,7 +506,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64160
+                        "instanceID": 66192
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -575,7 +575,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64162
+                        "instanceID": 66194
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -612,7 +612,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64164
+                        "instanceID": 66196
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -628,7 +628,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64164
+                        "instanceID": 66196
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -750,7 +750,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64166
+                        "instanceID": 66198
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -766,7 +766,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -782,7 +782,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 12,
                     "isUnique": false,
@@ -796,7 +796,7 @@
                     "isAdditiveWithSelf": false,
                     "isPermanent": false,
                     "isNegative": false,
-                    "isInheritedByProjectiles": false,
+                    "isInheritedByProjectiles": true,
                     "icon": {
                         "instanceID": 0
                     },
@@ -814,7 +814,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64166
+                        "instanceID": 66198
                     },
                     "useSameDescAsId": 12,
                     "isUnique": false,
@@ -846,7 +846,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64166
+                        "instanceID": 66198
                     },
                     "useSameDescAsId": 12,
                     "isUnique": false,
@@ -862,7 +862,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64166
+                        "instanceID": 66198
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -878,7 +878,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64166
+                        "instanceID": 66198
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -899,7 +899,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64166
+                        "instanceID": 66198
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -968,7 +968,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -984,7 +984,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64170
+                        "instanceID": 66202
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false,
@@ -1000,7 +1000,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1016,7 +1016,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1032,7 +1032,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1048,7 +1048,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1080,7 +1080,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false,
@@ -1112,7 +1112,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64170
+                        "instanceID": 66202
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false,
@@ -1128,7 +1128,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1144,7 +1144,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false,
@@ -1160,7 +1160,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false,
@@ -1176,7 +1176,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1192,7 +1192,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false,
@@ -1208,7 +1208,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64146
+                        "instanceID": 66178
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1224,7 +1224,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 150,
                     "isUnique": false,
@@ -1240,7 +1240,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1256,7 +1256,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1288,7 +1288,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1304,7 +1304,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1320,7 +1320,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 10,
                     "isUnique": false,
@@ -1336,7 +1336,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1352,7 +1352,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1368,7 +1368,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1384,7 +1384,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 10,
                     "isUnique": false,
@@ -1400,7 +1400,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 22,
                     "isUnique": false,
@@ -1416,7 +1416,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 10,
                     "isUnique": false,
@@ -1432,7 +1432,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 10,
                     "isUnique": false,
@@ -1448,7 +1448,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1464,7 +1464,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1480,7 +1480,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 22,
                     "isUnique": false,
@@ -1496,7 +1496,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 22,
                     "isUnique": false,
@@ -1512,7 +1512,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 22,
                     "isUnique": false,
@@ -1560,7 +1560,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 289,
                     "isUnique": false,
@@ -1576,7 +1576,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 289,
                     "isUnique": false,
@@ -1597,7 +1597,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1629,7 +1629,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64158
+                        "instanceID": 66190
                     },
                     "useSameDescAsId": 96,
                     "isUnique": false,
@@ -1650,7 +1650,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64172
+                        "instanceID": 66204
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1682,7 +1682,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64174
+                        "instanceID": 66206
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1762,7 +1762,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64148
+                        "instanceID": 66180
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1815,7 +1815,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1831,7 +1831,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 33,
                     "isUnique": false,
@@ -1847,7 +1847,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 244,
                     "isUnique": false,
@@ -1863,7 +1863,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64176
+                        "instanceID": 66208
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1884,7 +1884,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64178
+                        "instanceID": 66210
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1900,7 +1900,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64178
+                        "instanceID": 66210
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -1916,7 +1916,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64178
+                        "instanceID": 66210
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2011,7 +2011,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64180
+                        "instanceID": 66212
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2105,9 +2105,9 @@
                     "isAdditiveWithSelf": false,
                     "isPermanent": false,
                     "isNegative": false,
-                    "isInheritedByProjectiles": false,
+                    "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64182
+                        "instanceID": 66214
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2192,7 +2192,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64184
+                        "instanceID": 66216
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2224,7 +2224,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64186
+                        "instanceID": 66218
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2245,7 +2245,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64188
+                        "instanceID": 66220
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2261,7 +2261,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64188
+                        "instanceID": 66220
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2277,7 +2277,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64188
+                        "instanceID": 66220
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2298,7 +2298,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64190
+                        "instanceID": 66222
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2314,7 +2314,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64190
+                        "instanceID": 66222
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2346,7 +2346,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64146
+                        "instanceID": 66178
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2378,7 +2378,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64190
+                        "instanceID": 66222
                     },
                     "useSameDescAsId": 5,
                     "isUnique": false,
@@ -2394,7 +2394,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64146
+                        "instanceID": 66178
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2410,7 +2410,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64190
+                        "instanceID": 66222
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2426,7 +2426,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64190
+                        "instanceID": 66222
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2442,7 +2442,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64190
+                        "instanceID": 66222
                     },
                     "useSameDescAsId": 5,
                     "isUnique": false,
@@ -2458,7 +2458,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64190
+                        "instanceID": 66222
                     },
                     "useSameDescAsId": 5,
                     "isUnique": false,
@@ -2474,7 +2474,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64190
+                        "instanceID": 66222
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2490,7 +2490,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64192
+                        "instanceID": 66224
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2559,7 +2559,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64164
+                        "instanceID": 66196
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2575,7 +2575,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64164
+                        "instanceID": 66196
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2607,7 +2607,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64164
+                        "instanceID": 66196
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2639,7 +2639,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64164
+                        "instanceID": 66196
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2655,7 +2655,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64164
+                        "instanceID": 66196
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2687,7 +2687,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64194
+                        "instanceID": 66226
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2740,7 +2740,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64196
+                        "instanceID": 66228
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2756,7 +2756,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64198
+                        "instanceID": 66230
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2788,7 +2788,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64152
+                        "instanceID": 66184
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2804,7 +2804,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64200
+                        "instanceID": 66232
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2836,7 +2836,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64202
+                        "instanceID": 66234
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2852,7 +2852,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64202
+                        "instanceID": 66234
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2868,7 +2868,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64204
+                        "instanceID": 66236
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2953,7 +2953,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64206
+                        "instanceID": 66238
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -2969,7 +2969,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64206
+                        "instanceID": 66238
                     },
                     "useSameDescAsId": 261,
                     "isUnique": false,
@@ -3081,7 +3081,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64206
+                        "instanceID": 66238
                     },
                     "useSameDescAsId": 261,
                     "isUnique": false,
@@ -3134,7 +3134,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64208
+                        "instanceID": 66240
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3246,7 +3246,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64208
+                        "instanceID": 66240
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3267,7 +3267,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64146
+                        "instanceID": 66178
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3283,7 +3283,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64146
+                        "instanceID": 66178
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3352,7 +3352,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64186
+                        "instanceID": 66218
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3368,7 +3368,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64186
+                        "instanceID": 66218
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3384,7 +3384,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64210
+                        "instanceID": 66242
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3400,7 +3400,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64186
+                        "instanceID": 66218
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3432,7 +3432,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64186
+                        "instanceID": 66218
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3448,7 +3448,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64186
+                        "instanceID": 66218
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3464,7 +3464,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64186
+                        "instanceID": 66218
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3485,7 +3485,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64212
+                        "instanceID": 66244
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3533,7 +3533,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64154
+                        "instanceID": 66186
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3549,7 +3549,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64166
+                        "instanceID": 66198
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3645,7 +3645,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64212
+                        "instanceID": 66244
                     },
                     "useSameDescAsId": 260,
                     "isUnique": false,
@@ -3666,7 +3666,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64194
+                        "instanceID": 66226
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3682,7 +3682,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64214
+                        "instanceID": 66246
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3730,7 +3730,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64214
+                        "instanceID": 66246
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3746,7 +3746,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64168
+                        "instanceID": 66200
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3778,7 +3778,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64214
+                        "instanceID": 66246
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3794,7 +3794,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64214
+                        "instanceID": 66246
                     },
                     "useSameDescAsId": 2,
                     "isUnique": false,
@@ -3810,7 +3810,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64214
+                        "instanceID": 66246
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3826,7 +3826,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64214
+                        "instanceID": 66246
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3842,7 +3842,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64194
+                        "instanceID": 66226
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3858,7 +3858,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64216
+                        "instanceID": 66248
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3874,7 +3874,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64194
+                        "instanceID": 66226
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3890,7 +3890,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64194
+                        "instanceID": 66226
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3906,7 +3906,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64194
+                        "instanceID": 66226
                     },
                     "useSameDescAsId": 4,
                     "isUnique": false,
@@ -3922,7 +3922,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64194
+                        "instanceID": 66226
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -3970,7 +3970,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64194
+                        "instanceID": 66226
                     },
                     "useSameDescAsId": 4,
                     "isUnique": false,
@@ -3986,7 +3986,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64218
+                        "instanceID": 66250
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4002,7 +4002,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64218
+                        "instanceID": 66250
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4156,7 +4156,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64204
+                        "instanceID": 66236
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4172,7 +4172,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64204
+                        "instanceID": 66236
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4188,7 +4188,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64178
+                        "instanceID": 66210
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4204,7 +4204,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64220
+                        "instanceID": 66252
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4220,7 +4220,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64222
+                        "instanceID": 66254
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4385,7 +4385,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64224
+                        "instanceID": 66256
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4550,7 +4550,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64226
+                        "instanceID": 66258
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4603,7 +4603,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64228
+                        "instanceID": 66260
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4805,7 +4805,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64204
+                        "instanceID": 66236
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4821,7 +4821,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64146
+                        "instanceID": 66178
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4949,7 +4949,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64230
+                        "instanceID": 66262
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4965,7 +4965,7 @@
                     "isNegative": true,
                     "isInheritedByProjectiles": false,
                     "icon": {
-                        "instanceID": 64176
+                        "instanceID": 66208
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,
@@ -4981,7 +4981,7 @@
                     "isNegative": false,
                     "isInheritedByProjectiles": true,
                     "icon": {
-                        "instanceID": 64176
+                        "instanceID": 66208
                     },
                     "useSameDescAsId": 0,
                     "isUnique": false,

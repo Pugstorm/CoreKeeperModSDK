@@ -1,0 +1,28 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:platforms="Unity.Entities.UI">
+  <ui:VisualElement name="header" class="build-configuration__header">
+    <ui:VisualElement style="flex-direction: row; flex-grow: 1">
+      <ui:BindableElement name="icon" class="build-configuration__icon"/>
+      <ui:VisualElement style="flex-direction: column; flex-grow: 1">
+        <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 3px">
+          <ui:Label name="name" class="build-configuration__name" binding-path="Name"/>
+          <ui:Button name="options" class="build-configuration__options"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="actions" class="build-configuration__actions">
+          <ui:Button name="action" class="build-configuration__action"/>
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
+  </ui:VisualElement>
+  <ui:Foldout name="dependencies" class="build-configuration__dependencies">
+    <ui:VisualElement name="container" class="build-configuration__dependencies-container">
+      <ui:ListView name="list" class="build-configuration__dependencies-list"/>
+      <ui:VisualElement style="flex-direction: row; justify-content: flex-end; padding: 3px 5px">
+        <ui:Button name="add" class="build-configuration__dependencies-add"/>
+      </ui:VisualElement>
+    </ui:VisualElement>
+  </ui:Foldout>
+  <ui:VisualElement name="components" class="build-configuration__components"/>
+  <ui:VisualElement name="footer" class="build-configuration__footer">
+    <ui:Button name="add-component" class="build-configuration__add-component"/>
+  </ui:VisualElement>
+</UXML>

@@ -1,0 +1,14 @@
+.memory-profiler-window
+{
+    flex-grow: 1;
+}
+
+.memory-profiler-window__left-pane
+{
+    min-width: 300px;
+}
+
+.memory-profiler-window__right-pane
+{
+    min-width: 250px;
+}

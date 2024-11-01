@@ -1,0 +1,4 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+  <ui:Image name="icon" class="active-build-config-popup-item__icon"/>
+  <ui:TextElement name="name" class="active-build-config-popup-item__name"/>
+</UXML>

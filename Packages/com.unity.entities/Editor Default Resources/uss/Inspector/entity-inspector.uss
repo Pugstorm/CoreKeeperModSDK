@@ -1,0 +1,23 @@
+.entity-inspector .tab-view__tab-header {
+    margin-bottom: 0;
+}
+
+.entity-inspector__runtime-bar
+{
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--runtime-mode-indent-color);
+}
+
+.entity-inspector__runtime-bar-added
+{
+    overflow: visible;
+    -unity-font-style: bold;
+}
+
+.unity-inspector-element--uie .entity-inspector
+{
+    margin-left: -15px;
+}

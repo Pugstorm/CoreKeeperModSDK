@@ -1,0 +1,5 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement class="entity-inspector-relationships-tab__content">
+        <ui:Label class="entity-inspector-relationships-tab__more" />
+    </ui:VisualElement>
+</UXML>

@@ -1,0 +1,181 @@
+.system-schedule-item__container
+{
+    flex-direction: row;
+    flex-grow:1;
+    flex-shrink: 1;
+}
+
+.system-schedule-item__icon
+{
+    width:16px;
+    height:16px;
+}
+
+.system-schedule-item__column-system-name
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: row;
+    white-space: nowrap;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.system-schedule-item__column-world-name
+{
+    width: 120px;
+}
+
+.system-schedule-item__column-namespace
+{
+    width: 150px;
+    padding-right: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.system-schedule-item__column-entity-count
+{
+    width: 75px;
+    padding-right: 8px;
+    white-space: nowrap;
+}
+
+.system-schedule-item__column-time
+{
+    width: 75px;
+    padding-right: 8px;
+    white-space: nowrap;
+}
+
+.system-schedule-item__name-label
+{
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.system-schedule-item__name-label-normal
+{
+    -unity-font-style: normal;
+}
+
+.system-schedule-item__name-label-bold
+{
+    -unity-font-style: bold;
+}
+
+.system-schedule-item__world-label
+{
+    -unity-text-align: middle-left;
+    padding-right: 40px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.system-schedule-item__namespace-label
+{
+    -unity-text-align: middle-left;
+    padding-right: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.system-schedule-item__entity-count-label
+{
+    -unity-text-align: upper-right;
+}
+
+.system-schedule-item__time-label
+{
+    -unity-text-align: upper-right;
+}
+
+/*** Normal State ***/
+
+.system-schedule-item__icon--system
+{
+    background-image: var(--system-icon);
+}
+
+.system-schedule-item__icon--unmanaged-system
+{
+    background-image: var(--unmanaged-system-icon);
+}
+
+.system-schedule-item__icon--system-group
+{
+    background-image: var(--group-icon);
+}
+
+.system-schedule-item__icon--begin-command-buffer
+{
+    background-image: var(--begin-command-buffer-icon);
+}
+
+.system-schedule-item__icon--end-command-buffer
+{
+    background-image: var(--end-command-buffer-icon);
+}
+
+.system-schedule-item__icon--player-loop
+{
+    background-image: var(--group-icon);
+}
+
+/*** Selected State ***/
+
+.unity-list-view:focus .unity-list-view__item:checked .system-schedule-item__icon--system,
+.unity-tree-view:focus .unity-tree-view__item:checked .system-schedule-item__icon--system
+{
+    background-image: var(--system-icon--selected);
+}
+
+.unity-list-view:focus .unity-list-view__item:checked .system-schedule-item__icon--unmanaged-system,
+.unity-tree-view:focus .unity-tree-view__item:checked .system-schedule-item__icon--unmanaged-system
+{
+    background-image: var(--unmanaged-system-icon--selected);
+}
+
+.unity-list-view:focus .unity-list-view__item:checked .system-schedule-item__icon--system-group,
+.unity-tree-view:focus .unity-tree-view__item:checked .system-schedule-item__icon--system-group
+{
+    background-image: var(--group-icon--selected);
+}
+
+.unity-list-view:focus .unity-list-view__item:checked .system-schedule-item__icon--begin-command-buffer,
+.unity-tree-view:focus .unity-tree-view__item:checked .system-schedule-item__icon--begin-command-buffer
+{
+    background-image: var(--begin-command-buffer-icon--selected);
+}
+
+.unity-list-view:focus .unity-list-view__item:checked .system-schedule-item__icon--end-command-buffer,
+.unity-tree-view:focus .unity-tree-view__item:checked .system-schedule-item__icon--end-command-buffer
+{
+    background-image: var(--end-command-buffer-icon--selected);
+}
+
+.unity-tree-view__item:checked,.unity-list-view__item:checked .system-schedule-item__name-label
+{
+    color: var(--theme-line-selection-text-color);
+}
+
+.unity-tree-view__item:checked,.unity-list-view__item:checked .system-schedule-item__world-label
+{
+    color: var(--theme-line-selection-text-color);
+}
+
+.unity-tree-view__item:checked,.unity-list-view__item:checked .system-schedule-item__namespace-label
+{
+    color: var(--theme-line-selection-text-color);
+}
+
+.unity-tree-view__item:checked,.unity-list-view__item:checked .system-schedule-item__entity-count-label
+{
+    color: var(--theme-line-selection-text-color);
+}
+
+.unity-tree-view__item:checked,.unity-list-view__item:checked .system-schedule-item__time-label
+{
+    color: var(--theme-line-selection-text-color);
+}

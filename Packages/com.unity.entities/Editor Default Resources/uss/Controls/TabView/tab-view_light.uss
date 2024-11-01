@@ -1,0 +1,8 @@
+.tab-view__tab-header
+{
+}
+
+.tab-view__tab--active
+{
+    border-bottom-color: #3C76C0;
+}

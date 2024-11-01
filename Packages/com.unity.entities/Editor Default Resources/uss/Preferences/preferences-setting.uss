@@ -1,0 +1,15 @@
+.preferences-setting
+{
+    flex-shrink: 0;
+    margin-top: 15px; /* 21px "optical": compensates for line height and general block model spacing */
+}
+
+.preferences-setting__name
+{
+    padding: 0;
+    -unity-font-style: bold;
+}
+
+.preferences-setting__content
+{
+}

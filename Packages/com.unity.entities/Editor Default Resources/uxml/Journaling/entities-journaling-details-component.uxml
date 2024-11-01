@@ -1,0 +1,6 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uee="Unity.Entities.Editor" xmlns:uip="Unity.Entities.UI">
+    <ui:Image name="icon" class="entities-journaling-details-component__icon"/>
+    <ui:Label name="name" class="entities-journaling-details-component__name"/>
+    <ui:Button name="search" class="entities-journaling-details-component__search"/>
+    <ui:Button name="goto" class="entities-journaling-details-component__goto"/>
+</UXML>

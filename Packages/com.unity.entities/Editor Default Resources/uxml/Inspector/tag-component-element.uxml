@@ -1,0 +1,7 @@
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="row tag-element">
+        <ui:VisualElement class="component-icon"/>
+        <ui:Toggle class="component-enabled"/>
+        <ui:Label class="component-name"/>
+    </ui:VisualElement>
+</UXML>

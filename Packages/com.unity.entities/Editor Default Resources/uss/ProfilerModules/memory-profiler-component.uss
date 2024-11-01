@@ -1,0 +1,33 @@
+.memory-profiler-component
+{
+    flex-shrink: 0;
+    flex-direction: row;
+    height: 18px;
+    justify-content: space-between;
+    -unity-text-align: middle-left;
+}
+
+.memory-profiler-component__label
+{
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+.memory-profiler-component__icon
+{
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.memory-profiler-component__name
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.memory-profiler-component__size
+{
+}

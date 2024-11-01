@@ -1,0 +1,29 @@
+.unity-platforms__variables
+{
+    /* Colors */
+    --collection-item__top-line-color:#303030;
+    --collection-item__content:#404040;
+    --collection-item__border:#2E2E2E;
+
+    --new-key-item__color: #3249ED;
+
+    --pagination-border-color:#202020;
+
+    --runtime-bar-color: #FFA53C;
+
+    /* Textures */
+    --remove-button: resource("Packages/com.unity.entities/Editor Default Resources/Unity.Entities.UI/icons/dark/Close S.png");
+    --error-icon: resource("Packages/com.unity.entities/Editor Default Resources/Unity.Entities.UI/icons/dark/Error.png");
+    --previous-button: resource("Packages/com.unity.entities/Editor Default Resources/Unity.Entities.UI/icons/dark/PreviousButton.png");
+    --next-button: resource("Packages/com.unity.entities/Editor Default Resources/Unity.Entities.UI/icons/dark/NextButton.png");
+    --circular-reference-icon: resource("Packages/com.unity.entities/Editor Default Resources/Unity.Entities.UI/icons/dark/CircularReference.png");
+    --add-icon: resource("Packages/com.unity.entities/Editor Default Resources/Unity.Entities.UI/icons/dark/Add.png");
+}
+
+.unity-platforms__highlight
+{
+    border-left-color: lightblue;
+    border-left-width: 2px;
+    border-bottom-left-radius: 3px;
+    border-top-left-radius: 3px;
+}

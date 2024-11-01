@@ -1,0 +1,62 @@
+.hierarchy-prefab-stage
+{
+    background-color: var(--prefab-stage-background-color);
+}
+
+.hierarchy-prefab-stage:hover
+{
+    background-color: var(--prefab-stage-background-hover-color);
+}
+
+.hierarchy-prefab-stage:active Label
+{
+    color: var(--prefab-stage-background-active-color);
+}
+
+.hierarchy-prefab-stage__container
+{
+    flex-direction: row;
+}
+
+.hierarchy-prefab-stage__back
+{
+    min-width: 12px;
+}
+
+.hierarchy-prefab-stage__back:hover
+{
+    background-color: var(--prefab-stage-back-button-hover-color);
+}
+
+.hierarchy-prefab-stage__back:active
+{
+    background-color: var(--prefab-stage-back-button-active-color);
+}
+
+.hierarchy-prefab-stage__back-icon
+{
+    margin: 3px 0 3px 0;
+    width: 16px;
+    height: 16px;
+    background-image: var(--arrow-navigation-left);
+}
+
+.hierarchy-prefab-stage__name-container
+{
+    flex-grow: 1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.hierarchy-prefab-stage__name-icon
+{
+    width: 16px;
+    height: 16px;
+    background-image: var(--prefab-gameobject-icon);
+}
+
+.hierarchy-prefab-stage__name-label
+{
+    -unity-font-style: bold;
+}

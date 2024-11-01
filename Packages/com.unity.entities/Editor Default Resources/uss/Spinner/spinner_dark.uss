@@ -1,0 +1,15 @@
+.spinner-icons
+{
+    --spinner-icon-0: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner00.png");
+    --spinner-icon-1: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner01.png");
+    --spinner-icon-2: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner02.png");
+    --spinner-icon-3: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner03.png");
+    --spinner-icon-4: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner04.png");
+    --spinner-icon-5: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner05.png");
+    --spinner-icon-6: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner06.png");
+    --spinner-icon-7: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner07.png");
+    --spinner-icon-8: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner08.png");
+    --spinner-icon-9: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner09.png");
+    --spinner-icon-10: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner10.png");
+    --spinner-icon-11: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Spinner/Spinner11.png");
+}

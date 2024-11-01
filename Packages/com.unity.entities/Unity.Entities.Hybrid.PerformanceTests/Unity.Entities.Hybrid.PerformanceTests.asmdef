@@ -1,0 +1,40 @@
+{
+    "name": "Unity.Entities.Hybrid.PerformanceTests",
+    "rootNamespace": "",
+    "references": [
+        "Unity.PerformanceTesting",
+        "Unity.Entities",
+        "Unity.Entities.Hybrid",
+        "Unity.Entities.Tests",
+        "Unity.Entities.Hybrid.Tests",
+        "Unity.Entities.TestComponents",
+        "Unity.Collections",
+        "Unity.Transforms",
+        "Unity.Transforms.Hybrid",
+        "Unity.Mathematics",
+        "Unity.Build",
+        "Unity.Build.Classic",
+        "Unity.Burst",
+        "Unity.Entities.Hybrid.EndToEnd.Tests",
+        "Unity.Scenes",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Unity.Scenes.Editor",
+        "Unity.Scenes.Editor.Tests"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

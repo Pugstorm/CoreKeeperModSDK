@@ -1,0 +1,55 @@
+.foldout-without-action-button__container {
+    flex-direction: row;
+    flex-grow: 1;
+    -unity-font-style: bold;
+    align-items: flex-end;
+    flex-shrink: 1;
+    padding: 3px 0 3px 0;
+}
+
+.foldout-without-action-button__name-container{
+    flex-direction: row;
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.foldout-without-action-button__name {
+    margin: 0;
+    padding: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.foldout-without-action-button__count {
+    margin-right: 3px;
+    min-width: 0;
+    -unity-font-style: normal;
+    color: var(--section-count-color);
+}
+
+.foldout-without-action-button__toggle-input {
+    padding-top: 3px;
+}
+
+.foldout-without-action-button__toggle-no-border {
+    border-top-width: 0;
+    border-bottom-width: 0;
+    background-color: transparent;
+}
+
+FoldoutWithoutActionButton > Toggle {
+    background-color: var(--section-background-color);
+    border-top-width: 1px;
+    border-top-color: var(--section-border-top-color);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--section-border-bottom-color);
+    margin: 0;
+    padding: 0;
+}
+
+FoldoutWithoutActionButton > Toggle:hover {
+    background-color: var(--header-background-hover-color);
+}

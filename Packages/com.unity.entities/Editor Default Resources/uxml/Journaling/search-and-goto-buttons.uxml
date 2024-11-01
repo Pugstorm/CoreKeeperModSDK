@@ -1,0 +1,6 @@
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="search-and-goto-buttons" class="search-and-goto-buttons">
+        <ui:Button name="search-button" class="search-button"/>
+        <ui:Button name="goto-button" class="goto-button"/>
+    </ui:VisualElement>
+</UXML>

@@ -1,0 +1,25 @@
+.header__container
+{
+    height: 54px;
+    flex-shrink: 0;
+    flex-direction: row;
+}
+
+.header__icon
+{
+    margin-left: 10px;
+    margin-right: 2px;
+    height: 32px;
+    width: 32px;
+    flex-shrink: 0;
+    flex-grow: 0;
+    align-self: center;
+}
+
+.header__name
+{
+    align-self: center;
+    -unity-font-style: bold;
+    font-size: 12px;
+}
+

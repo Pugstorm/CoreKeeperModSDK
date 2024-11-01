@@ -1,0 +1,9 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <uie:Toolbar class="system-schedule-treeview-header">
+        <ui:Label name="SystemName" text="Systems" class="system-schedule-header__system-label"/>
+        <ui:Label name="WorldName" text="World" tooltip="The world on which this system operates." class="system-schedule-header__world-label"/>
+        <ui:Label name="Namespace" text="Namespace" tooltip="Namespace to which this system belongs." class="system-schedule-header__namespace-label"/>
+        <ui:Label name="EntityCount" text="Entity Count" tooltip="The number of entities that match the queries at the end of the frame." class="system-schedule-header__entity-count-label"/>
+        <ui:Label name="Time" text="Time (ms)" tooltip="System running time." class="system-schedule-header__time-label"/>
+    </uie:Toolbar>
+</UXML>

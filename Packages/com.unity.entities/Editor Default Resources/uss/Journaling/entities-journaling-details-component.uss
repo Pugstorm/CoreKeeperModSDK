@@ -1,0 +1,52 @@
+.entities-journaling-details-component
+{
+    flex-direction: row;
+    align-items: center;
+}
+
+.entities-journaling-details-component__icon
+{
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px 5px;
+    background-color: transparent;
+}
+
+.entities-journaling-details-component__name
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 0px;
+    margin: 0px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -unity-text-align: middle-left;
+}
+
+.entities-journaling-details-component__search
+{
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px 0px 0px 3px;
+    background-color: transparent;
+}
+
+.entities-journaling-details-component__goto
+{
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px 5px 0px 3px;
+    background-color: transparent;
+}

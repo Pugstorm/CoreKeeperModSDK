@@ -1,0 +1,15 @@
+
+.system-list-view__more-label {
+    -unity-text-align: middle-center;
+    white-space: normal;
+    padding: 10px;
+}
+
+.system-list-view__system-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 3px;
+    flex-shrink: 0;
+    flex-grow: 0;
+    background-image: var(--system-icon);
+}

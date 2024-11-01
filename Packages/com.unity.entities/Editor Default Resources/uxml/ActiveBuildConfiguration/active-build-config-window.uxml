@@ -1,0 +1,11 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uee="Unity.Entities.Editor.UIElements">
+  <!--<ui:TwoPaneSplitView name="splitter" fixed-pane-initial-dimension="200">-->
+    <ui:VisualElement name="left-panel" class="active-build-config-window__left-panel">
+      <uee:SearchField name="search" class="active-build-config-window__search"/>
+      <ui:ListView name="list" class="active-build-config-window__list"/>
+    </ui:VisualElement>
+    <!--<ui:VisualElement name="right-panel" class="active-build-config-window__right-panel">
+      <ui:Label text="Under Construction"/>
+    </ui:VisualElement>
+  </ui:TwoPaneSplitView>-->
+</UXML>

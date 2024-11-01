@@ -1,0 +1,22 @@
+.wait-spinner-icons
+{
+    --wait-spinner-0: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin00.png");
+    --wait-spinner-1: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin01.png");
+    --wait-spinner-2: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin02.png");
+    --wait-spinner-3: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin03.png");
+    --wait-spinner-4: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin04.png");
+    --wait-spinner-5: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin05.png");
+    --wait-spinner-6: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin06.png");
+    --wait-spinner-7: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin07.png");
+    --wait-spinner-8: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin08.png");
+    --wait-spinner-9: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin09.png");
+    --wait-spinner-10: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin10.png");
+    --wait-spinner-11: resource("Packages/com.unity.entities/Unity.Entities.Editor/ContentProvider/Selection/icons/dark/WaitSpin/WaitSpin11.png");
+}
+
+.content-not-ready__container
+{
+    border-color:#212121;
+    background-color: #3C3C3C;
+}
+

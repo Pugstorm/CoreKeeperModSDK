@@ -1,0 +1,17 @@
+.hierarchy-toolbar__container
+{
+    justify-content: space-between;
+}
+
+.hierarchy-toolbar__container > VisualElement
+{
+    align-items: center;
+    flex-direction: row;
+}
+
+.hierarchy-toolbar__search-field
+{
+    flex: 1 1 300px;
+    max-width: 300px;
+    min-width: 100px;
+}

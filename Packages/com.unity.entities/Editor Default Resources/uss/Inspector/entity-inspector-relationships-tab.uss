@@ -1,0 +1,13 @@
+.entity-inspector-relationships-tab__container {
+    flex-grow: 1;
+}
+
+.entity-inspector-relationships-tab__search-field {
+    flex-grow: 1;
+    flex-shrink: 1;
+    width: auto;
+}
+
+SectionElement > Toggle {
+    margin: 0;
+}

@@ -1,0 +1,8 @@
+.system__icon--big { background-image: var(--system-icon-32); }
+.ecb-begin__icon--big { background-image: var(--begin-command-buffer-icon-32); }
+.ecb-end__icon--big { background-image: var(--end-command-buffer-icon-32); }
+.group__icon--big { background-image: var(--group-icon-32); }
+
+.system-queries__empty {
+    margin: 10px;
+}

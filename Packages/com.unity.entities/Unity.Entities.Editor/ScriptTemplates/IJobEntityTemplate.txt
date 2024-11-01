@@ -1,0 +1,11 @@
+using Unity.Entities;
+
+    #ROOTNAMESPACEBEGIN#
+public partial struct #SCRIPTNAME# : IJobEntity
+{
+    public void Execute()
+    {
+        #NOTRIM#
+    }
+}
+#ROOTNAMESPACEEND#

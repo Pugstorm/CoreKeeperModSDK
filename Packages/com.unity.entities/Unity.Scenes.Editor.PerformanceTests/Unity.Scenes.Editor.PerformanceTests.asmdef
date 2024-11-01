@@ -1,0 +1,37 @@
+{
+    "name": "Unity.Scenes.Editor.PerformanceTests",
+    "rootNamespace": "",
+    "references": [
+        "Unity.Entities.Tests",
+        "Unity.Entities",
+        "Unity.Scenes",
+        "Unity.Scenes.Editor",
+        "Unity.Entities.Hybrid",
+        "Unity.Entities.Hybrid.Tests",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Unity.Entities.TestComponents",
+        "Unity.Mathematics",
+        "Unity.Build",
+        "Unity.Build.Classic",
+        "Unity.Collections",
+        "Unity.Transforms",
+        "Unity.Scenes.Editor.Tests",
+        "Unity.PerformanceTesting"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

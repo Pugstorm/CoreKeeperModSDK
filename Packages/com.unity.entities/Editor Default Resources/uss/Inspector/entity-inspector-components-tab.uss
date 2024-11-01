@@ -1,0 +1,9 @@
+.entity-inspector-components-tab__search-field {
+    flex-grow: 1;
+    flex-shrink: 1;
+    width: auto;
+}
+
+.entity-inspector-components-tab__content {
+
+}

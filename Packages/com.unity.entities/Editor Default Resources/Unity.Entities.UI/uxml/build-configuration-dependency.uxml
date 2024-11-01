@@ -1,0 +1,7 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:platforms="Unity.Entities.UI">
+  <ui:VisualElement name="container" class="build-configuration-dependency__container">
+    <ui:VisualElement name="handle" class="build-configuration-dependency__handle"/>
+    <uie:ObjectField name="object" class="build-configuration-dependency__object"/>
+    <ui:Button name="remove" class="build-configuration-dependency__remove"/>
+  </ui:VisualElement>
+</UXML>

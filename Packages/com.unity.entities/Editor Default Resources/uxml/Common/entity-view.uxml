@@ -1,0 +1,11 @@
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="entity-view__container">
+        <ui:VisualElement class="entity-view__identity">
+            <ui:VisualElement class="entity-view__icon" />
+            <ui:Label class="entity-view__name" />
+        </ui:VisualElement>
+        <ui:VisualElement class="entity-view__goto" >
+            <ui:VisualElement class="entity-view__goto-icon" tooltip="Select Entity" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</UXML>

@@ -1,0 +1,37 @@
+.memory-profiler-left-pane__options
+{
+    background-image: resource("builtin skins/darkskin/images/pane options.png");
+}
+
+.memory-profiler-left-pane__options:hover
+{
+    background-color: #555555;
+}
+
+.memory-profiler-left-pane__header
+{
+    background-color: #3e3e3e;
+}
+
+.memory-profiler-left-pane__column2
+{
+    border-color: #5f5f5f;
+}
+
+.memory-profiler-left-pane__column3
+{
+    border-color: #5f5f5f;
+}
+
+/*** List View/Tree View Hover/Selected TEMP FIX ***/
+
+.unity-list-view__item:hover
+{
+    background-color: #444444;
+}
+
+.unity-list-view__item--selected,
+.unity-list-view__item--selected:hover
+{
+    background-color: #2C5D87;
+}

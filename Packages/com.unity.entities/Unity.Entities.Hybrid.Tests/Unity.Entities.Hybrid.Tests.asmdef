@@ -1,0 +1,41 @@
+{
+    "name": "Unity.Entities.Hybrid.Tests",
+    "rootNamespace": "",
+    "references": [
+        "Unity.Entities",
+        "Unity.Entities.Hybrid",
+        "Unity.Entities.Tests",
+        "Unity.Entities.TestComponents",
+        "Unity.Collections",
+        "Unity.Transforms",
+        "Unity.Transforms.Hybrid",
+        "Unity.Mathematics",
+        "Unity.Build",
+        "Unity.Build.Classic",
+        "Unity.Burst",
+        "Unity.Entities.Hybrid.EndToEnd.Tests",
+        "Unity.Scenes",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Unity.Scenes.Editor",
+        "Unity.Entities.Hybrid.Tests.SeparateAssembly",
+        "Unity.Entities.Build.Editor",
+        "Unity.Entities.Build",
+        "Unity.Entities.Hybrid.Tests.ExcludedAssembly"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,7 @@
+﻿Index,RecordType,FrameIndex,World,ExecutingSystem,OriginSystem,Entities,ComponentTypes,Data
+0,CreateEntity,11,"Test World",,,Entity(0:1);Entity(1:1);Entity(2:1),Unity.Entities.Simulate;Unity.Entities.Tests.EcsTestData;Unity.Entities.Tests.EcsTestData2;Unity.Entities.Tests.EcsTestData3,
+1,CreateEntity,11,"Test World",,,"Unity.Entities.Tests.EntitiesJournalingTests+TestComponentSys (3:1)",Unity.Entities.Simulate;Unity.Entities.SystemInstance,
+2,GetComponentDataRW,11,"Test World",,,"Unity.Entities.Tests.EntitiesJournalingTests+TestComponentSys (3:1)",Unity.Entities.SystemInstance,[{}]
+3,SystemAdded,11,"Test World",,,,,Unity.Entities.Tests.EntitiesJournalingTests+TestComponentSystem
+4,GetComponentDataRW,11,"Test World",Unity.Entities.Tests.EntitiesJournalingTests+TestComponentSystem,,Entity(0:1);Entity(1:1);Entity(2:1),Unity.Entities.Tests.EcsTestData,"[{value=0} {value=0} {value=0}]"
+5,GetComponentDataRW,11,"Test World",Unity.Entities.Tests.EntitiesJournalingTests+TestComponentSystem,,Entity(0:1);Entity(1:1);Entity(2:1),Unity.Entities.Tests.EcsTestData2,"[{value0=0 value1=0} {value0=0 value1=0} {value0=0 value1=0}]"

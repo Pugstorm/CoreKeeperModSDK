@@ -51,9 +51,16 @@ SO_TEXTURE2D(_SpriteNormalTex);
 SO_SAMPLER(_SpriteTex);
 float4 _SpriteTex_TexelSize;
 
+#if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
 StructuredBuffer<float4> _CompressedColorsBuffer;
+uint _CompressedColorsBufferCount;
 StructuredBuffer<float4> _CompressedEmissiveColorsBuffer;
+uint _CompressedEmissiveColorsBufferCount;
+#if !SPRITE_INSTANCING_DISABLE_NORMAL_ATLAS
 StructuredBuffer<float4> _CompressedNormalColorsBuffer;
+uint _CompressedNormalColorsBufferCount;
+#endif
+#endif
 
 SO_TEXTURE2D(_TransformAnimationTexture);
 float4 _TransformAnimationTexture_TexelSize;
@@ -71,6 +78,7 @@ float3 _TransformAnimParams;
 
 float _TransformAnimationTime;
 float _EditorTime;
+float _CompressedColorsMaxValue;
 
 SO_SAMPLER(_gradient_point_clamp_sampler);
 
@@ -113,12 +121,19 @@ void ApplyTransformAnimation(inout float4 vertex, float3 transformAnimParams, fl
 	}
 }
 
+#if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
+uint GetCompressedBufferIndex(float x, uint count)
+{
+    return uint(clamp(x * _CompressedColorsMaxValue, 0, float(count - 1)));
+}
+#endif
+
 float2 GetUV(float2 uv, float4 rect) { return uv = (rect.xy + rect.zw * uv) * TEXEL_SIZE.xy; }
 float4 GetColor(float2 uv)
 {
 	float4 color = SO_SAMPLE_TEXTURE2D(COLOR_TEXTURE, COLOR_SAMPLER, uv);
 #if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
-	color = _CompressedColorsBuffer[color.r * 65535];
+	color = _CompressedColorsBuffer[GetCompressedBufferIndex(color.r, _CompressedColorsBufferCount)];
 #endif
 	return color;
 }
@@ -126,17 +141,21 @@ float4 GetEmissive(float2 uv)
 {
 	float4 color = SO_SAMPLE_TEXTURE2D(EMISSIVE_TEXTURE, EMISSIVE_SAMPLER, uv);
 #if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
-	color = _CompressedEmissiveColorsBuffer[color.r * 65535];
+	color = _CompressedEmissiveColorsBuffer[GetCompressedBufferIndex(color.r, _CompressedEmissiveColorsBufferCount)];
 #endif
 	return color;
 }
 float3 GetNormal(float2 uv)
 {
+#if !SPRITE_INSTANCING_DISABLE_NORMAL_ATLAS
 	float4 color = SO_SAMPLE_TEXTURE2D(NORMAL_TEXTURE, NORMAL_SAMPLER, uv);
 #if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
-	color = _CompressedNormalColorsBuffer[color.r * 65535];
+	color = _CompressedNormalColorsBuffer[GetCompressedBufferIndex(color.r, _CompressedNormalColorsBufferCount)];
 #endif
 	return UnpackNormal(color);
+#else
+    return float3(0, 0, 1);
+#endif
 }
 float GetAlpha(float2 uv) { return GetColor(uv).a; }
 

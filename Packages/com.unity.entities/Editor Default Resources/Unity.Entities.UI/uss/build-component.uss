@@ -1,0 +1,121 @@
+.build-component__header
+{
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background-color: transparent;
+    padding: 3px;
+    border-width: 1px 0px;
+    border-radius: 0px;
+    border-color: transparent;
+    margin: 0px;
+}
+
+.build-component__header-left
+{
+    flex-shrink: 0;
+    align-items: center;
+    flex-direction: row;
+}
+
+.build-component__header-right
+{
+    flex-shrink: 1;
+    align-items: center;
+    flex-direction: row;
+}
+
+.build-component__foldout
+{
+    flex-shrink: 0;
+    background-color: transparent;
+    width: 13px;
+    height: 13px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    border-color: transparent;
+    margin: 0px 0px 0px 2px;
+}
+
+.build-component__foldout-open
+{
+}
+
+.build-component__foldout-closed
+{
+}
+
+.build-component__icon
+{
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    border-color: transparent;
+    margin: 0px;
+}
+
+.build-component__name
+{
+    flex-shrink: 0;
+    -unity-text-align: middle-left;
+    -unity-font-style: bold;
+}
+
+.build-component__warning
+{
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    border-color: transparent;
+    margin: 0px;
+}
+
+.build-component__add
+{
+    flex-shrink: 0;
+    background-color: transparent;
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    border-color: transparent;
+    margin: 0px;
+}
+
+.build-component__options
+{
+    flex-shrink: 0;
+    background-color: transparent;
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    border-color: transparent;
+    margin: 0px;
+}
+
+.build-component__body
+{
+    background-color: transparent;
+    padding: 3px 1px 3px 13px;
+    border-width: 0px 0px 0px 2px;
+    border-radius: 0px;
+    border-color: transparent;
+}
+
+.build-component__body-overriding
+{
+}
+
+.build-component__value
+{
+}

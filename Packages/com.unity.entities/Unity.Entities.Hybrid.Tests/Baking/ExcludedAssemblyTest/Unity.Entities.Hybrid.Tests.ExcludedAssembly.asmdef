@@ -1,0 +1,22 @@
+{
+  "name": "Unity.Entities.Hybrid.Tests.ExcludedAssembly",
+  "rootNamespace": "",
+  "references": [
+    "Unity.Collections",
+    "Unity.Entities",
+    "Unity.Entities.Hybrid",
+    "Unity.Entities.Build",
+    "Unity.Entities.Hybrid.Tests.SeparateAssembly"
+  ],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

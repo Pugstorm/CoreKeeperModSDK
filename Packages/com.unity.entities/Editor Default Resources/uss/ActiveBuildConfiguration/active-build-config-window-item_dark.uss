@@ -1,0 +1,9 @@
+.active-build-config-window-item__show .unity-toggle__checkmark
+{
+    background-image: resource("icons/d_scenevis_hidden_hover.png");
+}
+
+.active-build-config-window-item__show:checked .unity-toggle__checkmark
+{
+    background-image: resource("icons/d_scenevis_visible_hover.png");
+}

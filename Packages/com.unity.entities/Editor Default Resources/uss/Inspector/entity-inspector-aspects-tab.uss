@@ -1,0 +1,14 @@
+﻿.entity-inspector-aspects-tab__search-field {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 8px;
+    width: auto;
+}
+
+.entity-inspector-aspects-tab__content {
+
+}
+
+.entity-inspector-aspects-tab__view-all-components {
+    margin: 10px 0 10px 20px;
+}

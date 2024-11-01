@@ -1,0 +1,22 @@
+{
+  "ErrorExceptions": [
+    {
+      "ValidationTest": "API Validation",
+      "ExceptionMessage": "Additions require a new minor or major version.",
+      "PackageVersion": "1.2.4"
+    },
+
+    {
+      "ValidationTest": "API Validation",
+      "ExceptionMessage": "New assembly \"Unity.Entities.TestComponents\" may only be added in a new minor or major version.",
+      "PackageVersion": "1.2.4"
+    },
+
+    {
+      "ValidationTest": "API Validation",
+      "ExceptionMessage": "New assembly \"Unity.Scenes.PerformanceTests\" may only be added in a new minor or major version.",
+      "PackageVersion": "1.2.4"
+    }
+  ],
+  "WarningExceptions": []
+}

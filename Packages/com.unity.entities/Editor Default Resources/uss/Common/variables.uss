@@ -1,0 +1,13 @@
+.variables
+{
+    --system-icon--selected: resource("Packages/com.unity.entities/Editor Default Resources/icons/selected/System/System.png");
+    --group-icon--selected: resource("Packages/com.unity.entities/Editor Default Resources/icons/selected/Group/Group.png");
+    --begin-command-buffer-icon--selected: resource("Packages/com.unity.entities/Editor Default Resources/icons/selected/BeginCommandBuffer/BeginCommandBuffer.png");
+    --end-command-buffer-icon--selected: resource("Packages/com.unity.entities/Editor Default Resources/icons/selected/EndCommandBuffer/EndCommandBuffer.png");
+    --unmanaged-system-icon--selected: resource("Packages/com.unity.entities/Editor Default Resources/icons/selected/UnmanagedSystem/UnmanagedSystem.png");
+    --entity-icon--selected: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Entity/Entity.png");
+    --prefab-entity-icon--selected: resource("Packages/com.unity.entities/Editor Default Resources/icons/selected/Entity/EntityPrefab.png");
+    --scene-icon--selected: resource('d_SceneAsset Icon');
+    --go-to-systems-icon--selected: resource("Packages/com.unity.entities/Editor Default Resources/icons/dark/Go To Systems/Go to Systems.png");
+    --gameobject--selected: resource("d_GameObject Icon");
+}

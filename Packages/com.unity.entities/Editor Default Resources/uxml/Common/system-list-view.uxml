@@ -1,0 +1,5 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement class="system-list-view__content">
+        <ui:Label class="system-list-view__more-label" />
+    </ui:VisualElement>
+</UXML>

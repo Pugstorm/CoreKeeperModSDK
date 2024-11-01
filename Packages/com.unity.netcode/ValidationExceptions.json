@@ -1,20 +1,17 @@
 {
-    "ErrorExceptions": [
-        {
-            "ValidationTest": "API Validation",
-            "ExceptionMessage": "For Experimental or Preview Packages, breaking changes require a new minor version.",
-            "PackageVersion": "1.2.1"
-        },
-        {
-            "ValidationTest": "API Validation",
-            "ExceptionMessage": "Additions require a new minor or major version.",
-            "PackageVersion": "1.2.1"
-        },
-        {
+  "ErrorExceptions": [
+    {
+      "ValidationTest": "API Validation",
+      "ExceptionMessage": "Additions require a new minor or major version.",
+      "PackageVersion": "1.2.4"
+    },
+
+     {
             "ValidationTest": "API Validation",
             "ExceptionMessage": "New assembly \"Unity.NetCode.TestsUtils\" may only be added in a new minor or major version.",
-            "PackageVersion": "1.2.1"
-        }
-    ],
-    "WarningExceptions": []
+            "PackageVersion": "1.2.4"
+     }
+  ],
+  "WarningExceptions": []
 }
+

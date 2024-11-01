@@ -1,0 +1,112 @@
+.unity-entities__search-element
+{
+    margin: 0 0 -3px;
+    padding: 0;
+    flex-direction: column;
+}
+
+.unity-entities__search-element__search-bar-container
+{
+    flex-direction: row;
+    padding: 0;
+    cursor: text;
+}
+
+.unity-entities__search-element__controls-container
+{
+    flex-direction: row;
+    padding: 0 2px 0 0;
+    flex-shrink: 0;
+    flex-grow: 0;
+    cursor: text;
+}
+
+.unity-entities__search-element__text-field-search-string
+{
+    margin: 0 0 0 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    height: 16px;
+}
+
+.unity-entities__search-element__text-field-search-string > .unity-base-text-field__input
+{
+    margin: 0 0 0 0;
+    border-width: 0;
+    background-color: transparent;
+    flex-direction: row;
+}
+
+.unity-entities__search-element__search-button
+{
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-right: 2px;
+    padding: 0;
+    border-width: 0;
+    background-color: transparent;
+}
+
+.unity-entities__search-element__text-field-search-filter__remove-button
+{
+    width: 16px;
+    height: 16px;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    border-width: 0;
+    background-color: transparent;
+    background-image: var(--search-close-icon);
+}
+
+.unity-entities__search_element__add-filter-button
+{
+    flex-direction: row;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    font-size: 95%;
+    border-width: 0;
+    background-color: transparent;
+}
+
+.unity-entities__search-element__add-filter_button__icon
+{
+    margin-top: auto;
+    margin-bottom: auto;
+    width: 12px;
+    height: 12px;
+    background-image: var(--search-add-icon);
+}
+
+.unity-entities__search-element__add-filter_button__label
+{
+    padding: 0 0 0 0;
+}
+
+.unity-entities__search-element__cancel_button
+{
+    width: 16px;
+    height: 16px;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    border-width: 0;
+    background-color: transparent;
+    background-image: var(--search-close-icon);
+}
+
+.unity-entities__search-element__progress_bar
+{
+    height: 3px;
+    margin: 0 3px 0;
+}
+
+.unity-entities__search-element__progress_bar .unity-progress-bar__background
+{
+    border-width: 0;
+    background-color: transparent;
+}
+
+.unity-entities__search-element__progress_bar .unity-progress-bar__progress
+{
+    height: 3px;
+}

@@ -1,0 +1,30 @@
+.active-build-config-window
+{
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.active-build-config-window__left-panel
+{
+    flex-grow: 1;
+    flex-direction: column;
+    min-width: 200px;
+}
+
+.active-build-config-window__right-panel
+{
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    min-width: 200px;
+}
+
+.active-build-config-window__search
+{
+    margin: 3px;
+}
+
+.active-build-config-window__list
+{
+    flex-grow: 1;
+}

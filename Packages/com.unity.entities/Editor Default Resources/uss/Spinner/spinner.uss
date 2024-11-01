@@ -1,0 +1,63 @@
+.spinner
+{
+}
+
+.spinner-background-image-0
+{
+    background-image: var(--spinner-icon-0);
+}
+
+.spinner-background-image-1
+{
+    background-image: var(--spinner-icon-1);
+}
+
+.spinner-background-image-2
+{
+    background-image: var(--spinner-icon-2);
+}
+
+.spinner-background-image-3
+{
+    background-image: var(--spinner-icon-3);
+}
+
+.spinner-background-image-4
+{
+    background-image: var(--spinner-icon-4);
+}
+
+.spinner-background-image-5
+{
+    background-image: var(--spinner-icon-5);
+}
+
+.spinner-background-image-6
+{
+    background-image: var(--spinner-icon-6);
+}
+
+.spinner-background-image-7
+{
+    background-image: var(--spinner-icon-7);
+}
+
+.spinner-background-image-8
+{
+    background-image: var(--spinner-icon-8);
+}
+
+.spinner-background-image-9
+{
+    background-image: var(--spinner-icon-9);
+}
+
+.spinner-background-image-10
+{
+    background-image: var(--spinner-icon-10);
+}
+
+.spinner-background-image-11
+{
+    background-image: var(--spinner-icon-11);
+}

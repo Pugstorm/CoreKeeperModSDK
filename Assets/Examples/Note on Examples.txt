@@ -1,0 +1,5 @@
+-- NOTE ON MOD SDK EXAMPLES --
+
+These are very simple examples to give you some point to start your modding.
+
+Your use case is probably more advanced, but this is a good starting point if you want to know some of the basics.

@@ -1,0 +1,144 @@
+%YAML 1.1
+---
+# ECS Debugging file
+Archetypes:
+  Archetype:
+    name: "  - Unity.Entities.Entity  - Unity.Entities.Tests.EcsComplexEntityRefElement [Buffer]  - Unity.Entities.Simulate"
+    TypesCount: 3
+    ChunkCount: 1
+    ChunkCapacity: 128
+    properties: []
+  Archetype:
+    name: "  - Unity.Entities.Entity  - Unity.Entities.Tests.SerializeTests+TestComponentData2  - Unity.Entities.Tests.EcsTestData  - Unity.Entities.Tests.EcsTestData2  - Unity.Entities.Simulate"
+    TypesCount: 5
+    ChunkCount: 1
+    ChunkCapacity: 128
+    properties: []
+  Archetype:
+    name: "  - Unity.Entities.Entity  - Unity.Entities.Tests.SerializeTests+TestComponentData1  - Unity.Entities.Tests.EcsTestData  - Unity.Entities.Tests.EcsTestData2  - Unity.Entities.Tests.EcsIntElement [Buffer]  - Unity.Entities.Simulate"
+    TypesCount: 6
+    ChunkCount: 1
+    ChunkCapacity: 128
+    properties: []
+  Archetype:
+    name: "  - Unity.Entities.Entity  - Unity.Entities.Tests.SerializeTests+TestComponentData1  - Unity.Entities.Tests.SerializeTests+TestComponentData2  - Unity.Entities.Tests.EcsTestData  - Unity.Entities.Tests.EcsIntElement [Buffer]  - Unity.Entities.Simulate"
+    TypesCount: 6
+    ChunkCount: 1
+    ChunkCapacity: 128
+    properties: []
+ChunksData:
+  Archetype:
+    name: "  - Unity.Entities.Entity  - Unity.Entities.Tests.EcsComplexEntityRefElement [Buffer]  - Unity.Entities.Simulate"
+    ChunkData:
+      Header:
+        metaChunkEntity: {index: 0, version: 0}
+        Capacity: 128
+        Count: 1
+      ComponentDataCollection:
+        ComponentData:
+          info: {Type: Entity, SizeInChunk: 8}
+          Entities:
+            Entity(4:1): {Index: "4", Version: "1"}
+        ComponentData:
+          info: {Type: EcsComplexEntityRefElement, SizeInChunk: 64}
+          Entities:
+            Entity(4:1):
+              Length: 3 Capacity: 4
+              0000: {Dummy: "1", Entity: "Entity(1:1)"}
+              0001: {Dummy: "2", Entity: "Entity(2:1)"}
+              0002: {Dummy: "3", Entity: "Entity(3:1)"}
+  Archetype:
+    name: "  - Unity.Entities.Entity  - Unity.Entities.Tests.SerializeTests+TestComponentData2  - Unity.Entities.Tests.EcsTestData  - Unity.Entities.Tests.EcsTestData2  - Unity.Entities.Simulate"
+    ChunkData:
+      Header:
+        metaChunkEntity: {index: 0, version: 0}
+        Capacity: 128
+        Count: 1
+      ComponentDataCollection:
+        ComponentData:
+          info: {Type: Entity, SizeInChunk: 8}
+          Entities:
+            Entity(2:1): {Index: "2", Version: "1"}
+        ComponentData:
+          info: {Type: TestComponentData2, SizeInChunk: 12}
+          Entities:
+            Entity(2:1): {referencedEntity: "Entity(1:1)", value: "20"}
+        ComponentData:
+          info: {Type: EcsTestData, SizeInChunk: 4}
+          Entities:
+            Entity(2:1): {value: "2"}
+        ComponentData:
+          info: {Type: EcsTestData2, SizeInChunk: 8}
+          Entities:
+            Entity(2:1): {value0: "-2", value1: "-2"}
+  Archetype:
+    name: "  - Unity.Entities.Entity  - Unity.Entities.Tests.SerializeTests+TestComponentData1  - Unity.Entities.Tests.EcsTestData  - Unity.Entities.Tests.EcsTestData2  - Unity.Entities.Tests.EcsIntElement [Buffer]  - Unity.Entities.Simulate"
+    ChunkData:
+      Header:
+        metaChunkEntity: {index: 0, version: 0}
+        Capacity: 128
+        Count: 1
+      ComponentDataCollection:
+        ComponentData:
+          info: {Type: Entity, SizeInChunk: 8}
+          Entities:
+            Entity(1:1): {Index: "1", Version: "1"}
+        ComponentData:
+          info: {Type: TestComponentData1, SizeInChunk: 12}
+          Entities:
+            Entity(1:1): {referencedEntity: "Entity(2:1)", value: "10"}
+        ComponentData:
+          info: {Type: EcsTestData, SizeInChunk: 4}
+          Entities:
+            Entity(1:1): {value: "1"}
+        ComponentData:
+          info: {Type: EcsTestData2, SizeInChunk: 8}
+          Entities:
+            Entity(1:1): {value0: "-1", value1: "-1"}
+        ComponentData:
+          info: {Type: EcsIntElement, SizeInChunk: 48}
+          Entities:
+            Entity(1:1):
+              Length: 3 Capacity: 8
+              0000: {Value: "1"}
+              0001: {Value: "2"}
+              0002: {Value: "3"}
+  Archetype:
+    name: "  - Unity.Entities.Entity  - Unity.Entities.Tests.SerializeTests+TestComponentData1  - Unity.Entities.Tests.SerializeTests+TestComponentData2  - Unity.Entities.Tests.EcsTestData  - Unity.Entities.Tests.EcsIntElement [Buffer]  - Unity.Entities.Simulate"
+    ChunkData:
+      Header:
+        metaChunkEntity: {index: 0, version: 0}
+        Capacity: 128
+        Count: 1
+      ComponentDataCollection:
+        ComponentData:
+          info: {Type: Entity, SizeInChunk: 8}
+          Entities:
+            Entity(3:1): {Index: "3", Version: "1"}
+        ComponentData:
+          info: {Type: TestComponentData1, SizeInChunk: 12}
+          Entities:
+            Entity(3:1): {referencedEntity: "Entity.Null", value: "30"}
+        ComponentData:
+          info: {Type: TestComponentData2, SizeInChunk: 12}
+          Entities:
+            Entity(3:1): {referencedEntity: "Entity.Null", value: "40"}
+        ComponentData:
+          info: {Type: EcsTestData, SizeInChunk: 4}
+          Entities:
+            Entity(3:1): {value: "3"}
+        ComponentData:
+          info: {Type: EcsIntElement, SizeInChunk: 48}
+          Entities:
+            Entity(3:1):
+              Length: 10 Capacity: 16
+              0000: {Value: "1"}
+              0001: {Value: "2"}
+              0002: {Value: "3"}
+              0003: {Value: "4"}
+              0004: {Value: "5"}
+              0005: {Value: "6"}
+              0006: {Value: "7"}
+              0007: {Value: "8"}
+              0008: {Value: "9"}
+              0009: {Value: "10"}

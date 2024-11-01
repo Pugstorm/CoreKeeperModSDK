@@ -1,0 +1,56 @@
+
+/*** Custom Toolbar Toggle ***/
+
+.toolbar-toggle__icon
+{
+    background-color: #F4F4F4;
+}
+
+.toolbar-toggle
+{
+    background-color: #F4F4F4;
+}
+
+.toolbar-toggle Label
+{
+    color: #000000;
+    background-color: #E4E4E4;
+}
+
+.toolbar-toggle:hover Label
+{
+    color: #000000;
+    background-color: #f4f4f4;
+}
+
+.toolbar-toggle:checked Label
+{
+    color: #ffffff;
+    background-color: var(--selected-background-color);
+}
+
+.toolbar-toggle:checked:hover Label
+{
+    color: #ffffff;
+}
+
+/*** Custom Label With Underline ***/
+
+.label-with-underline
+{
+    border-bottom-color: #000000;
+}
+
+/*** List View/Tree View Hover/Selected TEMP FIX ***/
+
+.unity-list-view__item:hover
+{
+    background-color: #B2B2B2;
+}
+
+.unity-list-view__item--selected,
+.unity-list-view__item--selected:hover
+{
+    background-color: #3A72B0;
+    color: #ffffff;
+}

@@ -1,0 +1,53 @@
+﻿.hierarchy
+{
+    flex-grow: 1;
+}
+
+HierarchyListViewItem > Toggle {
+    margin: 0;
+    padding-right: 1px;
+    padding-top: 1px;
+}
+
+HierarchyListViewItem .unity-toggle__checkmark {
+    margin-right: 2px;
+}
+
+HierarchyListViewItem.hierarchy-item__subscene-node > .unity-foldout__toggle,
+HierarchyListViewItem.hierarchy-item__subscene-node > .unity-tree-view__item-content {
+    border-bottom-width: .5px;
+    background-color: var(--subscene-background);
+    border-bottom-color: var(--subscene-border);
+}
+
+HierarchyListViewItem.hierarchy-item__subscene-node.unity-list-view__item:hover > .unity-foldout__toggle,
+HierarchyListViewItem.hierarchy-item__subscene-node.unity-list-view__item:hover > .unity-tree-view__item-content {
+    border-bottom-width: .5px;
+    background-color: var(--subscene-background-hover);
+    border-bottom-color: var(--subscene-border);
+}
+
+HierarchyListViewItem.hierarchy-item__subscene-node.unity-list-view__item--selected > .unity-foldout__toggle,
+HierarchyListViewItem.hierarchy-item__subscene-node.unity-list-view__item--selected > .unity-tree-view__item-content,
+HierarchyListViewItem.hierarchy-item__subscene-node.unity-list-view__item--selected:hover > .unity-foldout__toggle,
+HierarchyListViewItem.hierarchy-item__subscene-node.unity-list-view__item--selected:hover > .unity-tree-view__item-content {
+    background-color: transparent;
+    border-bottom-color: transparent;
+}
+
+.unity-tree-view__item-mode-indent
+{
+    width: 2px;
+    margin-top: 1px;
+    margin-bottom: 1px;
+}
+.unity-tree-view__item-mode-indent.runtime
+{
+    background-color: var(--runtime-mode-indent-color);
+}
+
+.unity-tree-view__item-mode-indent.prefab
+{
+    background-color: var(--prefab-override-indent-color);
+}
+

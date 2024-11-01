@@ -1,0 +1,37 @@
+{
+    "name": "Unity.Scenes.Hybrid.Tests.Editmode.Content",
+    "rootNamespace": "",
+    "references": [
+        "Unity.Entities.Tests",
+        "Unity.Entities",
+        "Unity.Properties",
+        "Unity.Scenes",
+        "Unity.Collections",
+        "Unity.Scenes.Editor",
+        "Unity.Entities.Hybrid",
+        "Unity.Mathematics",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Unity.Entities.Hybrid.Tests",
+        "Unity.Build",
+        "Unity.Scenes.Editor.Tests",
+        "Unity.Burst",
+        "Unity.Entities.TestComponents",
+        "Unity.Entities.Build"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+  "versionDefines": [],
+    "noEngineReferences": false
+}

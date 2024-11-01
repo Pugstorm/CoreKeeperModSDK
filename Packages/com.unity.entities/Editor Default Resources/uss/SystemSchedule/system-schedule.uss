@@ -1,0 +1,69 @@
+.system-schedule__root {
+    flex-grow: 1;
+}
+
+.system-schedule-item__state-toggle-container
+{
+    width: 21px;
+    height: 16px;
+}
+
+.system-schedule-item__state-toggle.unity-toggle > .unity-toggle__input > .unity-toggle__checkmark
+{
+    width: 16px;
+    height: 16px;
+}
+
+.system-schedule-item__toggle-enabled
+{
+}
+
+.system-schedule-item__toggle-mixed
+{
+}
+
+/* Normal States */
+
+.system-schedule-item__state-toggle.unity-toggle > .unity-toggle__input:checked > .unity-toggle__checkmark
+{
+    background-image: none;
+}
+
+/* For root groups systems only, ini, update, prelate update */
+.system-schedule-item__state-toggle.unity-toggle.system-schedule-item__toggle-enabled > .unity-toggle__input > .unity-toggle__checkmark
+{
+    background-image: none;
+}
+
+.system-schedule-item__state-toggle.unity-toggle > .unity-toggle__input > .unity-toggle__checkmark
+{
+    background-image: var(--system-toggle-disabled);
+}
+
+.system-schedule-item__state-toggle.unity-toggle.system-schedule-item__toggle-mixed > .unity-toggle__input > .unity-toggle__checkmark
+{
+    background-image: var(--system-toggle-mixed);
+}
+
+/* Hover States */
+
+.unity-list-view__item:hover .system-schedule-item__state-toggle.unity-toggle > .unity-toggle__input:checked > .unity-toggle__checkmark
+{
+    background-image: var(--system-toggle-enabled);
+}
+
+/* For root groups systems only, ini, update, prelate update */
+.unity-list-view__item:hover .system-schedule-item__state-toggle.unity-toggle.system-schedule-item__toggle-enabled > .unity-toggle__input > .unity-toggle__checkmark
+{
+    background-image: var(--system-toggle-enabled);
+}
+
+.unity-list-view__item:hover .system-schedule-item__state-toggle.unity-toggle > .unity-toggle__input > .unity-toggle__checkmark
+{
+    background-image: var(--system-toggle-disabled);
+}
+
+.unity-list-view__item:hover .system-schedule-item__state-toggle.unity-toggle.system-schedule-item__toggle-mixed > .unity-toggle__input > .unity-toggle__checkmark
+{
+    background-image: var(--system-toggle-mixed);
+}

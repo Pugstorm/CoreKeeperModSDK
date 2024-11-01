@@ -1,0 +1,39 @@
+.structural-changes-profiler-window__options
+{
+    background-image: resource("builtin skins/lightskin/images/pane options.png");
+}
+
+.structural-changes-profiler-window__options:hover
+{
+    background-color: #efefef;
+}
+
+.structural-changes-profiler-window__header
+{
+    background-color: #dddddd;
+}
+
+.structural-changes-profiler-window__column2
+{
+    border-color: #aeaeae;
+}
+
+.structural-changes-profiler-window__column3
+{
+    border-color: #aeaeae;
+}
+
+/*** List View/Tree View Hover/Selected TEMP FIX ***/
+
+.unity-list-view__item:hover
+{
+    background-color: #B2B2B2;
+}
+
+.unity-list-view__item--selected,
+.unity-list-view__item--selected:hover
+{
+    background-color: #3A72B0;
+    color: #ffffff;
+}
+

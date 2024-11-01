@@ -18,6 +18,7 @@ Shader "SpriteObject/Simple"
 			#pragma fragment frag
 			#pragma multi_compile_instancing
 			#pragma multi_compile _ SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
+			#pragma multi_compile _ SPRITE_INSTANCING_DISABLE_NORMAL_ATLAS
 			#pragma multi_compile _ INSTANCING_ENABLED
 
 			#define PPU 16

@@ -1,0 +1,23 @@
+.entities-journaling-content
+{
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.entities-journaling-content #split-pane .unity-two-pane-split-view__dragline-anchor
+{
+    background-color: transparent;
+}
+
+.entities-journaling-content__records
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.entities-journaling-content__details
+{
+    flex-grow: 1;
+    flex-shrink: 0;
+    border-width: 0px 0px 0px 1px;
+}

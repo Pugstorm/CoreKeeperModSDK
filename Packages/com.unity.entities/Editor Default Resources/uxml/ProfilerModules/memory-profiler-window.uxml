@@ -1,0 +1,6 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uib="Unity.Editor.Bridge" xmlns:uip="Unity.Entities.UI">
+  <ui:TwoPaneSplitView name="splitter" fixed-pane-initial-dimension="250" fixed-pane-index="1">
+    <ui:VisualElement name="left-pane" class="memory-profiler-window__left-pane"/>
+    <ui:VisualElement name="right-pane" class="memory-profiler-window__right-pane"/>
+  </ui:TwoPaneSplitView>
+</UXML>

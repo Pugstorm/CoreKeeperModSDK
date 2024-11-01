@@ -1,0 +1,24 @@
+.preferences-value
+{
+    margin-left: -3px;
+}
+
+.preferences-value__property
+{
+}
+
+.preferences-value__property .unity-base-field
+{
+    height: 19px;
+}
+
+.preferences-value__property .unity-base-field__label
+{
+    padding: 0px;
+    -unity-text-align: middle-left;
+}
+
+.preferences-value__property .unity-toggle
+{
+    margin-bottom: 1px;
+}

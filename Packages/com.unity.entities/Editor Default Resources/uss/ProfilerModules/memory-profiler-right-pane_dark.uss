@@ -1,0 +1,9 @@
+.memory-profiler-right-pane__icon
+{
+    background-image: url("../../icons/dark/Archetype/Archetype.png");
+}
+
+.memory-profiler-right-pane__external-components
+{
+    border-top-color: #5f5f5f;
+}

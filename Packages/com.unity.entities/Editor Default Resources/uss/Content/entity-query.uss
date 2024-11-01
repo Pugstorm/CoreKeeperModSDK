@@ -1,0 +1,44 @@
+CustomInspectorElement, PropertyElement, .entity-query__container {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.entity-query__container .tab-view__tab-header {
+    margin: 0;
+}
+
+.entity-query__search-element-container {
+    margin: 8px;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+.entity-query__list-view {
+    flex-grow: 1;
+}
+
+.entity-query__list-view .component-view__container,
+.entity-query__list-view .entity-view__container {
+    padding-left: 6px;
+    padding-right: 3px;
+}
+
+.entity-query__list-view .component-view__container,
+.entity-query__list-view .entity-view__container {
+    border-width: 0;
+    min-width: auto;
+}
+
+.entity-query__list-view .component-view__identity,
+.entity-query__list-view .entity-view__identity {
+    padding: 1px;
+}
+
+.entity-query__list-view .component-view__goto,
+.entity-query__list-view .entity-view__goto {
+    display: none;
+}
+
+.entity-query__list-view .component-view__access-mode {
+     color: var(--secondary-font-color);
+ }

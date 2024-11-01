@@ -1,0 +1,10 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:platforms="Unity.Entities.UI" id="KeyValueElement">
+    <ui:VisualElement class="unity-platforms__key-value-pair__key-root">
+        <platforms:PropertyElement class="unity-platforms__key-value-pair__key"/>
+        <ui:Button class="unity-platforms__key-value-pair__remove-key-button"/>
+    </ui:VisualElement>
+
+    <ui:VisualElement class="unity-platforms__key-value-pair__value-root">
+        <platforms:PropertyElement class="unity-platforms__key-value-pair__value"/>
+    </ui:VisualElement>
+</UXML>

@@ -1,0 +1,33 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:platforms="Unity.Entities.UI" >
+    <uie:FloatField name="A" binding-path="A"/>
+    <uie:FloatField name="B" binding-path="B"/>
+    <uie:FloatField name="Nested.A" binding-path="Nested.A"/>
+    <uie:FloatField name="Nested.B" binding-path="Nested.B"/>
+    <uie:FloatField name="Nested.Nested.A" binding-path="Nested.Nested.A"/>
+    <uie:FloatField name="Nested.Nested.B" binding-path="Nested.Nested.B"/>
+    <uie:FloatField name="Nested.Nested.Nested" binding-path="Nested.Nested.Nested"/>
+
+    <ui:Foldout binding-path="Nested">
+        <uie:FloatField name="Nested.A" binding-path="A"/>
+        <uie:FloatField name="Nested.B" binding-path="B"/>
+        <uie:FloatField name="Nested.Nested.A" binding-path="Nested.A"/>
+        <uie:FloatField name="Nested.Nested.B" binding-path="Nested.B"/>
+        <uie:FloatField name="Nested.Nested.Nested" binding-path="Nested.Nested"/>
+    </ui:Foldout>
+
+    <ui:Foldout binding-path="Nested">
+        <ui:Foldout binding-path="Nested">
+            <uie:FloatField name="Nested.Nested.A" binding-path="A"/>
+            <uie:FloatField name="Nested.Nested.B" binding-path="B"/>
+            <uie:FloatField name="Nested.Nested.Nested" binding-path="Nested"/>
+        </ui:Foldout>
+    </ui:Foldout>
+
+    <ui:Foldout binding-path="Nested.Nested">
+        <uie:FloatField name="Nested.Nested.A" binding-path="A"/>
+        <uie:FloatField name="Nested.Nested.B" binding-path="B"/>
+        <uie:FloatField name="Nested.Nested.Nested" binding-path="Nested"/>
+    </ui:Foldout>
+
+    <ui:Label name="." binding-path="."/>
+</UXML>

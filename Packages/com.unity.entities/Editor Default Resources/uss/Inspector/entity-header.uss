@@ -1,0 +1,68 @@
+.row
+{
+    flex-direction: row;
+}
+
+.expand
+{
+    flex-grow: 1;
+}
+
+.wrap
+{
+    flex-wrap: wrap;
+}
+
+.column
+{
+    flex-direction: column;
+}
+
+.entity-header__container
+{
+    padding: 5px;
+}
+
+.entity-header__icon
+{
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-right: 5px;
+    background-image: var(--entity-icon);
+}
+
+.entity-name
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 75px;
+}
+
+.entity-header__index
+{
+    min-width:85px;
+}
+
+.entity-header__index > .unity-label
+{
+    min-width:35px;
+    width:35px;
+}
+
+.entity-header__version
+{
+    min-width: 100px;
+}
+
+.entity-header__version > .unity-label
+{
+    min-width:50px;
+    width:50px;
+}
+
+.unity-toolbar-menu__arrow
+{
+    background-image: var(--settings-icon);
+    width:16px;
+    height:16px;
+}

@@ -1,0 +1,6 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement class="content-not-ready__container">
+            <ui:VisualElement class="content-not-ready__spinner wait-spinner-icons content-not-ready__spinner-0"/>
+            <ui:Label text="Content not ready" class="content-not-ready__label content-not-ready__message" binding-path="Text"/>
+    </ui:VisualElement>
+</UXML>

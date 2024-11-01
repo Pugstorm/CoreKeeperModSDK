@@ -1,0 +1,39 @@
+.unity-platforms__variables
+{
+     /* Textures */
+    --remove-button--selected: resource("Packages/com.unity.entities/Editor Default Resources/Unity.Entities.UI/icons/selected/Close S.png");
+    --previous-button--selected: resource("Packages/com.unity.entities/Editor Default Resources/Unity.Entities.UI/icons/selected/PreviousButton.png");
+    --next-button--selected: resource("Packages/com.unity.entities/Editor Default Resources/Unity.Entities.UI/icons/selected/NextButton.png");
+    --circular-reference-icon--selected: resource("Packages/com.unity.entities/Editor Default Resources/Unity.Entities.UI/icons/selected/CircularReference.png");
+}
+
+.unity-platforms__row
+{
+    flex-direction: row;
+}
+
+.unity-platforms__column
+{
+    flex-direction: column;
+}
+
+.unity-platforms__expand
+{
+    flex-grow: 1;
+}
+
+.unity-platforms__runtime-bar
+{
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--runtime-bar-color);
+}
+
+.unity-platforms__runtime-bar-added
+{
+    overflow: visible;
+    -unity-font-style: bold;
+}
+

@@ -1,0 +1,29 @@
+.memory-profiler-component__icon-component
+{
+    background-image: url("../../icons/dark/Components/Component.png");
+}
+
+.memory-profiler-component__icon-chunk-component
+{
+    background-image: url("../../icons/dark/Components/Chunk Component.png");
+}
+
+.memory-profiler-component__icon-buffer-component
+{
+    background-image: url("../../icons/dark/Components/Buffer Component.png");
+}
+
+.memory-profiler-component__icon-shared-component
+{
+    background-image: url("../../icons/dark/Components/Shared Component.png");
+}
+
+.memory-profiler-component__icon-managed-component
+{
+    background-image: url("../../icons/dark/Components/Managed Component.png");
+}
+
+.memory-profiler-component__icon-tag-component
+{
+    background-image: url("../../icons/dark/Components/Tag Component.png");
+}

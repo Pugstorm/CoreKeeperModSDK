@@ -1,0 +1,51 @@
+.build-component__header
+{    
+    background-color: #3e3e3e;
+    border-top-color: #1a1a1a;
+    border-bottom-color: #303030;
+}
+
+.build-component__header:hover
+{
+    background-color: #474747;
+}
+
+.build-component__foldout-open
+{
+    background-image: resource("builtin skins/darkskin/images/in foldout on.png");
+}
+
+.build-component__foldout-closed
+{
+    background-image: resource("builtin skins/darkskin/images/in foldout.png");
+}
+
+.build-component__warning
+{
+    background-image: resource("icons/d_console.warnicon.png");
+}
+
+.build-component__add
+{
+    background-image: resource("icons/d_createaddnew.png");
+}
+
+.build-component__add:hover
+{
+    background-color: #555555;
+}
+
+.build-component__options
+{
+    background-image: resource("builtin skins/darkskin/images/pane options.png");
+}
+
+.build-component__options:hover
+{
+    background-color: #555555;
+}
+
+.build-component__body-overriding
+{
+    border-color: #0f81be;
+}

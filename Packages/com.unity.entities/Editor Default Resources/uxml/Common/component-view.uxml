@@ -1,0 +1,12 @@
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="component-view__container">
+        <ui:VisualElement class="component-view__identity">
+            <ui:VisualElement class="component-view__icon" />
+            <ui:Label class="component-view__name" />
+            <ui:Label class="component-view__access-mode" />
+        </ui:VisualElement>
+        <ui:VisualElement class="component-view__goto" >
+            <ui:VisualElement class="component-view__goto-icon" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</UXML>

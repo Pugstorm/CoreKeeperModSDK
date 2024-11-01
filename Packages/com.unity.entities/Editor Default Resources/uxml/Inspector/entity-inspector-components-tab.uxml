@@ -1,0 +1,13 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uee="Unity.Entities.Editor">>
+    <ui:VisualElement class="search-field-container">
+        <uee:SearchElement
+                name="Components Search"
+                class="entity-inspector-components-tab__search-field"
+                search-data="Path"
+                search-delay="0"
+                handle-type="async"
+                max-frame-time="5"
+        />
+    </ui:VisualElement>
+    <ui:VisualElement class="entity-inspector-components-tab__content"/>
+</UXML>

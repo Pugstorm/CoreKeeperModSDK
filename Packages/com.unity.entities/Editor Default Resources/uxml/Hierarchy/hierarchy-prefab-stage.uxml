@@ -1,0 +1,11 @@
+﻿<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:entities="Unity.Entities.Editor">
+    <ui:VisualElement class="hierarchy-prefab-stage__container">
+        <ui:VisualElement class="hierarchy-prefab-stage__back" >
+            <ui:VisualElement class="hierarchy-prefab-stage__back-icon" />
+        </ui:VisualElement>
+        <ui:VisualElement class="hierarchy-prefab-stage__name-container">
+            <ui:VisualElement class="hierarchy-prefab-stage__name-icon" />
+            <ui:Label class="hierarchy-prefab-stage__name-label" text="Test Prefab"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</UXML>

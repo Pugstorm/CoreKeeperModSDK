@@ -1,0 +1,38 @@
+.unity-entities__search-element-filter-popup
+{
+}
+
+.unity-entities__search-element-filter-popup__header
+{
+    padding-top: 5px;
+    padding-left: 5px;
+    padding-bottom: 2px;
+    opacity: 0.7;
+}
+
+.unity-entities__search-element-filter-popup__choices
+{
+    padding-bottom: 5px;
+    padding-left: 10px;
+    padding-right: 2px;
+}
+
+.unity-entities__search-element-filter-popup__choice-button
+{
+    flex-direction: row;
+}
+
+.unity-entities__search-element-filter-popup__choice-button:hover
+{
+    background-color: #3b7ae4;
+}
+
+.unity-entities__search-element-filter-popup__choice-name
+{
+    flex-grow: 1;
+}
+
+.unity-entities__search-element-filter-popup__choice-token
+{
+    -unity-font-style: bold;
+}

@@ -1,0 +1,14 @@
+.build-configuration-dependency__handle
+{
+    background-image: resource("icons/d_horizontalsplit.png");
+}
+
+.build-configuration-dependency__remove
+{
+    background-image: resource("icons/d_winbtn_win_close.png");
+}
+
+.build-configuration-dependency__remove:hover
+{
+    background-color: #555555;
+}

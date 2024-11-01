@@ -1,0 +1,41 @@
+.build-configuration-dependency
+{
+}
+
+.build-configuration-dependency__container
+{
+    flex-direction: row;
+    padding: 2px;
+}
+
+.build-configuration-dependency__handle
+{
+    flex-shrink: 0;
+    background-color: transparent;
+    width: 18px;
+    height: 18px;
+    border-width: 0px;
+    border-color: transparent;
+    border-radius: 0px;
+    margin: 0px;
+}
+
+.build-configuration-dependency__object
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 0px;
+    margin: 0px;
+}
+
+.build-configuration-dependency__remove
+{
+    flex-shrink: 0;
+    background-color: transparent;
+    width: 18px;
+    height: 18px;
+    border-width: 0px;
+    border-color: transparent;
+    border-radius: 0px;
+    margin: 0px;
+}

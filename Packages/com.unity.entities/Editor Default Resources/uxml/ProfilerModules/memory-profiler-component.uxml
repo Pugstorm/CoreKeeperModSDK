@@ -1,0 +1,7 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+  <ui:VisualElement name="label" class="memory-profiler-component__label">
+    <ui:Image name="icon" class="memory-profiler-component__icon"/>
+    <ui:Label name="name" class="memory-profiler-component__name"/>
+  </ui:VisualElement>
+  <ui:Label name="size" class="memory-profiler-component__size"/>
+</UXML>

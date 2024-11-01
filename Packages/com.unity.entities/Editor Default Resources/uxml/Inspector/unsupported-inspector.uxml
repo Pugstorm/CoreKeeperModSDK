@@ -1,0 +1,17 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement class="unsupported-inspector__container">
+        <ui:VisualElement class="unsupported-inspector__content">
+            <ui:VisualElement class="unsupported-inspector__header">
+                <ui:VisualElement name="UnsupportedInspector-ItemIcon"
+                                  class="unsupported-inspector__item-icon" />
+                <ui:Label name="UnsupportedInspector-ItemName"
+                          class="unsupported-inspector__header-text"
+                          display-tooltip-when-elided="true"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="unsupported-inspector__body">
+                <ui:Label name="UnsupportedInspector-BodyText"
+                          class="unsupported-inspector__body-text"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</UXML>

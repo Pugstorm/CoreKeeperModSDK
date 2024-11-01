@@ -1,0 +1,23 @@
+.entity-info__container
+{
+    background-color: initial; 
+    border-width: 1px;
+    flex-direction: row;
+    padding-left: 5px;
+}
+
+.entity-info__icon
+{
+    align-self: center;
+    background-image: var(--entity-icon);
+    flex-grow: 0;
+    flex-shrink: 0;
+    height: 16px;
+    margin-right: 2px;
+    width: 16px;
+}
+
+.entity-info__name
+{
+    align-self: center;
+}
