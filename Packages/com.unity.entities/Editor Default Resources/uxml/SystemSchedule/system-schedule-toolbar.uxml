@@ -1,0 +1,6 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <uie:Toolbar class="system-schedule-toolbar__container">
+        <ui:VisualElement name="Left Side" class="system-schedule-toolbar__left" />
+        <ui:VisualElement name="Right Side" class="system-schedule-toolbar__right" />
+    </uie:Toolbar>
+</UXML>

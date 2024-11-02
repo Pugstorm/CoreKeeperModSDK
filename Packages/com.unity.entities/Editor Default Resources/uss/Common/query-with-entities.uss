@@ -1,0 +1,31 @@
+.query-with-entities__open-query-window-button {
+    background-color: transparent;
+    border-color: transparent;
+    background-image: var(--open-in-window-icon);
+    width:16px;
+    height:16px;
+    flex-shrink: 0;
+    flex-grow: 0;
+}
+
+.query-with-entities__see-all {
+    max-width: 64px;
+    align-self: flex-start;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 3px;
+    margin-bottom: 3px;
+}
+
+.query-with-entities__toggle-content {
+    padding-left: 18px;
+}
+
+.query-with-entities__entity-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 3px;
+    flex-shrink: 0;
+    flex-grow: 0;
+    background-image: var(--entity-icon);
+}

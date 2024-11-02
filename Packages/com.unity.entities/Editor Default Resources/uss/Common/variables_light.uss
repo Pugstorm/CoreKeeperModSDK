@@ -1,0 +1,66 @@
+.variables
+{
+    /* Icons */
+    --system-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/System/System.png");
+    --system-icon-32: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/System/System-32.png");
+    --system-toggle-enabled: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/SystemEnabled/SystemEnabled.png");
+    --system-toggle-disabled: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/SystemDisabled/SystemDisabled.png");
+    --system-toggle-mixed: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/SystemMixed/SystemMixed.png");
+    --group-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Group/Group.png");
+    --group-icon-32: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Group/Group-32.png");
+    --begin-command-buffer-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/BeginCommandBuffer/BeginCommandBuffer.png");
+    --begin-command-buffer-icon-32: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/BeginCommandBuffer/BeginCommandBuffer-32.png");
+    --end-command-buffer-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/EndCommandBuffer/EndCommandBuffer.png");
+    --end-command-buffer-icon-32: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/EndCommandBuffer/EndCommandBuffer-32.png");
+    --query-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Query/Query.png");
+    --query-icon-32: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Query/Query-32.png");
+    --unmanaged-system-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/UnmanagedSystem/UnmanagedSystem.png");
+    --entity-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Entity/Entity.png");
+    --prefab-entity-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Entity/EntityPrefab.png");
+    --scene-icon: resource('SceneAsset Icon');
+    --go-to-systems-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Go To Systems/Go to Systems.png");
+    --gameobject: resource("GameObject Icon");
+    --component-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Components/Component.png");
+    --aspect-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Aspect/Aspect.png");
+    --component-icon-32: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Components/Component-32.png");
+    --tag-component-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Components/Tag Component.png");
+    --buffer-component-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Components/Buffer Component.png");
+    --shared-component-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Components/Shared Component.png");
+    --chunk-component-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Components/Chunk Component.png");
+    --managed-component-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Components/Managed Component.png");
+    --settings-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Settings/Settings.png");
+    --search-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Search/Search.png");
+    --open-in-window-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/WindowInstance/WindowInstance.png");
+    --go-to-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Go To/Go to.png");
+    --prefab-gameobject-icon: resource("Prefab Icon");
+    --prefab-gameobject-icon--selected: resource("Prefab On Icon");
+    --arrow-navigation-left: resource('Packages/com.unity.entities/Editor Default Resources/icons/light/Prefab/ArrowNavigationLeft.png');
+    --arrow-navigation-right: resource('Packages/com.unity.entities/Editor Default Resources/icons/light/Prefab/ArrowNavigationRight.png');
+    --search-close-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Search/Close S.png");
+    --search-add-icon: resource("Packages/com.unity.entities/Editor Default Resources/icons/light/Search/Add.png");
+
+    /* Colors */
+    --list-heading-color: #E0E0E0;
+    --selected-background-color: #3A72B0;
+    --section-background-color: #CBCBCB;
+    --section-border-top-color: #7F7F7F;
+    --section-border-bottom-color: #BABABA;
+    --section-count-color: #555555;
+    --object-background-color:#EFEFEF;
+    --object-border-color:#B6B6B6;
+    --header-background-hover-color: #DDDDDD;
+    --prefab-font-color: #003C88;
+    --secondary-font-color: #555555;
+    --subscene-background: #E5E5E5;
+    --subscene-background-hover: #B2B2B2;
+    --subscene-border: #B5B5B5;
+    --runtime-mode-indent-color: #B73C15;
+    --prefab-override-indent-color: #0F80BE;
+
+    /* Prefab stage colors */
+    --prefab-stage-background-color: #CECFCE;
+    --prefab-stage-background-hover-color: #DEDFDE;
+    --prefab-stage-background-active-color: #0F81BE;
+    --prefab-stage-back-button-hover-color: #9FA19F;
+    --prefab-stage-back-button-active-color: #DEDFDE;
+}

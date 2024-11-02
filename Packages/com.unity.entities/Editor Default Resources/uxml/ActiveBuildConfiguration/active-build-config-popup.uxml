@@ -1,0 +1,11 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uee="Unity.Entities.Editor.UIElements">
+  <uee:SearchField name="search" class="active-build-config-popup__search"/>
+  <ui:ListView name="list" class="active-build-config-popup__list"/>
+  <ui:VisualElement name="options" class="active-build-config-popup__options">
+    <ui:Image name="options-icon" class="active-build-config-popup__options-icon"/>
+    <ui:TextElement name="options-label" class="active-build-config-popup__options-label"/>
+  </ui:VisualElement>
+  <ui:VisualElement name="create" class="active-build-config-popup__create">
+    <ui:TextElement name="create-label" class="active-build-config-popup__create-label"/>
+  </ui:VisualElement>
+</UXML>

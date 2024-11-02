@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc43e4983a160e543856e5ba0421c9e1, type: 3}
+  m_Name: RpcExample
+  m_EditorClassIdentifier: 
+  metadata:
+    guid: bdf3ce9c9d194ec493336b38d2bc87dd
+    name: RpcExample
+    skipSafetyChecks: 0
+    accessesExtraAssemblies: 1
+    disableHarmonyPatching: 0
+    requiredOn: 0
+    files:
+    - path: Scripts/RpcSystem.cs
+    - path: Scripts/Generated/RpcSystem__System_2130138510.g.cs
+    - path: Scripts/Generated/RpcSystem__System_906898514.g.cs
+    - path: Scripts/Generated/PingPingRPCCommandSerializer.cs
+    - path: Bundles/RpcExample_Windows.assetbundle
+    - path: Bundles/RpcExample_Linux.assetbundle
+    dependencies: []
+  modPath: Assets\Examples\RpcExample

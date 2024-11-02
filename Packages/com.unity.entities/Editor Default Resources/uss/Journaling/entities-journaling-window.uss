@@ -1,0 +1,162 @@
+.entities-journaling-window
+{
+    flex-grow: 1;
+}
+
+.entities-journaling-window__separator
+{
+    flex-shrink: 0;
+    width: 2px;
+    height: auto;
+    border-width: 0px 0px 0px 1px;
+    border-radius: 0px;
+}
+
+.entities-journaling-window__toolbar
+{
+    flex-shrink: 0;
+    height: auto;
+}
+
+.entities-journaling-window__record
+{
+    flex-shrink: 0;
+    width: 26px;
+    height: 22px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px;
+    background-color: transparent;
+    align-self: center;
+}
+
+.entities-journaling-window__record .unity-toggle__input
+{
+    justify-content: center;
+}
+
+.entities-journaling-window__export-container
+{
+    flex-shrink: 0;
+    width: 26px;
+    height: auto;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px;
+    background-color: transparent;
+    justify-content: center;
+}
+
+.entities-journaling-window__export
+{
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px;
+    background-color: transparent;
+    align-self: center;
+}
+
+.entities-journaling-window__clear
+{
+    padding: 0px 6px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px;
+    background-color: transparent;
+}
+
+.entities-journaling-window__search-container
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 3px;
+}
+
+.entities-journaling-window__search
+{
+    width: auto;
+    height: 20px;
+}
+
+.entities-journaling-window__details-container
+{
+    flex-shrink: 0;
+    width: 26px;
+    height: auto;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px;
+    background-color: transparent;
+    justify-content: center;
+}
+
+.entities-journaling-window__details
+{
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px;
+    background-color: transparent;
+    align-self: center;
+}
+
+.entities-journaling-window__message-container
+{
+    flex-grow: 1;
+    margin: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.entities-journaling-window__message
+{
+    padding: 0px;
+    margin: 10px;
+    white-space: normal;
+    -unity-text-align: middle-center;
+}
+
+.entities-journaling-window__stop
+{    
+}
+
+.entities-journaling-window__content
+{
+    flex-grow: 1;
+}
+
+.entities-journaling-window__footer
+{
+    flex-shrink: 0;
+    flex-direction: row;
+    height: 24px;
+    border-width: 1px 0px 0px 0px;
+    border-radius: 0px;
+    justify-content: space-between;
+}
+
+.entities-journaling-window__footer-left
+{
+    flex-shrink: 0;
+    flex-direction: row;
+}
+
+.entities-journaling-window__footer-right
+{
+    flex-shrink: 0;
+    flex-direction: row;
+}
+
+.entities-journaling-window__footer-text
+{
+    padding: 0px;
+    -unity-text-align: middle-left;
+}

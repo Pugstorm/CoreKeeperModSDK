@@ -1,0 +1,17 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:platforms="Unity.Entities.UI">
+  <ui:VisualElement name="header" class="build-component__header">
+    <ui:VisualElement class="build-component__header-left">
+      <ui:BindableElement name="foldout" class="build-component__foldout"/>
+      <ui:BindableElement name="icon" class="build-component__icon" binding-path="Icon"/>
+      <ui:Label name="name" class="build-component__name" binding-path="ComponentName"/>
+      <ui:BindableElement name="warning" class="build-component__warning"/>
+    </ui:VisualElement>
+    <ui:VisualElement class="build-component__header-right">
+      <ui:Button name="add" class="build-component__add"/>
+      <ui:Button name="options" class="build-component__options"/>
+    </ui:VisualElement>
+  </ui:VisualElement>
+  <ui:VisualElement name="body" class="build-component__body">
+    <platforms:PropertyElement name="value" class="build-component__value" binding-path="Value"/>
+  </ui:VisualElement>
+</UXML>

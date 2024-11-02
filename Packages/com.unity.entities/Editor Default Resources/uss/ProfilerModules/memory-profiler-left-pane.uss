@@ -1,0 +1,81 @@
+.memory-profiler-left-pane
+{
+}
+
+.memory-profiler-left-pane__toolbar
+{
+    flex-shrink: 1;
+    height: auto;
+    padding: 3px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.memory-profiler-left-pane__search
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+    width: auto;
+    height: 20px;
+}
+
+.memory-profiler-left-pane__options
+{
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px;
+    background-color: transparent;
+}
+
+.memory-profiler-left-pane__message
+{
+    margin: 2px;
+    white-space: normal;
+}
+
+.memory-profiler-left-pane__content
+{
+    flex-grow: 1;
+}
+
+.memory-profiler-left-pane__header
+{
+    flex-direction: row;
+    height: 24px;
+}
+
+.memory-profiler-left-pane__column1
+{
+    flex-grow: 1;
+    width: auto;
+    padding-left: 5px;
+    -unity-text-align: middle-left;
+}
+
+.memory-profiler-left-pane__column2
+{
+    width: 80px;
+    padding-left: 4px;
+    border-left-width: 1px;
+    -unity-text-align: middle-left;
+}
+
+.memory-profiler-left-pane__column3
+{
+    width: 80px;
+    padding-left: 4px;
+    border-left-width: 1px;
+    -unity-text-align: middle-left;
+}
+
+#tree-view-container
+{
+    flex-grow: 1;
+}
+.memory-profiler-left-pane__tree-view
+{
+    flex-grow: 1;
+}

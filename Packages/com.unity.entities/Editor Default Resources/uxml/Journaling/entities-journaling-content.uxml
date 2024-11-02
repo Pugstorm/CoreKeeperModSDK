@@ -1,0 +1,22 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uip="Unity.Entities.UI">
+    <ui:TwoPaneSplitView name="split-pane" fixed-pane-initial-dimension="300" fixed-pane-index="1">
+        <ui:VisualElement name="left" style="min-width: 200px;">
+            <ui:MultiColumnListView name="records" class="entities-journaling-content__records">
+                <ui:Columns>
+                    <ui:Column name="record-index" width="100"/>
+                    <ui:Column name="record-type" width="200"/>
+                    <ui:Column name="summary" width="450"/>
+                    <ui:Column name="frame-index" width="100" visible="false"/>
+                    <ui:Column name="world" width="200" visible="false"/>
+                    <ui:Column name="executing-system" width="200" visible="false"/>
+                    <ui:Column name="origin-system" width="200" visible="false"/>
+                    <ui:Column name="entities" width="200" visible="false"/>
+                    <ui:Column name="components" width="200" visible="false"/>
+                </ui:Columns>
+            </ui:MultiColumnListView>
+        </ui:VisualElement>
+        <ui:VisualElement name="right" style="min-width: 200px;">
+            <ui:VisualElement name="details" class="entities-journaling-content__details"/>
+        </ui:VisualElement>
+    </ui:TwoPaneSplitView>
+</UXML>

@@ -1,0 +1,10 @@
+.system-schedule-toolbar__container
+{
+    justify-content: space-between;
+}
+
+.system-schedule-toolbar__container > VisualElement
+{
+    align-items: center;
+    flex-direction: row;
+}

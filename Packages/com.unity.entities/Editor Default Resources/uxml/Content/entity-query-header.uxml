@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" platforms="Unity.Entities.UI" editor-extension-mode="False">
+    <ui:VisualElement name="container" class="entity-query__header__container">
+        <ui:VisualElement class="entity-query__header__icon" />
+        <ui:VisualElement class="entity-query__header__titles">
+            <ui:VisualElement class="entity-query__header__main-title">
+                <ui:Label class="entity-query__header__main-title__label" text="Query #2" display-tooltip-when-elided="true"/>
+                <ui:VisualElement class="entity-query__header__subtitle__goto">
+                    <ui:VisualElement class="entity-query__header__subtitle__goto-icon" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="entity-query__header__subtitle-container">
+                <ui:VisualElement class="entity-query__header__subtitle__icon" />
+                <ui:Label class="entity-query__header__subtitle" text="Companion Game Object Update Transform System" display-tooltip-when-elided="true" />
+                <ui:VisualElement class="entity-query__header__subtitle__goto">
+                    <ui:VisualElement class="entity-query__header__subtitle__goto-icon" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

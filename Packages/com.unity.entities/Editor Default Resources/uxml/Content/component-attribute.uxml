@@ -1,0 +1,6 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:dotse="Unity.Entities.Editor">
+    <ui:VisualElement class="component-attribute__container">
+        <ui:Label display-tooltip-when-elided="true" class="component-attribute__name" />
+        <dotse:SelectableLabel class="component-attribute__value" />
+    </ui:VisualElement>
+</UXML>

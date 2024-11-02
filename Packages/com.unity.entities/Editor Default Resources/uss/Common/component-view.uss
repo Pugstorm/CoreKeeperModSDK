@@ -1,0 +1,61 @@
+.component-view__container {
+    flex-direction: row;
+    margin: 0;
+    padding: 0;
+    flex-grow: 1;
+}
+
+.component-view__identity {
+    flex-direction: row;
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 3px;
+}
+
+.component-view__icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 3px;
+    flex-shrink: 0;
+    flex-grow: 0;
+    background-image: var(--component-icon);
+}
+
+.component-view__icon.tag{ background-image: var(--tag-component-icon); }
+.component-view__icon.buffer{ background-image: var(--buffer-component-icon); }
+.component-view__icon.shared{ background-image: var(--shared-component-icon); }
+.component-view__icon.chunk{ background-image: var(--chunk-component-icon); }
+.component-view__icon.managed{ background-image: var(--managed-component-icon); }
+
+.component-view__name {
+    margin: 0;
+    padding: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow:ellipsis;
+}
+
+.component-view__goto {
+    min-width: 23px;
+}
+
+.component-view__goto:hover {
+    background-color: var(--header-background-hover-color);
+}
+
+.component-view__goto-icon {
+    margin: 3px;
+    width: 16px;
+    height: 16px;
+    background-image: var(--go-to-icon);
+}
+
+.component-view__access-mode {
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    margin-right: 5px;
+    color: var(--section-count-color);
+}

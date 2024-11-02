@@ -1,0 +1,52 @@
+.memory-profiler-right-pane
+{
+}
+
+.memory-profiler-right-pane__header
+{
+    flex-shrink: 0;
+    flex-direction: row;
+    padding: 5px;
+    align-items: center;
+}
+
+.memory-profiler-right-pane__icon
+{
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+}
+
+.memory-profiler-right-pane__name
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+    height: 18px;
+    margin-left: 5px;
+}
+
+.memory-profiler-right-pane__content
+{
+    flex-grow: 1;
+    padding: 0px 5px;
+}
+
+.memory-profiler-right-pane__item
+{
+    flex-shrink: 0;
+    flex-direction: row;
+    height: 18px;
+    justify-content: space-between;
+    -unity-text-align: middle-left;
+}
+
+.memory-profiler-right-pane__external-components
+{
+    flex-shrink: 0;
+    flex-direction: row;
+    margin: 4px 0px 0px 0px;
+    padding: 4px 0px 0px 0px;
+    height: 23px;
+    border-width: 1px 0px 0px 0px;
+    -unity-text-align: middle-left;
+}

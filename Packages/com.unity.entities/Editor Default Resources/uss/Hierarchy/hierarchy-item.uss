@@ -1,0 +1,198 @@
+.hierarchy-item__container
+{
+    flex-direction: row;
+    background-color: initial;
+}
+
+.hierarchy-item__column-1
+{
+    flex-shrink: 0;
+    flex-grow: 1;
+    flex-direction: row;
+    align-items: center;
+
+    overflow: hidden;
+    -unity-overflow-clip-box: content-box;
+}
+
+.hierarchy-item__column-2
+{
+    flex-direction: row;
+}
+
+.hierarchy-item__icon
+{
+    flex: 0 0 16px;
+
+    width: 16px;
+    height: 16px;
+    margin-right: 2px;
+}
+
+.hierarchy-item__icon--scene
+{
+    background-image: var(--scene-icon);
+}
+
+.hierarchy-item__icon--entity
+{
+    background-image: var(--entity-icon);
+}
+
+.hierarchy-item__icon--gameobject
+{
+    background-image: var(--gameobject);
+}
+
+.hierarchy-item__subscene-state-label
+{
+    margin-left: 3px;
+    flex: 1 0 auto;
+}
+
+.hierarchy-item__name > .unity-text-field
+{
+    margin: 0;
+}
+
+.hierarchy-item__name > .unity-text-field > .unity-text-field__input
+{
+    height: 16px;
+    border-radius: 0;
+    padding: 0;
+}
+
+.hierarchy-item__name--scene > .unity-label
+{
+    -unity-font-style: bold;
+}
+
+.hierarchy-item__system-button
+{
+    width: 16px;
+    height: 16px;
+    margin-left: 2px;
+    background-image: var(--go-to-systems-icon);
+
+    display: none;
+}
+
+.hierarchy-item__ping-gameobject-button
+{
+    width: 16px;
+    height: 16px;
+    background-image: var(--gameobject);
+
+    display: none;
+}
+
+.hierarchy-item__subscene-button
+{
+    margin-right: 0;
+}
+
+.unity-tree-view__item,.unity-list-view__item .hierarchy-item__visible-on-hover
+{
+    display: none;
+}
+
+.unity-tree-view__item:hover,.unity-list-view__item:hover .hierarchy-item__visible-on-hover
+{
+    display: flex;
+}
+
+.unity-tree-view__item:checked,.unity-list-view__item:checked .hierarchy-item__visible-on-hover
+{
+    display: flex;
+}
+
+/* Selected state */
+.unity-tree-view__item:checked,
+.unity-list-view__item:checked .hierarchy-item__name,
+.unity-list-view__item:checked .hierarchy-item__subscene-state-label
+{
+    /* This should probably come with the TreeView theme by default, but in the mean time, here it is. */
+    color: var(--theme-line-selection-text-color);
+}
+
+.unity-list-view:focus .unity-list-view__item:checked .hierarchy-item__icon--scene,
+.unity-tree-view:focus .unity-tree-view__item:checked .hierarchy-item__icon--scene
+{
+    background-image: var(--scene-icon--selected);
+}
+
+.unity-list-view:focus .unity-list-view__item:checked .hierarchy-item__icon--entity,
+.unity-tree-view:focus .unity-tree-view__item:checked .hierarchy-item__icon--entity
+{
+    background-image: var(--entity-icon--selected);
+}
+
+.unity-list-view:focus .unity-list-view__item:checked .hierarchy-item__icon--gameobject,
+.unity-tree-view:focus .unity-tree-view__item:checked .hierarchy-item__icon--gameobject
+{
+    background-image: var(--gameobject--selected);
+}
+
+.unity-list-view:focus .unity-list-view__item:checked .hierarchy-item__system-button,
+.unity-tree-view:focus .unity-tree-view__item:checked .hierarchy-item__system-button
+{
+    background-image: var(--go-to-systems-icon--selected);
+}
+
+.unity-list-view:focus .unity-list-view__item:checked .hierarchy-item__ping-gameobject-button,
+.unity-tree-view:focus .unity-tree-view__item:checked .hierarchy-item__ping-gameobject-button
+{
+    background-image: var(--gameobject--selected);
+}
+
+/* SearchView-specific styles */
+
+#SearchView .hierarchy-item__container
+{
+    /* Scientifically calculated using Photoshop™ */
+    margin-left: 23px;
+}
+
+#SearchView .hierarchy-item__scene-node
+{
+    background-color: var(--list-heading-color);
+}
+
+.hierarchy-item--prefab .hierarchy-item__name
+{
+    color: var(--prefab-font-color);
+}
+
+.hierarchy-item--prefab-root .hierarchy-item__icon--entity
+{
+    background-image: var(--prefab-entity-icon);
+}
+.hierarchy-item--prefab-root .hierarchy-item__icon--gameobject
+{
+    background-image: var(--prefab-gameobject-icon);
+}
+
+.unity-list-view:focus .unity-list-view__item:checked .hierarchy-item--prefab-root .hierarchy-item__icon--entity,
+.unity-tree-view:focus .unity-tree-view__item:checked .hierarchy-item--prefab-root .hierarchy-item__icon--entity
+{
+    background-image: var(--prefab-entity-icon--selected);
+}
+.unity-list-view:focus .unity-list-view__item:checked .hierarchy-item--prefab-root .hierarchy-item__icon--gameobject,
+.unity-tree-view:focus .unity-tree-view__item:checked .hierarchy-item--prefab-root .hierarchy-item__icon--gameobject
+{
+    background-image: var(--prefab-gameobject-icon--selected);
+}
+
+.hierarchy-item__prefab-stage-button
+{
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    margin-left: 2px;
+    background-image: var(--arrow-navigation-right);
+}
+
+.hierarchy-item__prefab-stage-button:hover
+{
+    background-color: var(--prefab-stage-back-button-hover-color);
+}

@@ -1,0 +1,23 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement class="system-schedule-item__container">
+        <ui:VisualElement name="Column System Name" class="system-schedule-item__column-system-name">
+            <ui:VisualElement class="system-schedule-item__state-toggle-container">
+                <ui:Toggle class="system-schedule-item__state-toggle"/>
+            </ui:VisualElement>>
+            <ui:VisualElement name="Icon" class="system-schedule-item__icon"/>
+            <ui:Label name="Name" class="system-schedule-item__name-label" display-tooltip-when-elided="true"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="Column World Name" class="system-schedule-item__column-world-name">
+            <ui:Label name="World" class="system-schedule-item__world-label" display-tooltip-when-elided="true"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="Column Namespace" class="system-schedule-item__column-namespace">
+            <ui:Label name="Namespace" class="system-schedule-item__namespace-label" display-tooltip-when-elided="true"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="Column Entity Count" class="system-schedule-item__column-entity-count">
+            <ui:Label name="Matches" class="system-schedule-item__entity-count-label" display-tooltip-when-elided="true"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="Column Time" class="system-schedule-item__column-time">
+            <ui:Label name="Time" class="system-schedule-item__time-label" display-tooltip-when-elided="true"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</UXML>

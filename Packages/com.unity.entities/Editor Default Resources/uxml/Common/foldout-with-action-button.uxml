@@ -1,0 +1,14 @@
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="foldout-with-action-button__container">
+        <ui:VisualElement class="foldout-with-action-button__left-side">
+            <ui:VisualElement class="foldout-with-action-button__icon-name-container">
+                <ui:VisualElement class="foldout-with-action-button__icon" />
+                <ui:Label class="foldout-with-action-button__name" display-tooltip-when-elided="true"/>
+            </ui:VisualElement>
+            <ui:Label class="foldout-with-action-button__count" />
+        </ui:VisualElement>
+        <ui:VisualElement class="foldout-with-action-button__button-container">
+            <ui:VisualElement class="foldout-with-action-button__button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</UXML>

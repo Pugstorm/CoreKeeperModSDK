@@ -1,0 +1,9 @@
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="system-dependency-view__container">
+        <ui:VisualElement class="system-dependency-view__icon" />
+        <ui:Label class="system-dependency-view__name" />
+        <ui:VisualElement class="system-dependency-view__button-container">
+            <ui:VisualElement class="system-dependency-view__button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</UXML>

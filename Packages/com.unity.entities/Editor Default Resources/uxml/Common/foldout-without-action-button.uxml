@@ -1,0 +1,9 @@
+<UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="foldout-without-action-button__container">
+        <ui:VisualElement class="foldout-without-action-button__name-container">
+            <ui:VisualElement class="foldout-without-action-button__icon" />
+            <ui:Label class="foldout-without-action-button__name" display-tooltip-when-elided="true"/>
+        </ui:VisualElement>
+        <ui:Label class="foldout-without-action-button__count" />
+    </ui:VisualElement>
+</UXML>

@@ -1,0 +1,9 @@
+.row
+{
+    flex-direction: row;
+}
+
+.component-name
+{
+    padding-left: 2px;
+}

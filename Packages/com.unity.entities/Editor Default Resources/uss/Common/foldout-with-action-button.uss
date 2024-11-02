@@ -1,0 +1,74 @@
+.foldout-with-action-button__container {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+.foldout-with-action-button__left-side {
+    flex-direction: row;
+    align-items: flex-end;
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 3px 0 3px 0;
+}
+
+.foldout-with-action-button__icon-name-container{
+    flex-direction: row;
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.foldout-with-action-button__toggle{
+    margin: 0;
+    padding: 0;
+}
+
+.foldout-with-action-button__toggle-input{
+    padding-top: 3px;
+}
+
+.foldout-with-action-button__toggle-header--hover{
+    background-color: var(--header-background-hover-color);
+}
+
+.foldout-with-action-button__icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
+    flex-shrink: 0;
+    flex-grow: 0;
+    background-image: var(--query-icon);
+}
+
+.foldout-with-action-button__name {
+    margin: 0;
+    padding: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -unity-font-style: bold;
+}
+
+.foldout-with-action-button__count {
+    margin-right: 3px;
+    min-width: 0;
+    color: var(--section-count-color);
+}
+
+.foldout-with-action-button__button-container {
+    justify-content: center;
+    align-items: center;
+    min-width: 23px;
+    min-height: 22px;
+}
+
+.foldout-with-action-button__button {
+    background-color: transparent;
+    border-color: transparent;
+    background-image: var(--open-in-window-icon);
+    width:16px;
+    height:16px;
+    flex-shrink: 0;
+    flex-grow: 0;
+}

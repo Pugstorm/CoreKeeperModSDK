@@ -1,0 +1,7 @@
+<UXML xmlns:ui="UnityEngine.UIElements">
+<ui:VisualElement class="component-type-view__container">
+    <ui:VisualElement class="component-type-view__icon" />
+    <ui:Label class="component-type-view__name" />
+    <ui:Label class="component-type-view__category" />
+</ui:VisualElement>
+</UXML>

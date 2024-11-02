@@ -1,0 +1,54 @@
+.entities-journaling-window__separator
+{
+    border-color: #999999;
+}
+
+.entities-journaling-window__record:hover
+{
+    background-color: #c1c1c1;
+}
+
+.entities-journaling-window__record:checked .unity-toggle__input
+{
+    background-color: #efefef;
+}
+
+.entities-journaling-window__record .unity-toggle__checkmark
+{
+    background-image: resource("icons/record off.png");
+}
+
+.entities-journaling-window__record:checked .unity-toggle__checkmark
+{
+    background-image: resource("icons/record on.png");
+}
+
+.entities-journaling-window__export-container:hover
+{
+    background-color: #c1c1c1;
+}
+
+.entities-journaling-window__export
+{
+    background-image: resource("icons/saveas.png");
+}
+
+.entities-journaling-window__clear:hover
+{
+    background-color: #c1c1c1;
+}
+
+.entities-journaling-window__details-container:hover
+{
+    background-color: #c1c1c1;
+}
+
+.entities-journaling-window__details
+{
+    background-image: resource("icons/unityeditor.inspectorWindow.png");
+}
+
+.entities-journaling-window__footer
+{
+    border-color: #999999;
+}

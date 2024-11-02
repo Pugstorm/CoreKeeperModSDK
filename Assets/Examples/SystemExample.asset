@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc43e4983a160e543856e5ba0421c9e1, type: 3}
+  m_Name: SystemExample
+  m_EditorClassIdentifier: 
+  metadata:
+    guid: 9e65f2a3eef6496790ea1cda565e1cf8
+    name: SystemExample
+    skipSafetyChecks: 0
+    accessesExtraAssemblies: 1
+    disableHarmonyPatching: 0
+    requiredOn: 0
+    files:
+    - path: Scripts/SystemExample.cs
+    - path: Scripts/Generated/SystemExample__System_930224607.g.cs
+    - path: Bundles/SystemExample_Windows.assetbundle
+    - path: Bundles/SystemExample_Linux.assetbundle
+    dependencies: []
+  modPath: Assets\Examples\SystemExample

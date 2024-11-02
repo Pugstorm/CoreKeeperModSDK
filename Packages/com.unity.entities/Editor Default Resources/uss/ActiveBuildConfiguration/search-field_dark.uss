@@ -1,0 +1,4 @@
+.search-field__icon
+{
+    background-image: url("../../icons/dark/ActiveBuildConfiguration/search_icon.png");
+}

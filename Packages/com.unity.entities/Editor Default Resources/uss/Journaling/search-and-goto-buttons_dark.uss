@@ -1,0 +1,19 @@
+.search-button
+{
+    background-image: url("../../icons/dark/search/search.png");
+}
+
+.search-button:hover
+{
+    background-color: #464646;
+}
+
+.goto-button
+{
+    background-image: url("../../icons/dark/go to/go to.png");
+}
+
+.goto-button:hover
+{
+    background-color: #464646;
+}

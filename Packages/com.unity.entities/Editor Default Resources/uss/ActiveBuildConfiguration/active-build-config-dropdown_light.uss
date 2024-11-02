@@ -1,0 +1,15 @@
+.active-build-config-dropdown__input
+{
+    border-color: #7f7f7f;
+    background-color: #c8c8c8;
+}
+
+.active-build-config-dropdown__input:hover
+{
+    background-color: #bbbbbb;
+}
+
+.active-build-config-dropdown__arrow
+{
+    background-image: resource("uipackageresources/images/dropdown.png");
+}

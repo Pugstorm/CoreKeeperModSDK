@@ -1,0 +1,53 @@
+.hierarchy-loading
+{
+    flex-grow: 1;
+}
+
+.hierarchy-loading__container
+{
+    flex-grow: 1;
+    flex-direction: column;
+    justify-content: center;
+    padding-bottom: 50px;
+}
+
+.hierarchy-loading__spinner-container
+{
+    align-self: center;
+    flex-direction: row;
+    margin-bottom: 15px;
+}
+
+.hierarchy-loading__spinner
+{
+    width: 20px;
+    height: 20px;
+    align-self: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+.hierarchy-loading__spinner-label
+{
+    -unity-font-style: bold;
+    margin-left: 10px;
+    justify-content: center;
+    align-self: center;
+}
+
+.hierarchy-loading__progress-bar
+{
+    margin-left: 50px;
+    margin-right: 50px;
+}
+
+.hierarchy-loading__progress-bar .unity-progress-bar__progress
+{
+    height: 4px;
+}
+
+.hierarchy-loading__progress-bar .unity-progress-bar__background
+{
+    height: 4px;
+    border-width: 0px;
+}

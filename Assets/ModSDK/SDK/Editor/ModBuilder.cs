@@ -33,6 +33,13 @@ namespace PugMod
 			var modName = settings.metadata.name;
 			var modDirectory = settings.modPath;
 
+			if (!Directory.Exists(modDirectory))
+			{
+				Debug.Log($"No directory at {modDirectory}");
+				callback?.Invoke(false);
+				return;
+			}
+
 			var installDirectory = installInSubDirectory ? Path.Combine(exportPath, modName) : exportPath;
 			var installDirectoryInfo = new DirectoryInfo(installDirectory);
 

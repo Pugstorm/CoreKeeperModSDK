@@ -1,0 +1,39 @@
+{
+    "name": "Unity.Entities.Hybrid",
+    "rootNamespace": "",
+    "references": [
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Entities",
+        "Unity.Mathematics",
+        "Unity.Mathematics.Extensions",
+        "Unity.Build",
+        "Unity.Build.Classic",
+        "Unity.Properties",
+        "Unity.Scenes",
+        "Unity.Entities.Hybrid.HybridComponents",
+        "Unity.Build.DotsRuntime",
+        "Unity.Entities.Build",
+        "Unity.Transforms"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.package-validation-suite",
+            "expression": "0.4.0-preview.6",
+            "define": "UNITY_SKIP_UPDATES_WITH_VALIDATION_SUITE"
+        },
+        {
+            "name": "Unity",
+            "expression": "2022.2.14f1",
+            "define": "UNITY_2022_2_14F1_OR_NEWER"
+        }
+    ],
+    "noEngineReferences": false
+}

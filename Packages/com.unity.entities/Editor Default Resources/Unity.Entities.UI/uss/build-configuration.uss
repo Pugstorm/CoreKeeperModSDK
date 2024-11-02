@@ -1,0 +1,129 @@
+.build-configuration
+{
+    margin: 0px 0px 0px -15px;
+}
+
+.build-configuration__header
+{
+    flex-direction: row;
+    margin: 3px;
+}
+
+.build-configuration__icon
+{
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    margin: 0px 5px;
+}
+
+.build-configuration__name
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    font-size: 13px;
+}
+
+.build-configuration__options
+{
+    flex-shrink: 0;
+    background-color: transparent;
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    border-color: transparent;
+    margin: 0px;
+}
+
+.build-configuration__actions
+{
+    flex-direction: row;
+    justify-content: flex-end;
+}
+
+.build-configuration__action
+{
+    width: 100px;
+    padding: 2px;
+    border-width: 1px 0px 1px 1px;
+    border-radius: 5px 0px 0px 5px;
+    margin: 0px;
+}
+
+.build-configuration__action-popup
+{
+    padding: 0px;
+    margin: 0px;
+}
+
+.build-configuration__action-popup .unity-base-field__input
+{
+    min-width: auto;
+    padding: 2px 4px;
+    border-width: 1px 1px 1px 0px;
+    border-radius: 0px 5px 5px 0px;
+    margin: 0px;
+}
+
+.build-configuration__action-popup .unity-base-popup-field__text
+{
+    display: none;
+}
+
+.build-configuration__dependencies
+{
+    padding: 0px 5px 0px 19px;
+}
+
+.build-configuration__dependencies #unity-content
+{
+    margin: 0px;
+}
+
+.build-configuration__dependencies-container
+{
+    padding: 2px;
+    border-width: 2px;
+    border-radius: 5px;
+    margin: 0px;
+}
+
+.build-configuration__dependencies-add
+{
+    flex-grow: 0;
+    background-color: transparent;
+    padding: 0px;
+    border-width: 0px;
+    border-color: transparent;
+    border-radius: 0px;
+    margin: 0px;
+}
+
+.build-configuration__search-container
+{
+    margin: 5px;
+}
+
+.build-configuration__components
+{
+}
+
+.build-configuration__footer
+{
+    padding: 5px;
+    border-width: 1px 0px 0px 0px;
+    align-items: center;
+}
+
+.build-configuration__add-component
+{
+    padding: 5px;
+    border-width: 1px;
+    border-radius: 5px;
+    margin: 0px;
+    width: 230px;
+}

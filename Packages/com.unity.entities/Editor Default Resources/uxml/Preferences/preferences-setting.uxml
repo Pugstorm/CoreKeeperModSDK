@@ -1,0 +1,4 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uib="Unity.Editor.Bridge" xmlns:uip="Unity.Entities.UI">
+    <ui:Label name="name" class="preferences-setting__name"/>
+    <ui:VisualElement name="content" class="preferences-setting__content"/>
+</UXML>

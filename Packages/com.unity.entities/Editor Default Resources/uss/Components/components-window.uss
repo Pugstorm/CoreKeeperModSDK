@@ -1,0 +1,51 @@
+.components-window__container
+{
+    margin: 0;
+    flex-grow: 1;
+}
+
+.components-window__search-element-container
+{
+    margin: 3px;
+}
+
+.components-window__list-view
+{
+    flex-grow: 1;
+}
+
+.component-icon
+{
+    background-image: var(--component-icon);
+}
+
+.buffer-component-icon
+{
+    background-image: var(--buffer-component-icon);
+}
+
+.shared-component-icon
+{
+    background-image: var(--shared-component-icon);
+}
+
+.entity-icon
+{
+    background-image: var(--entity-icon);
+}
+
+.managed-component-icon
+{
+    background-image: var(--managed-component-icon);
+}
+
+.tag-component-icon
+{
+    background-image: var(--tag-component-icon);
+}
+
+/* TODO: use real companion component icon */
+.companion-component-icon
+{
+    background-image: var(--managed-component-icon);
+}

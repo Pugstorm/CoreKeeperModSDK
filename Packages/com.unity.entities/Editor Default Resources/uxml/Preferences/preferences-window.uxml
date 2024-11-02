@@ -1,0 +1,6 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uib="Unity.Editor.Bridge" xmlns:uip="Unity.Entities.UI">
+    <ui:Label name="title" class="preferences-window__title"/>
+    <ui:ScrollView name="scrollView">
+        <ui:VisualElement name="settings" class="preferences-window__settings"/>
+    </ui:ScrollView>
+</UXML>

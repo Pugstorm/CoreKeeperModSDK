@@ -1,0 +1,7 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uib="Unity.Editor.Bridge" xmlns:uip="Unity.Entities.UI">
+  <ui:VisualElement name="row" class="memory-profiler-tree-view-item__row">
+    <ui:Label name="column1" class="memory-profiler-tree-view-item__column1"/>
+    <ui:Label name="column2" class="memory-profiler-tree-view-item__column2"/>
+    <ui:Label name="column3" class="memory-profiler-tree-view-item__column3"/>
+  </ui:VisualElement>
+</UXML>

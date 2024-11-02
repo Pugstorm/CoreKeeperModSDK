@@ -1,0 +1,24 @@
+.entities-journaling-details-entity__icon
+{
+    background-image: url("../../icons/light/entity/entity.png");
+}
+
+.entities-journaling-details-entity__search
+{
+    background-image: url("../../icons/light/search/search.png");
+}
+
+.entities-journaling-details-entity__search:hover
+{
+    background-color: #efefef;
+}
+
+.entities-journaling-details-entity__goto
+{
+    background-image: url("../../icons/light/go to/go to.png");
+}
+
+.entities-journaling-details-entity__goto:hover
+{
+    background-color: #efefef;
+}

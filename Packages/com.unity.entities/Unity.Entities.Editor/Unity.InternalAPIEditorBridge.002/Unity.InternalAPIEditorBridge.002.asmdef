@@ -1,0 +1,14 @@
+{
+    "name": "Unity.InternalAPIEditorBridge.002",
+    "references": ["Unity.Scenes"],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": []
+}

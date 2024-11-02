@@ -1,0 +1,36 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" uee="Unity.Entities.Editor" editor-extension-mode="False">
+    <uie:Toolbar name="toolbar" class="entities-journaling-window__toolbar">
+        <ui:Toggle name="record" class="entities-journaling-window__record" />
+        <ui:VisualElement class="entities-journaling-window__separator" />
+        <ui:VisualElement name="export-container" class="entities-journaling-window__export-container">
+            <ui:Button name="export" class="entities-journaling-window__export" />
+        </ui:VisualElement>
+        <ui:VisualElement class="entities-journaling-window__separator" />
+        <ui:Button name="clear" class="entities-journaling-window__clear" />
+        <ui:VisualElement class="entities-journaling-window__separator" />
+        <ui:VisualElement name="search-container" class="entities-journaling-window__search-container">
+            <Unity.Entities.Editor.SearchElement name="search" class="entities-journaling-window__search" />
+        </ui:VisualElement>
+        <ui:VisualElement class="entities-journaling-window__separator" />
+        <ui:VisualElement name="details-container" class="entities-journaling-window__details-container">
+            <ui:Button name="jump" class="entities-journaling-window__details" />
+        </ui:VisualElement>
+        <ui:VisualElement name="details-container" class="entities-journaling-window__details-container">
+            <ui:Button name="details" class="entities-journaling-window__details" />
+        </ui:VisualElement>
+    </uie:Toolbar>
+    <ui:VisualElement name="message-container" class="entities-journaling-window__message-container">
+        <ui:Label name="message" class="entities-journaling-window__message" />
+        <ui:Button name="stop" class="entities-journaling-window__stop" />
+    </ui:VisualElement>
+    <ui:VisualElement name="content" class="entities-journaling-window__content" />
+    <ui:VisualElement name="footer" class="entities-journaling-window__footer">
+        <ui:VisualElement name="footer-left" class="entities-journaling-window__footer-left">
+            <ui:Label name="search-result" class="entities-journaling-window__footer-text" style="margin: 0 0 0 6px;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="footer-right" class="entities-journaling-window__footer-right">
+            <ui:Label name="record-count" class="entities-journaling-window__footer-text" />
+            <ui:Label name="used-bytes" class="entities-journaling-window__footer-text" style="margin: 0 5px 0 20px;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

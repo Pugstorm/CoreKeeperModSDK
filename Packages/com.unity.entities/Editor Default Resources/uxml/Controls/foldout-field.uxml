@@ -1,0 +1,8 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+  <ui:VisualElement name="toggle" class="foldout-field__toggle">
+    <ui:Image name="icon" class="foldout-field__icon"/>
+    <ui:Label name="label" class="foldout-field__label"/>
+    <ui:VisualElement name="value" class="foldout-field__value"/>
+  </ui:VisualElement>
+  <ui:VisualElement name="content" class="foldout-field__content"/>
+</UXML>

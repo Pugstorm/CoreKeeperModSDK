@@ -1,0 +1,51 @@
+.build-component__header
+{    
+    background-color: #cbcbcb;
+    border-top-color: #7f7f7f;
+    border-bottom-color: #bababa;
+}
+
+.build-component__header:hover
+{
+    background-color: #d6d6d6;
+}
+
+.build-component__foldout-open
+{
+    background-image: resource("builtin skins/lightskin/images/in foldout on.png");
+}
+
+.build-component__foldout-closed
+{
+    background-image: resource("builtin skins/lightskin/images/in foldout.png");
+}
+
+.build-component__warning
+{
+    background-image: resource("icons/console.warnicon.png");
+}
+
+.build-component__add
+{
+    background-image: resource("icons/createaddnew.png");
+}
+
+.build-component__add:hover
+{
+    background-color: #efefef;
+}
+
+.build-component__options
+{
+    background-image: resource("builtin skins/lightskin/images/pane options.png");
+}
+
+.build-component__options:hover
+{
+    background-color: #efefef;
+}
+
+.build-component__body-overriding
+{
+    border-color: #32a3e1;
+}

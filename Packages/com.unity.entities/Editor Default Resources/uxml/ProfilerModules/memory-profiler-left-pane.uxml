@@ -1,0 +1,16 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uib="Unity.Editor.Bridge" xmlns:uee="Unity.Entities.Editor">
+    <uie:Toolbar name="toolbar" class="memory-profiler-left-pane__toolbar">
+        <uee:SearchElement name="search" class="memory-profiler-left-pane__search"/>
+        <ui:VisualElement style="width: 3px"/>
+        <ui:Button name="options" class="memory-profiler-left-pane__options"/>
+    </uie:Toolbar>
+    <ui:Label name="message" class="memory-profiler-left-pane__message"/>
+    <ui:VisualElement name="content" class="memory-profiler-left-pane__content">
+        <ui:VisualElement name="header" class="memory-profiler-left-pane__header">
+            <ui:Label name="column1" class="memory-profiler-left-pane__column1"/>
+            <ui:Label name="column2" class="memory-profiler-left-pane__column2"/>
+            <ui:Label name="column3" class="memory-profiler-left-pane__column3"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="tree-view-container" />
+    </ui:VisualElement>
+</UXML>

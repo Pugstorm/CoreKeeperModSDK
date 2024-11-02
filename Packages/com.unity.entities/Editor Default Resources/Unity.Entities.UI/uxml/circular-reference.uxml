@@ -1,0 +1,7 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:platforms="Unity.Entities.UI" id="CircularReference">
+    <ui:VisualElement class="unity-platforms__row unity-platforms__expand">
+        <ui:Label class="unity-base-field__label unity-platforms__circular-reference__label"/>
+        <ui:VisualElement class="unity-platforms__circular-reference__icon"/>
+        <ui:Button class="unity-platforms__circular-reference__path"/>
+    </ui:VisualElement>
+</UXML>

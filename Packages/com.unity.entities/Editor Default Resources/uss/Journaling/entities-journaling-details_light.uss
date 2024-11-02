@@ -1,0 +1,29 @@
+.entities-journaling-details__search
+{
+    background-image: url("../../icons/light/search/search.png");
+}
+
+.entities-journaling-details__search:hover
+{
+    background-color: #efefef;
+}
+
+.entities-journaling-details__goto
+{
+    background-image: url("../../icons/light/go to/go to.png");
+}
+
+.entities-journaling-details__goto:hover
+{
+    background-color: #efefef;
+}
+
+.entities-journaling-details__content
+{
+    border-color: #999999;
+}
+
+.entities-journaling-details__content-list
+{
+    border-color: #999999;
+}

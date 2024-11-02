@@ -1,0 +1,10 @@
+.classic-build-profile__helpbox
+{
+    background-color: #d0d0d0;
+    border-color: #949494;
+}
+
+.classic-build-profile__icon
+{
+    background-image: resource("icons/console.erroricon.png");
+}

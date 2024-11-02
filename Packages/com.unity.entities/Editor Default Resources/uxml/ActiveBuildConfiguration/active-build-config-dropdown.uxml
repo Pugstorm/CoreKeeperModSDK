@@ -1,0 +1,7 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+  <ui:VisualElement name="input" class="active-build-config-dropdown__input">
+    <ui:Image name="icon" class="active-build-config-dropdown__icon"/>
+    <ui:TextElement name="text" class="active-build-config-dropdown__text"/>
+    <ui:Image name="arrow" class="active-build-config-dropdown__arrow"/>
+  </ui:VisualElement>
+</UXML>

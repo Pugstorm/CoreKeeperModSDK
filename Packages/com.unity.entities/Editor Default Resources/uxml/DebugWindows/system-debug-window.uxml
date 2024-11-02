@@ -1,0 +1,29 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement class="telemetry-section">
+        <ui:Label text="Telemetry Section" class="section-title"/>
+        <ui:VisualElement class="telemetry-window__section">
+            <ui:Label text="SystemTreeViewItem" class="telemetry-window__section-title"/>
+            <uie:IntegerField label="Active Instance Count" binding-path="SystemTreeViewItemActiveInstanceCount" />
+            <uie:IntegerField label="Pool size" binding-path="SystemTreeViewItemPoolSize" />
+        </ui:VisualElement>
+        <ui:VisualElement class="telemetry-window__section">
+            <ui:Label text="SystemInformationVisualElement" class="telemetry-window__section-title"/>
+            <uie:IntegerField label="Active Instance Count" binding-path="SystemInformationVisualElementActiveInstanceCount" />
+            <uie:IntegerField label="Pool size" binding-path="SystemInformationVisualElementPoolSize" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:Label name="separator" class="manipulate-window__separator"/>
+    <ui:VisualElement class="test-section">
+        <ui:Label text="Test Section" class="section-title"/>
+        <ui:VisualElement class="manipulate-window__section">
+            <ui:Label name="system-name-label" class="manipulate-window__indication-label"/>
+            <ui:Button text="Add Test System" name="add-system" class="manipulate-window__button"/>
+            <ui:Button text="Remove Test System" name="remove-system" class="manipulate-window__button"/>
+            <ui:Label name="indication-label" class="manipulate-window__indication-label"/>
+            <ui:Label name="world-name-label" class="manipulate-window__indication-label"/>
+            <ui:Button text="Create Test World" name="create-test-world" class="manipulate-window__button"/>
+            <ui:Button text="Destroy Test World" name="destroy-test-world" class="manipulate-window__button"/>
+            <ui:Label name="indication-world-label" class="manipulate-window__indication-label"/>
+        </ui:VisualElement>
+    </ui:VisualElement>>
+</UXML>

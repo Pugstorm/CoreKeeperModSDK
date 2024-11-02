@@ -1,0 +1,30 @@
+﻿.sb-settings-window {
+    min-width: 300px;
+    min-height: 200px;
+    margin-top: 4px;
+    margin-left: 5px;
+    margin-right: 9px;
+}
+
+.title{
+    -unity-font-style: bold;
+    font-size: 20px;
+    margin-bottom: 5px;
+    margin-left: 5px;
+}
+
+.body{
+    margin-left: 5px;
+}
+
+.target {
+    margin-left: 10px;
+    margin-top: 5px;
+    -unity-font-style: bold;
+}
+
+.target-Settings{
+    margin-left: 10px;
+    margin-top: 5px;
+    -unity-font-style: normal;
+}

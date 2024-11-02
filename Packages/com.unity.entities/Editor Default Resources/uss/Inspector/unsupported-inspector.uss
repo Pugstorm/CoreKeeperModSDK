@@ -1,0 +1,75 @@
+.unsupported-inspector__container
+{
+    flex-grow: 1;
+    padding-top: 5px;
+    padding-left: 5px;
+    overflow: hidden;
+}
+
+.unsupported-inspector__content
+{
+    flex-direction: column;
+    flex-grow: 1;
+    align-items: flex-start;
+}
+
+.unsupported-inspector__header
+{
+    flex-direction: row;
+    flex-grow: 1;
+    margin-bottom: 10px;
+    align-items: flex-start;
+}
+
+.unsupported-inspector__item-icon
+{
+    width: 32px;
+    height: 32px;
+
+    margin-right: 5px;
+}
+
+/* Added by code */
+.unsupported-inspector__item-icon--entity
+{
+    background-image: var(--entity-icon);
+}
+
+/* Added by code */
+.unsupported-inspector__item-icon--game-object
+{
+    background-image: var(--gameobject);
+}
+
+/* Added by code */
+.unsupported-inspector__item-icon--prefab-entity
+{
+    background-image: var(--prefab-entity-icon);
+}
+
+.unsupported-inspector__header-text
+{
+    align-self: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+}
+
+.unsupported-inspector__body-text
+{
+    white-space: normal;
+}
+
+/* Added by code */
+.unsupported-inspector__button
+{
+    align-self: center;
+    margin-top: 16px;
+
+    /* Taken from the Add Component button (IMGUI) */
+    width: 230px;
+    height: 24px;
+}

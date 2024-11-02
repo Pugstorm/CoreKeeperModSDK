@@ -1,0 +1,9 @@
+.foldout-field__icon-open
+{
+    background-image: resource("builtin skins/lightskin/images/in foldout on.png");
+}
+
+.foldout-field__icon-closed
+{
+    background-image: resource("builtin skins/lightskin/images/in foldout.png");
+}

@@ -1,0 +1,40 @@
+.active-build-config-popup
+{
+    border-color: #636363;
+}
+
+.active-build-config-popup__list .unity-list-view__item:hover
+{
+    background-color: #3e7de7;
+    color: #ffffff;
+}
+
+.active-build-config-popup__options
+{
+    border-color: #636363;
+}
+
+.active-build-config-popup__options:hover
+{
+    background-color: #3e7de7;
+}
+
+.active-build-config-popup__options-label:hover
+{
+    color: #ffffff;
+}
+
+.active-build-config-popup__create
+{
+    border-color: #636363;
+}
+
+.active-build-config-popup__create:hover
+{
+    background-color: #3e7de7;
+}
+
+.active-build-config-popup__create-label:hover
+{
+    color: #ffffff;
+}

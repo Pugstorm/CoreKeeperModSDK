@@ -1,0 +1,23 @@
+.active-build-config-popup-item
+{
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.active-build-config-popup-item__icon
+{
+    flex-shrink: 0;
+    margin: 0px 4px;
+    width: 16px;
+    height: 16px;
+    align-self: center;
+}
+
+.active-build-config-popup-item__name
+{
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+}

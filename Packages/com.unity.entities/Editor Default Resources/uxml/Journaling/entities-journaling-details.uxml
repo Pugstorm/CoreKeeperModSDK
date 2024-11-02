@@ -1,0 +1,95 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uee="Unity.Entities.Editor" xmlns:uip="Unity.Entities.UI">
+    <ui:VisualElement name="header" class="entities-journaling-details__header">
+        <ui:VisualElement name="top" class="entities-journaling-details__header-top">
+            <ui:Image name="icon" class="entities-journaling-details__header-icon"/>
+            <ui:Label name="title" class="entities-journaling-details__header-title"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="bottom" class="entities-journaling-details__header-bottom">
+            <ui:VisualElement name="record-index" class="entities-journaling-details__field">
+                <ui:Label name="record-index-label" class="entities-journaling-details__field-label"/>
+                <ui:TextField name="record-index-value" class="entities-journaling-details__field-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="frame-index" class="entities-journaling-details__field">
+                <ui:Label name="frame-index-label" class="entities-journaling-details__field-label"/>
+                <ui:TextField name="frame-index-value" class="entities-journaling-details__field-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="world" class="entities-journaling-details__field">
+                <ui:Label name="world-label" class="entities-journaling-details__field-label"/>
+                <ui:TextField name="world-value" class="entities-journaling-details__field-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="executing-system" class="entities-journaling-details__field">
+                <ui:Label name="executing-system-label" class="entities-journaling-details__field-label"/>
+                <ui:VisualElement name="value" style="flex-grow:1; flex-direction: row; align-items: center;">
+                    <ui:TextField name="executing-system-value" class="entities-journaling-details__field-value"/>
+                    <ui:Button name="executing-system-search" class="entities-journaling-details__search"/>
+                    <ui:Button name="executing-system-goto" class="entities-journaling-details__goto"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="origin-system" class="entities-journaling-details__field">
+                <ui:Label name="origin-system-label" class="entities-journaling-details__field-label"/>
+                <ui:VisualElement name="value" style="flex-grow:1; flex-direction: row; align-items: center;">
+                    <ui:TextField name="origin-system-value" class="entities-journaling-details__field-value"/>
+                    <ui:Button name="origin-system-search" class="entities-journaling-details__search"/>
+                    <ui:Button name="origin-system-goto" class="entities-journaling-details__goto"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="content" class="entities-journaling-details__content">
+        <ui:VisualElement name="content-world" class="entities-journaling-details__content-world">
+            <ui:VisualElement name="content-world-name" class="entities-journaling-details__field">
+                <ui:Label name="content-world-name-label" class="entities-journaling-details__field-label"/>
+                <ui:TextField name="content-world-name-value" class="entities-journaling-details__field-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="content-world-seqnum" class="entities-journaling-details__field">
+                <ui:Label name="content-world-seqnum-label" class="entities-journaling-details__field-label"/>
+                <ui:TextField name="content-world-seqnum-value" class="entities-journaling-details__field-value"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="content-system" class="entities-journaling-details__content-system">
+            <ui:VisualElement name="content-system-name" class="entities-journaling-details__field">
+                <ui:Label name="content-system-name-label" class="entities-journaling-details__field-label"/>
+                <ui:VisualElement name="value" style="flex-grow:1; flex-direction: row; align-items: center;">
+                    <ui:TextField name="content-system-name-value" class="entities-journaling-details__field-value"/>
+                    <ui:Button name="content-system-search" class="entities-journaling-details__search"/>
+                    <ui:Button name="content-system-goto" class="entities-journaling-details__goto"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="content-system-handle" class="entities-journaling-details__field">
+                <ui:Label name="content-system-handle-label" class="entities-journaling-details__field-label"/>
+                <ui:TextField name="content-system-handle-value" class="entities-journaling-details__field-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="content-system-version" class="entities-journaling-details__field">
+                <ui:Label name="content-system-version-label" class="entities-journaling-details__field-label"/>
+                <ui:TextField name="content-system-version-value" class="entities-journaling-details__field-value"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="content-tabs" class="entities-journaling-details__content-tabs">
+            <uee:TabView class="entities-journaling-details__content-tab-view">
+                <uee:TabContent name="entities-tab" class="entities-journaling-details__content-tab">
+                    <ui:TwoPaneSplitView name="split-pane" orientation="vertical" fixed-pane-initial-dimension="150" fixed-pane-index="1">
+                        <ui:VisualElement name="entities-tab-top" class="entities-journaling-details__content-top">
+                            <ui:VisualElement name="search-container" class="entities-journaling-details__content-search-container">
+                                <uee:SearchElement name="entities-search" class="entities-journaling-details__content-search"/>
+                            </ui:VisualElement>
+                            <ui:ListView name="entities-list" class="entities-journaling-details__content-list"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="entities-tab-bottom" class="entities-journaling-details__content-bottom">
+                            <ui:ScrollView name="entities-footer" class="entities-journaling-details__footer">
+                                <ui:Foldout name="entities-footer-foldout" class="component-header">
+                                    <uip:PropertyElement name="entities-footer-property"/>
+                                </ui:Foldout>
+                            </ui:ScrollView>
+                        </ui:VisualElement>
+                    </ui:TwoPaneSplitView>
+                </uee:TabContent>
+                <uee:TabContent name="components-tab" class="entities-journaling-details__content-tab">
+                    <ui:VisualElement name="search-container" class="entities-journaling-details__content-search-container">
+                        <uee:SearchElement name="components-search" class="entities-journaling-details__content-search"/>
+                    </ui:VisualElement>
+                    <ui:ListView name="components-list" class="entities-journaling-details__content-list"/>
+                </uee:TabContent>
+            </uee:TabView>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</UXML>

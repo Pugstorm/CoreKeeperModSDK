@@ -1,0 +1,24 @@
+.build-configuration__icon
+{
+    background-image: resource("ScriptableObject Icon");
+}
+
+.build-configuration__options
+{
+    background-image: resource("builtin skins/lightskin/images/pane options.png");
+}
+
+.build-configuration__options:hover
+{
+    background-color: #efefef;
+}
+
+.build-configuration__dependencies
+{
+    border-color: #1a1a1a;
+}
+
+.build-configuration__footer
+{
+    border-color: #1a1a1a;
+}

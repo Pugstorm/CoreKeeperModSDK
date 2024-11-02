@@ -1,0 +1,55 @@
+.active-build-config-popup
+{
+    flex-grow: 1;
+    border-width: 1px;
+}
+
+.active-build-config-popup__search
+{
+    margin: 3px;
+}
+
+.active-build-config-popup__list
+{
+    flex-grow: 1;
+}
+
+.active-build-config-popup__options
+{
+    flex-direction: row;
+    border-top-width: 1px;
+}
+
+.active-build-config-popup__options-icon
+{
+    flex-shrink: 0;
+    margin: 2px 4px;
+    width: 16px;
+    height: 16px;
+    align-self: center;
+}
+
+.active-build-config-popup__options-label
+{
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+}
+
+.active-build-config-popup__create
+{
+    flex-direction: row;
+}
+
+.active-build-config-popup__create-label
+{
+    flex-grow: 1;
+    margin: 2px 4px;
+    height: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+}

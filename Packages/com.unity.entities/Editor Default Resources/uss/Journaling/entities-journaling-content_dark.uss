@@ -1,0 +1,4 @@
+.entities-journaling-content__details
+{
+    border-color: #232323;
+}

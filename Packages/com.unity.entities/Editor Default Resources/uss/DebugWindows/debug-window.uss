@@ -1,0 +1,53 @@
+.section-title
+{
+    -unity-font-style: bold;
+    font-size: 18px;
+    margin: 5px;
+}
+
+.telemetry-window__section
+{
+    padding: 5px;
+}
+
+.telemetry-window__section IntegerField
+{
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.telemetry-window__section-title
+{
+    -unity-font-style: bold;
+}
+
+.telemetry-window__page-title
+{
+    font-size: 14px;
+    -unity-text-align: middle-center;
+}
+
+.manipulate-window__section
+{
+    padding: 2px;
+}
+
+.manipulate-window__button
+{
+    width: 150px;
+    margin: 2px;
+}
+
+.manipulate-window__indication-label
+{
+    margin: 5px;
+    -unity-font-style: bold;
+}
+
+.manipulate-window__separator
+{
+    margin-top: 10px;
+    margin-bottom: 2px;
+    border-bottom-width: 2px;
+    border-bottom-color: gray;
+}

@@ -1,0 +1,37 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uib="Unity.Editor.Bridge" xmlns:uiee="Unity.Entities.Editor">
+  <ui:VisualElement name="header" class="memory-profiler-right-pane__header">
+    <ui:Image name="icon" class="memory-profiler-right-pane__icon"/>
+    <ui:TextField name="name" class="memory-profiler-right-pane__name"/>
+  </ui:VisualElement>
+  <ui:ScrollView>
+    <ui:VisualElement name="content" class="memory-profiler-right-pane__content">
+      <ui:VisualElement name="entity-count" class="memory-profiler-right-pane__item">
+        <ui:Label name="entity-count-label"/>
+        <ui:Label name="entity-count-value"/>
+      </ui:VisualElement>
+      <ui:VisualElement name="unused-entity-count" class="memory-profiler-right-pane__item">
+        <ui:Label name="unused-entity-count-label"/>
+        <ui:Label name="unused-entity-count-value"/>
+      </ui:VisualElement>
+      <ui:VisualElement name="chunk-count" class="memory-profiler-right-pane__item">
+        <ui:Label name="chunk-count-label"/>
+        <ui:Label name="chunk-count-value"/>
+      </ui:VisualElement>
+      <ui:VisualElement name="chunk-capacity" class="memory-profiler-right-pane__item">
+        <ui:Label name="chunk-capacity-label"/>
+        <ui:Label name="chunk-capacity-value"/>
+      </ui:VisualElement>
+<!--
+      Disabled until we find a better way to get this info
+      <ui:VisualElement name="segment-count" class="memory-profiler-right-pane__item">
+        <ui:Label name="segment-count-label"/>
+        <ui:Label name="segment-count-value"/>
+      </ui:VisualElement>
+-->
+      <uiee:FoldoutField name="components"/>
+      <ui:Label name="external-components" class="memory-profiler-right-pane__external-components"/>
+      <uiee:FoldoutField name="chunk-components"/>
+      <uiee:FoldoutField name="shared-components"/>
+    </ui:VisualElement>
+  </ui:ScrollView>
+</UXML>

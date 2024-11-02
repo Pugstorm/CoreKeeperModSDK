@@ -1,0 +1,54 @@
+#clear-cache {
+    padding: 10px;
+    flex-shrink: 0;
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+#clear-cache_label {
+    font-size: 14px;
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+#clear-cache_desc {
+    font-size: 12px;
+    padding-left: 20px;
+    padding-right: 20px;
+    white-space: normal;
+}
+
+.clear-cache_field {
+    flex-direction: column;
+    justify-content: space-between;
+    margin-top: 30px;
+    -unity-text-align: upper-center;
+}
+
+#clear-cache_footer {
+    margin-top: 10px;
+    flex-direction: row;
+}
+
+#clear-cache-button {
+    background-color: #4271AD;
+    color: #EEEEEE;
+    border-top-color: #3B659B;
+    border-left-color: #3B659B;
+    border-right-color: #3B659B;
+    border-bottom-color: #223A59;
+
+    width: 50%;
+    border-radius: 4px;
+}
+#clear-cache-button:hover {
+    background-color: #4678B9;
+}
+#clear-cache-button:active {
+    background-color: #416EAA;
+}
+
+#cancel-button {
+    width: 50%;
+    border-radius: 4px;
+}

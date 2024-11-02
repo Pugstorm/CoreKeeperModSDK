@@ -1,0 +1,14 @@
+<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:uib="Unity.Editor.Bridge" xmlns:uee="Unity.Entities.Editor">
+    <uie:Toolbar name="toolbar" class="structural-changes-profiler-window__toolbar">
+        <uee:SearchElement name="search" class="structural-changes-profiler-window__search"/>
+    </uie:Toolbar>
+    <ui:Label name="message" class="structural-changes-profiler-window__message"/>
+    <ui:VisualElement name="content" class="structural-changes-profiler-window__content">
+        <ui:VisualElement name="header" class="structural-changes-profiler-window__header">
+            <ui:Label name="column1" class="structural-changes-profiler-window__column1"/>
+            <ui:Label name="column2" class="structural-changes-profiler-window__column2"/>
+            <ui:Label name="column3" class="structural-changes-profiler-window__column3"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="tree-view-container" />
+    </ui:VisualElement>
+</UXML>

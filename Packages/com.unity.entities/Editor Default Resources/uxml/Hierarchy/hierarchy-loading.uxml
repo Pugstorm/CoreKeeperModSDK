@@ -1,0 +1,9 @@
+﻿<UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:entities="Unity.Entities.Editor">
+    <ui:VisualElement class="hierarchy-loading__container">
+        <ui:VisualElement class="hierarchy-loading__spinner-container">
+            <entities:SpinnerElement class="hierarchy-loading__spinner"/>
+            <ui:Label class="hierarchy-loading__spinner-label" text="Loading Hierarchy"/>
+        </ui:VisualElement>
+        <uie:ProgressBar class="hierarchy-loading__progress-bar"/>
+    </ui:VisualElement>
+</UXML>

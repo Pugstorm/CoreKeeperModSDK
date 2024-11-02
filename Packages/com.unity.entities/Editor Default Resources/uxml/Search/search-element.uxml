@@ -1,0 +1,14 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="search-element-search-bar-container" class="unity-entities__search-element__search-bar-container unity-base-text-field__input">
+        <ui:Button name="search-element-search-button" class="unity-search-field-base__search-button unity-entities__search-element__search-button"/>
+        <ui:TextField name="search-element-text-field-search-string" class="unity-entities__search-element__text-field-search-string" />
+        <ui:VisualElement name="search-element-controls-container" class="unity-entities__search-element__controls-container">
+            <ui:Button name="search-element-add-filter-button" class="unity-entities__search_element__add-filter-button">
+                <ui:VisualElement name="search-element-add-filter-icon" class="unity-entities__search-element__add-filter_button__icon"/>
+                <ui:Label name="search-element-add-filter-label" class="unity-entities__search-element__add-filter_button__label" text="Add filter"/>
+            </ui:Button>
+            <ui:Button name="search-element-cancel-button" class="unity-entities__search-element__cancel_button"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <uie:ProgressBar name="search-element-progress-bar" class="unity-entities__search-element__progress_bar"/>
+</ui:UXML>

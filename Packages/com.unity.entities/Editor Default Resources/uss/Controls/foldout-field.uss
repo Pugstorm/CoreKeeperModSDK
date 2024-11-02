@@ -1,0 +1,33 @@
+.foldout-field
+{
+    flex-shrink: 0;
+}
+
+.foldout-field__toggle
+{
+    flex-direction: row;
+    height: 18px;
+    align-items: center;
+    -unity-text-align: middle-left;
+}
+
+.foldout-field__icon
+{
+    flex-shrink: 0;
+    width: 13px;
+    height: 13px;
+}
+
+.foldout-field__label
+{
+}
+
+.foldout-field__value
+{
+    flex-grow: 1;
+}
+
+.foldout-field__content
+{
+    margin-left: 13px;
+}

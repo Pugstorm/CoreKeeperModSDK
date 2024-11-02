@@ -1,0 +1,9 @@
+<UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:VisualElement class="unity-base-field unity-enum-field">
+    <ui:Label name="label" class="unity-base-field__label unity-enum-field__label"/>
+    <ui:VisualElement name="input" class="unity-base-field__input unity-enum-field__input">
+      <ui:TextElement name="text" class="unity-enum-field__text"/>
+      <ui:VisualElement name="arrow" class="unity-enum-field__arrow"/>
+    </ui:VisualElement>
+  </ui:VisualElement>
+</UXML>

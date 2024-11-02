@@ -1,0 +1,5 @@
+.unity-platforms__lazy-load-reference__input
+{
+    flex-grow: 1;
+    margin: 0px 0px 0px 0px;
+}

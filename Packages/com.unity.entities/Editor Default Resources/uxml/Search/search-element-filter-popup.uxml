@@ -1,0 +1,4 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Label class="unity-entities__search-element-filter-popup__header" text="FILTER BY"/>
+    <ui:VisualElement name="search-element-filter-popup-choices" class="unity-entities__search-element-filter-popup__choices"/>
+</ui:UXML>

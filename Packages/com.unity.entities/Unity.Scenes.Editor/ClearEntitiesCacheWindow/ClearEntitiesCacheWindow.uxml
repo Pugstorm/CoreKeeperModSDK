@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<engine:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:engine="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+>
+    <engine:VisualElement name="clear-cache">
+            <engine:VisualElement class = "clear-cache_field">
+                <engine:Label name="clear-cache_label" text="Are you sure you want to clear the entity scene cache of your project?" />
+                <engine:Label name="clear-cache_desc" text="All of your entity scenes (SubScenes) will be re-imported the next time they are accessed." />
+            </engine:VisualElement>
+
+        <engine:VisualElement name="clear-cache_footer">
+            <engine:Button name="clear-cache-button" text="Ok" class="unity-text-element unity-button"/>
+            <engine:Button name="cancel-button" text="Cancel" />
+        </engine:VisualElement>
+    </engine:VisualElement>
+</engine:UXML>

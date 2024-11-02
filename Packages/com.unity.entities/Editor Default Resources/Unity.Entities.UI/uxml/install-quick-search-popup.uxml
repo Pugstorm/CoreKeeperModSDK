@@ -1,0 +1,6 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement class="unity-platforms__install-quick-search__container">
+        <ui:Label text="Add Quick Search Package to use filters and advanced search queries" class="unity-platforms__install-quick-search__header"/>
+        <ui:Button name="install-quick-search-button" text="Install Quick Search" class="unity-platforms__install-quick-search__button" />
+    </ui:VisualElement>
+</ui:UXML>

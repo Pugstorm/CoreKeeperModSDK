@@ -1,0 +1,8 @@
+.component-type__container
+{
+}
+
+.component-type__icon
+{
+    background-image: var(--component-icon);
+}

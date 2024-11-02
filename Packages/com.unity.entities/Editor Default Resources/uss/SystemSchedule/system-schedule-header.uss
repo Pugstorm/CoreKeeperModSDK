@@ -1,0 +1,40 @@
+
+.system-schedule-treeview-header {
+    justify-content: flex-start;
+    align-items: center;
+    padding-right: 10px;
+}
+
+.system-schedule-header__system-label {
+    padding-left: 25px;
+    flex-grow: 1;
+    width: 200px;
+}
+
+.system-schedule-header__world-label {
+    width: 120px;
+    border-left-width: 1px;
+    -unity-text-align: middle-left;
+    padding-left: 6px;
+}
+
+.system-schedule-header__namespace-label {
+    width: 150px;
+    border-left-width: 1px;
+    -unity-text-align: middle-left;
+    padding-left: 6px;
+}
+
+.system-schedule-header__entity-count-label {
+    width: 90px;
+    border-left-width: 1px;
+    -unity-text-align: middle-left;
+    padding-left: 6px;
+}
+
+.system-schedule-header__time-label {
+    width: 65px;
+    border-left-width: 1px;
+    -unity-text-align: middle-left;
+    padding-left: 6px;
+}

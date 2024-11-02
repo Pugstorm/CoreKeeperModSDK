@@ -1,0 +1,117 @@
+.component-container
+{
+    margin-left: 0px;
+    margin-right: 5px;
+    padding-left: 15px;
+}
+
+.component-header > .unity-foldout__content
+{
+    padding-bottom: 2px;
+}
+
+.component-header > Toggle
+{
+    /* Default USS for Toggle is causing weird spacing issues.
+    Nullify the margins and transform them into padding.*/
+    margin: 0;
+    padding-bottom: 2px;
+    padding-left: 3px;
+    padding-top: 1px;
+
+    background-color: var(--section-background-color);
+    -unity-font-style: bold;
+    height:22px;
+    align-items: center;
+    border-top-width: 1px;
+    border-top-color: var(--section-border-top-color);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--section-border-bottom-color);
+}
+
+.component-header > Toggle:hover{
+    background-color: var(--header-background-hover-color);
+}
+
+.component-header > Toggle .unity-toggle__text
+{
+    padding-left: 5px;
+    -unity-font-style: bold;
+}
+
+.component-icon
+{
+}
+
+.component-enabled
+{
+    margin: 1px 2px 1px 4px;
+    padding: 0px;
+}
+
+.aspect-icon
+{
+    background-image: var(--aspect-icon);
+}
+
+.component-data
+{
+    background-image: var(--component-icon);
+}
+
+.tag-component-data
+{
+    background-image: var(--tag-component-icon);
+}
+
+.buffer-component-data
+{
+    background-image: var(--buffer-component-icon);
+}
+
+.shared-component-data
+{
+    background-image: var(--shared-component-icon);
+}
+
+.chunk-component-data
+{
+    background-image: var(--chunk-component-icon);
+}
+
+.managed-component-data
+{
+    background-image: var(--managed-component-icon);
+}
+
+.component-menu
+{
+    background-image: var(--settings-icon);
+    border-width: 0px;
+}
+
+.shrink
+{
+    flex-shrink: 1;
+}
+
+.component-category
+{
+    flex-grow: 1;
+    flex-shrink: 1;
+    -unity-text-align: upper-right;
+}
+
+.component-name
+{
+    padding-right: 2px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow:ellipsis;
+}
+
+.component-container .unity-foldout__toggle .unity-text-element--inner-input-field-component
+{
+    margin-left: 0;
+}

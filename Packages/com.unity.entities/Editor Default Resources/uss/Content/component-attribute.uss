@@ -1,0 +1,20 @@
+.component-attribute__container
+{
+    flex-direction: row;
+    padding: 3px;
+    flex-grow: 1;
+}
+
+.component-attribute__name
+{
+    align-self: center;
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.component-attribute__value
+{
+    color: var(--section-count-color);
+}

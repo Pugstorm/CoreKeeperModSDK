@@ -1,0 +1,30 @@
+.search-and-goto-buttons
+{
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+}
+
+.search-button
+{
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px 0px 0px 3px;
+    background-color: transparent;
+}
+
+.goto-button
+{
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 0px;
+    margin: 0px 0px 0px 3px;
+    background-color: transparent;
+}
