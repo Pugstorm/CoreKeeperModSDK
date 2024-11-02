@@ -11,5 +11,5 @@ public class ModBuilderSettings : ScriptableObject
 		name = "MyMod",
 	};
 	
-	public string modPath = "Assets/Mod";
+	public string modPath = "Assets/Mods/Mod";
 }

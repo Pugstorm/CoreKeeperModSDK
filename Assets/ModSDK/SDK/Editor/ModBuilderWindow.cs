@@ -14,7 +14,7 @@ namespace PugMod
 		private const string SETTINGS_PATH_KEY = "PugMod/BuilderWindow/ExporterSettingsPath";
 		private const string INSTALL_DIRECTORY_KEY = "PugMod/BuilderWindow/InstallPath";
 		private const string MOD_TEMPLATE_NAME = "Assets/ModSDK/ModTemplate.zip";
-		private const string NEW_MOD_PATH = "Assets";
+		private const string NEW_MOD_PATH = "Assets/Mods";
 		private const string NEW_MOD_NAME_HINT = "New Mod Name";
 
 		private ModBuilderSettings _settings;
