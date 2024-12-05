@@ -297,6 +297,14 @@
         "com.unity.modules.imgui": "1.0.0"
       }
     },
+    "dev.pugstorm.spriteinstancing": {
+      "version": "file:dev.pugstorm.spriteinstancing",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.render-pipelines.universal": "12.1.8"
+      }
+    },
     "com.unity.modules.ai": {
       "version": "1.0.0",
       "depth": 1,

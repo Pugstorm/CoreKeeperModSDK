@@ -1,0 +1,14 @@
+{
+  "name": "dev.pugstorm.spriteinstancing",
+  "displayName": "Sprite Instancing",
+  "version": "0.1.0",
+  "author": {
+    "name": "Pugstorm",
+    "url": "https://pugstorm.eu/"
+  },
+  "unity": "2021.3",
+  "description": "Optimized sprite workflow/rendering system",
+  "dependencies": {
+	"com.unity.render-pipelines.universal" : "12.1.8"
+  }
+}
