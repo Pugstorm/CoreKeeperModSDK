@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using ModIO;
 using UnityEditor;
 using UnityEngine;
@@ -90,6 +91,14 @@ namespace PugMod
 
 			root.Q<Button>("AcceptButton").clicked += () =>
 			{
+#if UNITY_EDITOR_LINUX
+				/*
+				 * The Editor might not create ~/.local/share/unity3d for us. As a
+				 * result, preferences saved with EditorPrefs.SetString may not
+				 * persist between editor sessions.
+				 */
+				MakePrefsDir();
+#endif
 				EditorPrefs.SetString(ACCEPTED_TERMS_KEY, TermsToAccept);
 				AcceptDenyCallback?.Invoke(true);
 				AcceptDenyCallback = null;
@@ -108,6 +117,13 @@ namespace PugMod
 			}
 
 			contentLabel.text = TermsToAccept;
+		}
+
+		private void MakePrefsDir()
+		{
+			string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+			Directory.CreateDirectory($"{home}/.local/share/unity3d");
 		}
 
 		private const string DEFAULT_TERMS = @"END USER LICENSE AGREEMENT (“EULA”)
