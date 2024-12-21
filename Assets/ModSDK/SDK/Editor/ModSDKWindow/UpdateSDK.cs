@@ -116,12 +116,14 @@ namespace PugMod
 					return false;
 				}
 
-				if (File.Exists(Path.Combine(path, "CoreKeeper.exe")))
+				if (File.Exists(Path.Combine(path, "CoreKeeper")) ||
+				    File.Exists(Path.Combine(path, "CoreKeeper.exe")))
 				{
 					return true;
 				}
 
-				if (File.Exists(Path.Combine(path, "CoreKeeperServer.exe")))
+				if (File.Exists(Path.Combine(path, "CoreKeeperServer")) ||
+				    File.Exists(Path.Combine(path, "CoreKeeperServer.exe")))
 				{
 					return true;
 				}

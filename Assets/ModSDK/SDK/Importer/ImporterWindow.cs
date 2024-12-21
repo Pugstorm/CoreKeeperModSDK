@@ -84,7 +84,8 @@ namespace PugMod
 				return;
 			}
 
-			if (!File.Exists(Path.Combine(dirInfo.FullName, $"{ImporterSettings.GAME_NAME}.exe")))
+			if (!File.Exists(Path.Combine(dirInfo.FullName, $"{ImporterSettings.GAME_NAME}")) &&
+			    !File.Exists(Path.Combine(dirInfo.FullName, $"{ImporterSettings.GAME_NAME}.exe")))
 			{
 				EditorUtility.DisplayDialog("Not found", "Couldn't find game executable in chosen directory", "Ok");
 				Debug.Log($"failed to found game executable at {dirInfo.FullName}, skipping import");
