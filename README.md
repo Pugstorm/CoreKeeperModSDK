@@ -5,6 +5,8 @@ This is the official Mod SDK for Core Keeper! Use it to create and publish amazi
 
 ## Requirements
 [Unity Editor 2022.3.50f1](https://unity.com/releases/editor/whats-new/2022.3.50)
+> [!NOTE]
+> It is recommended to install the editor via [Unity Hub](https://unity.com/download#how-to-get-started).
 
 ## How to run
 
