@@ -11,6 +11,7 @@ Shader "SpriteObject/PugRP"
 		[Toggle(THICK_OUTLINE)] _ThickOutline ("Thick Outline", Float) = 0.0
 		[Toggle(TALL_SPRITE)] _TallSprite ("Tall Sprite", Float) = 0.0
 		[Toggle(USE_NORMAL)] _UseNormal("Use Normal (Lambert shading, opaque only)", Float) = 0.0
+		[Toggle(TEXTURE_UPSCALING)] _TextureUpscaling ("Upscaling", Float) = 0.0
 		_ZWrite ("Write Depth", Float) = 0.0
 		_ZTest ("Depth Test", Float) = 4.0
 		_Cull ("Cull", Float) = 0.0
@@ -71,6 +72,7 @@ Shader "SpriteObject/PugRP"
 			#pragma multi_compile _ SPRITE_INSTANCING_DISABLE_NORMAL_ATLAS
 			#pragma multi_compile _ INSTANCING_ENABLED
 			#pragma shader_feature PIVOT_DEPTH_PROJECTION
+			#pragma shader_feature TEXTURE_UPSCALING
 			#pragma shader_feature_fragment THICK_OUTLINE
 			#pragma shader_feature_fragment UNLIT_ON
 			#pragma shader_feature_fragment ALPHATEST_ON
@@ -138,6 +140,7 @@ Shader "SpriteObject/PugRP"
 			#pragma multi_compile _ SPRITE_INSTANCING_DISABLE_NORMAL_ATLAS
 			#pragma multi_compile _ INSTANCING_ENABLED
 			#pragma shader_feature PIVOT_DEPTH_PROJECTION
+			#pragma shader_feature TEXTURE_UPSCALING
 			#pragma shader_feature_fragment THICK_OUTLINE
 			#pragma shader_feature_fragment UNLIT_ON
 			#pragma shader_feature_fragment ALPHATEST_ON
@@ -190,6 +193,37 @@ Shader "SpriteObject/PugRP"
 #endif
 
 				return o;
+			}
+			
+			ENDHLSL
+		}
+
+		Pass
+		{
+			Name "ShadowCaster"
+			Tags { "LightMode" = "ShadowCaster" }
+
+			HLSLPROGRAM
+			#pragma require instancing
+			#pragma vertex vert
+			#pragma fragment frag
+			#pragma multi_compile_instancing
+			#pragma multi_compile _ INSTANCING_ENABLED
+			#pragma shader_feature TEXTURE_UPSCALING
+			#pragma shader_feature_fragment THICK_OUTLINE
+			#pragma shader_feature_fragment ALPHATEST_ON
+
+			float4 frag(v2f i) : SV_TARGET
+			{
+				float4 colorAlpha;
+				float3 emission, normal;
+				GetSpriteColor(i, colorAlpha, emission, normal);
+
+#if ALPHATEST_ON
+				clip(colorAlpha.a - 0.5);
+#endif
+
+				return 0;
 			}
 			
 			ENDHLSL

@@ -5,9 +5,15 @@
 	#define INSTANCING_ON
 #endif
 
+#ifdef DISALLOW_SPRITE_UPSCALING
+	#undef TEXTURE_UPSCALING
+#endif
+
 #if defined(UNITY_COMMON_INCLUDED)
 	// Assume modern SRP
 	#define SO_TEXTURE2D TEXTURE2D
+	#define SO_TEXTURE2D_PARAM(tex, smp) TEXTURE2D_PARAM(tex, sampler##smp)
+	#define SO_TEXTURE2D_ARGS(tex, smp) TEXTURE2D_ARGS(tex, sampler##smp)
 	#define SO_SAMPLER(tex) SAMPLER(sampler##tex)
 	#define SO_SAMPLE_TEXTURE2D(tex, smp, uv) SAMPLE_TEXTURE2D(tex, sampler##smp, uv)
 	#define SO_SAMPLE_TEXTURE2D_LOD(tex, smp, uv, lod) SAMPLE_TEXTURE2D_LOD(tex, sampler##smp, uv, lod)
@@ -20,11 +26,19 @@
 	#define SO_SAMPLER(smp) SamplerState sampler##smp;
 	#define SO_SAMPLE_TEXTURE2D UNITY_SAMPLE_TEX2D_SAMPLER
 	#define SO_SAMPLE_TEXTURE2D_LOD UNITY_SAMPLE_TEX2D_SAMPLER_LOD
+	#undef TEXTURE_UPSCALING // Unsupported
+#endif
+
+#ifdef TEXTURE_UPSCALING
+	#include "Upscaling.hlsl"
 #endif
 
 struct InstanceData
 {
 	float4x4 localToWorld;
+#if defined(USE_MOTION_VECTORS)
+	float4x4 prevLocalToWorld;
+#endif
 	float4 rect;
 	float2 pivot;
 	float4 color;
@@ -33,7 +47,34 @@ struct InstanceData
 	float4 outlineColor;
 	float3 gradientIndices;
 	float3 transformAnimParams;
+	float maskParam;
 };
+
+#define MAX_MASK_CHANNELS 8
+float4x4 _SpriteObjectMaskArray[MAX_MASK_CHANNELS];
+
+float GetMaskAlpha(float3 positionWS, float maskParam)
+{
+	if (!maskParam)
+	{
+		return 1.0;
+	}
+	int channel = round(abs(maskParam) - 1);
+	float4x4 M = _SpriteObjectMaskArray[channel];
+	if (!M._44)
+	{
+		return 0.0;
+	}
+	float2 pos = abs(mul(M, float4(positionWS, 1)).xy * 2);
+	if (maskParam > 0)
+	{
+		return all(pos <= 1);
+	}
+	else
+	{
+		return any(pos > 1);
+	}
+}
 
 #if INSTANCING_ENABLED && defined(UNITY_INSTANCING_ENABLED)
 StructuredBuffer<InstanceData> _InstanceData;
@@ -75,6 +116,7 @@ float4 _FlashColor;
 float4 _OutlineColor;
 float3 _GradientIndices;
 float3 _TransformAnimParams;
+float _MaskParam;
 
 float _TransformAnimationTime;
 float _EditorTime;
@@ -100,12 +142,20 @@ SO_SAMPLER(_gradient_point_clamp_sampler);
 	#define NORMAL_SAMPLER _SpriteTex
 #endif
 
-float2x2 RotationMatrix(float angle)
+float4 GetUVRange(float4 rect)
 {
-	angle *= 0.01745329251; // PI / 180
-	float s = sin(angle);
-	float c = cos(angle);
+	return float4(rect.xy, rect.xy + rect.zw) * TEXEL_SIZE.xyxy;
+}
+
+float2x2 RotationMatrixRadians(float radians)
+{
+	float s = sin(radians);
+	float c = cos(radians);
 	return float2x2( c, -s, s, c );
+}
+float2x2 RotationMatrixDegrees(float degrees)
+{
+	return RotationMatrixRadians(degrees * 0.01745329251);
 }
 
 void ApplyTransformAnimation(inout float4 vertex, float3 transformAnimParams, float time)
@@ -117,7 +167,7 @@ void ApplyTransformAnimation(inout float4 vertex, float3 transformAnimParams, fl
 		float4 transformAnim = SO_SAMPLE_TEXTURE2D_LOD(_TransformAnimationTexture, _transform_linear_clamp, float2(t, y), 0);
 		vertex.x *= transformAnim.x;
 		vertex.y *= transformAnim.y;
-		vertex.xy = mul(RotationMatrix(transformAnim.z), vertex.xy);
+		vertex.xy = mul(RotationMatrixDegrees(transformAnim.z), vertex.xy);
 	}
 }
 
@@ -129,26 +179,38 @@ uint GetCompressedBufferIndex(float x, uint count)
 #endif
 
 float2 GetUV(float2 uv, float4 rect) { return uv = (rect.xy + rect.zw * uv) * TEXEL_SIZE.xy; }
-float4 GetColor(float2 uv)
+float4 GetColor(float2 uv, float4 uvRange = float4(0, 0, 1, 1))
 {
+#ifdef TEXTURE_UPSCALING
+	float4 color = SAMPLE_TEXTURE2D_UPSCALED(SO_TEXTURE2D_ARGS(COLOR_TEXTURE, COLOR_SAMPLER), uv, TEXEL_SIZE, uvRange);
+#else
 	float4 color = SO_SAMPLE_TEXTURE2D(COLOR_TEXTURE, COLOR_SAMPLER, uv);
+#endif
 #if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
 	color = _CompressedColorsBuffer[GetCompressedBufferIndex(color.r, _CompressedColorsBufferCount)];
 #endif
 	return color;
 }
-float4 GetEmissive(float2 uv)
+float4 GetEmissive(float2 uv, float4 uvRange = float4(0, 0, 1, 1))
 {
+#ifdef TEXTURE_UPSCALING
+	float4 color = SAMPLE_TEXTURE2D_UPSCALED(SO_TEXTURE2D_ARGS(EMISSIVE_TEXTURE, EMISSIVE_SAMPLER), uv, TEXEL_SIZE, uvRange);
+#else
 	float4 color = SO_SAMPLE_TEXTURE2D(EMISSIVE_TEXTURE, EMISSIVE_SAMPLER, uv);
+#endif
 #if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
 	color = _CompressedEmissiveColorsBuffer[GetCompressedBufferIndex(color.r, _CompressedEmissiveColorsBufferCount)];
 #endif
 	return color;
 }
-float3 GetNormal(float2 uv)
+float3 GetNormal(float2 uv, float4 uvRange = float4(0, 0, 1, 1))
 {
 #if !SPRITE_INSTANCING_DISABLE_NORMAL_ATLAS
+	#ifdef TEXTURE_UPSCALING
+	float4 color = SAMPLE_TEXTURE2D_UPSCALED(SO_TEXTURE2D_ARGS(NORMAL_TEXTURE, NORMAL_SAMPLER), uv, TEXEL_SIZE, uvRange);
+	#else
 	float4 color = SO_SAMPLE_TEXTURE2D(NORMAL_TEXTURE, NORMAL_SAMPLER, uv);
+	#endif
 #if SPRITE_INSTANCING_USE_COMPRESSED_ATLASES
 	color = _CompressedNormalColorsBuffer[GetCompressedBufferIndex(color.r, _CompressedNormalColorsBufferCount)];
 #endif
@@ -157,7 +219,7 @@ float3 GetNormal(float2 uv)
     return float3(0, 0, 1);
 #endif
 }
-float GetAlpha(float2 uv) { return GetColor(uv).a; }
+float GetAlpha(float2 uv, float4 uvRange = float4(0, 0, 1, 1)) { return GetColor(uv, uvRange).a; }
 
 #if INSTANCING_ENABLED && defined(UNITY_INSTANCING_ENABLED) || defined(SINGLE_RENDERER)
 SO_TEXTURE2D(_GradientMapAtlas);
@@ -219,6 +281,7 @@ float GetOutline(float2 uv, float4 rect, out float outlineSum)
 	float result = 0.0;
 	float2 pixel = uv * rect.zw;
 	outlineSum = 0.0;
+	float4 uvRange = GetUVRange(rect);
 #if THICK_OUTLINE
 	for (int x = -1; x <= 1; x++)
 	{
@@ -226,7 +289,7 @@ float GetOutline(float2 uv, float4 rect, out float outlineSum)
 		{
 			float2 localPixel = pixel + float2(x, y);
 			float2 localUV = (rect.xy + localPixel) * TEXEL_SIZE.xy;
-			float localAlpha = GetAlpha(localUV) * all(localPixel > 0 && localPixel < rect.zw);
+			float localAlpha = GetAlpha(localUV, uvRange) * all(localPixel > 0 && localPixel < rect.zw);
 			outlineSum += localAlpha;
 			result = max(result, localAlpha);
 		}
@@ -237,7 +300,7 @@ float GetOutline(float2 uv, float4 rect, out float outlineSum)
 	{
 		float2 localPixel = pixel + float2(x, 0);
 		float2 localUV = (rect.xy + localPixel) * TEXEL_SIZE.xy;
-		float localAlpha = GetAlpha(localUV) * all(localPixel > 0 && localPixel < rect.zw);
+		float localAlpha = GetAlpha(localUV, uvRange) * all(localPixel > 0 && localPixel < rect.zw);
 		outlineSum += localAlpha;
 		result = max(result, localAlpha);
 	}
@@ -245,7 +308,7 @@ float GetOutline(float2 uv, float4 rect, out float outlineSum)
 	{
 		float2 localPixel = pixel + float2(0, y);
 		float2 localUV = (rect.xy + localPixel) * TEXEL_SIZE.xy;
-		float localAlpha = GetAlpha(localUV) * all(localPixel > 0 && localPixel < rect.zw);
+		float localAlpha = GetAlpha(localUV, uvRange) * all(localPixel > 0 && localPixel < rect.zw);
 		outlineSum += localAlpha;
 		result = max(result, localAlpha);
 	}

@@ -38,6 +38,7 @@ Shader "Hidden/SpriteAssetUI"
 			float _FrameCount;
 			float _Frame;
 			float2 _Pivot;
+			float _PivotMode;
 			float2 _Size;
 			float _Aspect;
 
@@ -105,13 +106,15 @@ Shader "Hidden/SpriteAssetUI"
 #endif
 
 				float2 pivotDist = abs(i.uv - _Pivot);
+				float3 R = float3(1, _PivotMode, 0);
+				float3 G = float3(_PivotMode, 1, 0);
 				if (pivotDist.x < 1.0 / _Size.x)
 				{
-					color = lerp(color, float3(1, 0, 0), 0.5);
+					color = lerp(color, R, 0.5);
 				}
 				if (pivotDist.y < 1.0 / _Size.y)
 				{
-					color = lerp(color, float3(0, 1, 0), 0.5);
+					color = lerp(color, G, 0.5);
 				}
 #if IS_STATIC_PREVIEW
 				return float4(color, sprite.a);

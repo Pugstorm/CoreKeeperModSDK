@@ -9,7 +9,7 @@ Preset:
   m_Name: SpriteObject
   m_TargetType:
     m_NativeTypeID: 114
-    m_ManagedTypePPtr: {fileID: 179130730, guid: 8755fc0f8990e9f418149df4a482da57,
+    m_ManagedTypePPtr: {fileID: 1908045241, guid: 8755fc0f8990e9f418149df4a482da57,
       type: 3}
     m_ManagedTypeFallback: 
   m_Properties:
@@ -112,7 +112,7 @@ Preset:
   - target: {fileID: 0}
     propertyPath: material
     value: 
-    objectReference: {fileID: 2100000, guid: eceac79fd2d4a3248a7d948be096fc03, type: 2}
+    objectReference: {fileID: 2100000, guid: 571bf3c761ee86c4f9d8e65be27151be, type: 2}
   - target: {fileID: 0}
     propertyPath: m_startAnimationHash
     value: 0
@@ -131,6 +131,30 @@ Preset:
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: processAnimationEvents
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: syncSource
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: syncAnimation
+    value: 1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: syncVariant
+    value: 1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: syncSprite
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: maskChannel
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: maskInteraction
     value: 0
     objectReference: {fileID: 0}
   m_ExcludedProperties: []

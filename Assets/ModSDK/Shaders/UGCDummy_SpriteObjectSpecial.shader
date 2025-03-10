@@ -25,8 +25,8 @@ Shader "SpriteObject/Special"
 			#define INSTANCING_ON
 
 			#include "UnityCG.cginc"
-			#include "Packages/dev.pugstorm.spriteinstancing/Shaders/SpriteObject.hlsl"
-			#include "Packages/dev.pugstorm.spriteinstancing/Shaders/SpriteObjectInput.hlsl"
+			#include "Packages/dev.pugstorm.sprite/Shaders/SpriteObject.hlsl"
+			#include "Packages/dev.pugstorm.sprite/Shaders/SpriteObjectInput.hlsl"
 
 			float4 frag(v2f i) : SV_Target
 			{

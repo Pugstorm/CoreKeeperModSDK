@@ -1,6 +1,10 @@
 #ifndef SPRITE_INSTANCING_STANDARD_INCLUDED
 #define SPRITE_INSTANCING_STANDARD_INCLUDED
 
+#if defined(TEXTURE_UPSCALING) && !defined(SHADER_STAGE_COMPUTE) && !defined(DISALLOW_POSITION_SNAPPING)
+	#define SNAP_POSITION
+#endif
+
 struct appdata
 {
 	float4 vertex : POSITION;
@@ -27,13 +31,20 @@ struct v2f
 	float3 gradientIndices : TEXCOORD7;
 	float4 screenPos : TEXCOORD8;
 	float3 worldSpacePivot : TEXCOORD9;
+	float maskParam : TEXCOORD10;
+#if defined(USE_MOTION_VECTORS)
+	float4 positionCS : TEXCOORD11;
+	float4 prevPositionCS : TEXCOORD12;
+#endif
 };
 
 void GetSpriteColor(v2f i, out float4 colorAlpha, out float3 emission, out float3 normal, out float outlineSum)
 {
 	float2 uv = GetUV(i.uv, i.rect);
 
-	colorAlpha = GetColor(uv);
+	float4 uvRange = GetUVRange(i.rect);
+
+	colorAlpha = GetColor(uv, uvRange);
 	s_tallMask = step(0.95, colorAlpha.a);
 	colorAlpha.rgb = SampleGradients(colorAlpha.rgb, i.gradientIndices);
 
@@ -48,9 +59,11 @@ void GetSpriteColor(v2f i, out float4 colorAlpha, out float3 emission, out float
 
 	colorAlpha.a = max(colorAlpha.a, outline * i.outlineColor.a);
 
+	colorAlpha.a *= GetMaskAlpha(i.positionWS, i.maskParam);
+
 	colorAlpha.rgb *= 1.0 - max(i.flashColor.a, outline);
 
-	float4 emissive = GetEmissive(uv) * insideRect;
+	float4 emissive = GetEmissive(uv, uvRange) * insideRect;
 	emissive.rgb *= i.emissiveColor.rgb * emissive.a;
 
 	colorAlpha.rgb = max(0.0, colorAlpha.rgb - emissive.rgb);
@@ -59,7 +72,7 @@ void GetSpriteColor(v2f i, out float4 colorAlpha, out float3 emission, out float
 	emission += i.flashColor.rgb * i.flashColor.a * (1.0 - outline * i.outlineColor.a);
 	emission += i.outlineColor.rgb * outline * i.outlineColor.a;
 
-	float3 normalTS = GetNormal(uv);
+	float3 normalTS = GetNormal(uv, uvRange);
 
 	float3 binormal = normalize(cross(i.tangent, i.normal));
 	normal = normalTS.x * i.tangent + normalTS.y * binormal + normalTS.z * i.normal;
@@ -69,6 +82,11 @@ void GetSpriteColor(v2f i, out float4 colorAlpha, out float3 emission, out float
 {
 	float outlineSum;
 	GetSpriteColor(i, colorAlpha, emission, normal, outlineSum);
+}
+
+float3 PixelSnapPosition(float3 positionWS)
+{
+	return round(positionWS * PPU) / PPU;
 }
 
 v2f vert(appdata v)
@@ -86,6 +104,7 @@ v2f vert(appdata v)
 	o.outlineColor = instanceData.outlineColor;
 	o.gradientIndices = instanceData.gradientIndices;
 	float3 transformAnimParams = instanceData.transformAnimParams;
+	o.maskParam = instanceData.maskParam;
 #else
 	float4x4 localToWorld = UNITY_MATRIX_M;
 	o.pivot = _Pivot;
@@ -96,17 +115,52 @@ v2f vert(appdata v)
 	o.outlineColor = _OutlineColor;
 	o.gradientIndices = _GradientIndices;
 	float3 transformAnimParams = _TransformAnimParams;
+	o.maskParam = _MaskParam;
 #endif
 
+#if defined(USE_MOTION_VECTORS) && defined(INSTANCING_ENABLED)
+	float4x4 prevLocalToWorld = instanceData.prevLocalToWorld;
+#endif
+
+#ifdef SNAP_POSITION
+	float3 majorAxis = abs(localToWorld._m02_m12_m22);
+	float3 snappedPosition = PixelSnapPosition(localToWorld._m03_m13_m23);
+	if (majorAxis.z > majorAxis.y)
+	{
+		localToWorld._m03_m13 = snappedPosition.xy;
+	}
+	else
+	{
+		localToWorld._m03_m23 = snappedPosition.xz;
+	}
+	#if defined(USE_MOTION_VECTORS) && defined(INSTANCING_ENABLED)
+	snappedPosition = PixelSnapPosition(prevLocalToWorld._m03_m13_m23)y;
+	if (majorAxis.z > majorAxis.y)
+	{
+		prevLocalToWorld._m03_m13 = snappedPosition.xy;
+	}
+	else
+	{
+		prevLocalToWorld._m03_m23 = snappedPosition.xz;
+	}
+	#endif
+#endif
+	
 	// Snap pivot to rect pixels. This prevents aliasing if the fed pivot data was misaligned (such as when inheriting a pivot from a rect of a different size)
 	o.pivot = round(o.pivot * o.rect.zw) / o.rect.zw;
+
+#ifdef UV_BIAS
+	float uvBias = saturate(1.0 - UV_BIAS);
+#else
+	float uvBias = 1.0;
+#endif
 
 	// 1px padding for outline support
 	float2 paddedSize = o.rect.zw + 2;
 	v.vertex.xy *= paddedSize / o.rect.zw;
 	v.vertex.xy -= 1.0 / o.rect.zw;
-	v.uv *= paddedSize / o.rect.zw;
-	v.uv -= 1.0 / o.rect.zw;
+	v.uv *= paddedSize / o.rect.zw * uvBias;
+	v.uv -= 1.0 / o.rect.zw * uvBias;
 
 	v.vertex.xy -= o.pivot;
 	
@@ -135,6 +189,11 @@ v2f vert(appdata v)
 	o.screenPos = ComputeScreenPos(o.vertex);
 
 	o.worldSpacePivot = mul(localToWorld, float4(0.0, 0.0, 0.0, 1.0)).xyz;
+	
+#if INSTANCING_ENABLED && defined(USE_MOTION_VECTORS)
+	o.positionCS = mul(MATRIX_VP, float4(o.positionWS, 1.0));
+	o.prevPositionCS = mul(MATRIX_VP_PREV, mul(prevLocalToWorld, v.vertex));
+#endif
 
 	return o;
 }

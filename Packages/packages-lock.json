@@ -297,12 +297,15 @@
         "com.unity.modules.imgui": "1.0.0"
       }
     },
-    "dev.pugstorm.spriteinstancing": {
-      "version": "file:dev.pugstorm.spriteinstancing",
+    "dev.pugstorm.sprite": {
+      "version": "file:dev.pugstorm.sprite",
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.unity.render-pipelines.universal": "12.1.8"
+        "com.unity.render-pipelines.universal": "12.1.8",
+        "com.unity.collections": "2.1.4",
+        "com.unity.burst": "1.8.4",
+        "com.unity.mathematics": "1.2.1"
       }
     },
     "com.unity.modules.ai": {
