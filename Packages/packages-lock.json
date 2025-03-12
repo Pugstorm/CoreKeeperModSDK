@@ -40,16 +40,15 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.collections": {
-      "version": "2.4.3",
-      "depth": 1,
-      "source": "registry",
+      "version": "file:com.unity.collections",
+      "depth": 0,
+      "source": "embedded",
       "dependencies": {
         "com.unity.burst": "1.8.13",
-        "com.unity.test-framework": "1.4.3",
         "com.unity.nuget.mono-cecil": "1.11.4",
+        "com.unity.test-framework": "1.4.3",
         "com.unity.test-framework.performance": "3.0.3"
-      },
-      "url": "https://packages.unity.com"
+      }
     },
     "com.unity.entities": {
       "version": "file:com.unity.entities",
@@ -127,19 +126,18 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.physics": {
-      "version": "1.2.4",
+      "version": "file:com.unity.physics",
       "depth": 0,
-      "source": "registry",
+      "source": "embedded",
       "dependencies": {
         "com.unity.burst": "1.8.13",
-        "com.unity.entities": "1.2.4",
         "com.unity.collections": "2.4.3",
+        "com.unity.entities": "1.2.4",
         "com.unity.mathematics": "1.3.1",
-        "com.unity.modules.imgui": "1.0.0",
         "com.unity.test-framework": "1.4.3",
+        "com.unity.modules.imgui": "1.0.0",
         "com.unity.modules.jsonserialize": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
+      }
     },
     "com.unity.postprocessing": {
       "version": "3.4.0",
@@ -278,15 +276,14 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.transport": {
-      "version": "2.1.0",
-      "depth": 1,
-      "source": "registry",
+      "version": "file:com.unity.transport",
+      "depth": 0,
+      "source": "embedded",
       "dependencies": {
-        "com.unity.burst": "1.8.8",
         "com.unity.collections": "2.2.1",
+        "com.unity.burst": "1.8.8",
         "com.unity.mathematics": "1.3.1"
-      },
-      "url": "https://packages.unity.com"
+      }
     },
     "com.unity.ugui": {
       "version": "1.0.0",

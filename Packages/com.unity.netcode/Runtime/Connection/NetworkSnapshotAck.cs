@@ -137,33 +137,27 @@ namespace Unity.NetCode
         /// On the server it is always 0.
         /// </summary>
         public uint ReceivedSnapshotByLocalMask;
-        /// <summary>
-        /// Server-only, the number of ghost prefabs loaded by remote client. On the client is not used and it is always 0.
-        /// </summary>
-        public uint NumLoadedPrefabs;
 
         /// <summary><inheritdoc cref="SnapshotPacketLossStatistics"/></summary>
         /// <remarks>Client-only.</remarks>
         public SnapshotPacketLossStatistics SnapshotPacketLoss;
 
         /// <summary>
-        /// Update the number of loaded prefabs nad sync the interpolation delay for the remote connection.
+        /// Update the sync the interpolation delay for the remote connection.
         /// </summary>
         /// <remarks>
         /// The state of the component is not changed if the <paramref name="remoteTime"/> is less than <see cref="LastReceivedRemoteTime"/>,
         /// because that will indicate a more recent message has been already processed.
         /// </remarks>
         /// <param name="remoteTime"></param>
-        /// <param name="numLoadedPrefabs"></param>
         /// <param name="interpolationDelay"></param>
-        internal void UpdateRemoteAckedData(uint remoteTime, uint numLoadedPrefabs, uint interpolationDelay)
+        internal void UpdateRemoteAckedData(uint remoteTime, uint interpolationDelay)
         {
             //Because the remote time is updated also by RPC and there is no order guarante for witch is handled
             //first (snapshost or rpc message) it is necessary to accept update if received remoteTime
             //is also equals to the LastReceivedRemoteTime.
             if (remoteTime != 0 && (!SequenceHelpers.IsNewer(LastReceivedRemoteTime, remoteTime) || LastReceivedRemoteTime == 0))
             {
-                NumLoadedPrefabs = numLoadedPrefabs;
                 RemoteInterpolationDelay = interpolationDelay;
             }
         }

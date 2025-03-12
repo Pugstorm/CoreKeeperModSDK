@@ -2,11 +2,13 @@ using Unity.Core;
 
 namespace Unity.Entities
 {
-    internal struct WorldTime : IComponentData
+    [AssumeReadOnly]
+    public struct WorldTime : IComponentData
     {
         public TimeData Time;
     }
 
+    [AssumeReadOnly]
     internal struct WorldTimeQueue : IBufferElementData
     {
         public TimeData Time;

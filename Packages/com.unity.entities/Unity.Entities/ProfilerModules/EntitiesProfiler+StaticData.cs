@@ -141,6 +141,7 @@ namespace Unity.Entities
 
                         using (var archetypes = new NativeList<EntityArchetype>(Allocator.Temp))
                         {
+                            world.EntityManager.CompleteAllTrackedJobs();
                             world.EntityManager.GetAllArchetypes(archetypes);
                             for (var archetypeIter = 0; archetypeIter < archetypes.Length; ++archetypeIter)
                                 m_ArchetypesData.Add(new ArchetypeData(archetypes[archetypeIter].Archetype));

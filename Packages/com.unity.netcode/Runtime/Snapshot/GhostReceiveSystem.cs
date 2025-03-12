@@ -124,7 +124,7 @@ namespace Unity.NetCode
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation | WorldSystemFilterFlags.ThinClientSimulation)]
     [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
     [UpdateAfter(typeof(PrespawnGhostSystemGroup))]
-    [UpdateAfter(typeof(GhostCollectionSystem))]
+    // [UpdateAfter(typeof(GhostCollectionSystem))]
     [UpdateAfter(typeof(NetDebugSystem))]
     [BurstCompile]
     public unsafe partial struct GhostReceiveSystem : ISystem
@@ -400,61 +400,9 @@ namespace Unity.NetCode
                         ack.ReceivedSnapshotByLocalMask = 0;
                 }
                 ack.ReceivedSnapshotByLocalMask |= 1;
-
-                // Load all new prefabs
-                uint numPrefabs = dataStream.ReadPackedUInt(CompressionModel);
-#if NETCODE_DEBUG
-                if (m_EnablePacketLogging == 1)
-                    debugLog.Append(FixedString.Format("NewPrefabs: {0}", numPrefabs));
-#endif
-                if (numPrefabs > 0)
-                {
-                    var ghostCollection = GhostCollectionFromEntity[GhostCollectionSingleton];
-                    // The server only sends ghost types which have not been acked yet, acking takes one RTT so we need to check
-                    // which prefab was the first included in the list sent by the server
-                    int firstPrefab = (int)dataStream.ReadUInt();
-#if NETCODE_DEBUG
-                    if (m_EnablePacketLogging == 1)
-                    {
-                        debugLog.Append(FixedString.Format(" FirstPrefab: {0}\n", firstPrefab));
-                    }
-#endif
-                    for (int i = 0; i < numPrefabs; ++i)
-                    {
-                        GhostType type;
-                        ulong hash;
-                        type.guid0 = dataStream.ReadUInt();
-                        type.guid1 = dataStream.ReadUInt();
-                        type.guid2 = dataStream.ReadUInt();
-                        type.guid3 = dataStream.ReadUInt();
-                        hash = dataStream.ReadULong();
-#if NETCODE_DEBUG
-                        if (m_EnablePacketLogging == 1)
-                        {
-                            debugLog.Append(FixedString.Format("\t {0}-{1}-{2}-{3}", type.guid0, type.guid1, type.guid2, type.guid3));
-                            debugLog.Append(FixedString.Format(" Hash:{0}\n", hash));
-                        }
-#endif
-                        if (firstPrefab+i == ghostCollection.Length)
-                        {
-                            // This just adds the type, the prefab entity will be populated by the GhostCollectionSystem
-                            ghostCollection.Add(new GhostCollectionPrefab{GhostType = type, GhostPrefab = Entity.Null, Hash = hash, Loading = GhostCollectionPrefab.LoadingState.NotLoading});
-                        }
-                        else if (type != ghostCollection[firstPrefab+i].GhostType || hash != ghostCollection[firstPrefab+i].Hash)
-                        {
-#if NETCODE_DEBUG
-                            if (m_EnablePacketLogging == 1)
-                            {
-                                NetDebugPacket.Log(debugLog);
-                                NetDebugPacket.Log(FixedString.Format("ERROR: ghost list item {0} was modified (Hash {1} -> {2})", firstPrefab + i, ghostCollection[firstPrefab + i].Hash, hash));
-                            }
-#endif
-                            NetDebug.LogError(FixedString.Format("GhostReceiveSystem ghost list item {0} was modified (Hash {1} -> {2})", firstPrefab + i, ghostCollection[firstPrefab + i].Hash, hash));
-                            CommandBuffer.AddComponent(Connections[0], new NetworkStreamRequestDisconnect{Reason = NetworkStreamDisconnectReason.BadProtocolVersion});
-                            return;
-                        }
-                    }
-                }
+                ack.LastReceivedSnapshotByLocal = serverTick;
+				
+                SnapshotAckFromEntity[Connections[0]] = ack;
 
                 if (IsThinClient == 1)
                 {
@@ -1353,9 +1301,9 @@ namespace Unity.NetCode
         public void OnUpdate(ref SystemState state)
         {
 #if UNITY_EDITOR || NETCODE_DEBUG
-            var numLoadedPrefabs = SystemAPI.GetSingleton<GhostCollection>().NumLoadedPrefabs;
+			var numPrefabs = SystemAPI.GetSingletonBuffer<GhostCollectionPrefab>().Length;
             ref var netStats = ref SystemAPI.GetSingletonRW<GhostStatsCollectionSnapshot>().ValueRW;
-            netStats.Size = numLoadedPrefabs * 3 + 3 + 1;
+            netStats.Size = numPrefabs * 3 + 3 + 1;
             netStats.Stride = netStats.Size;
             netStats.Data.Resize(netStats.Size, NativeArrayOptions.ClearMemory);
 #endif

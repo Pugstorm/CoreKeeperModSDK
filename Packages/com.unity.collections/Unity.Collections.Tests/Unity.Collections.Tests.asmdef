@@ -1,0 +1,34 @@
+{
+    "name": "Unity.Collections.Tests",
+    "references": [
+        "Unity.Collections",
+        "Unity.Burst",
+        "Unity.Mathematics",
+        "Unity.Collections.BurstCompatibilityGen"
+    ],
+    "includePlatforms": [
+
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines":
+    [
+        {
+            "name": "Unity",
+            "expression": "2022.2.16f1",
+            "define": "UNITY_2022_2_16F1_OR_NEWER"
+        }
+    ],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

@@ -592,7 +592,7 @@ namespace Unity.Entities.Serialization
             _writer = writer;
 
             _currentLastChildOffset = new Dictionary<IntPtr, IntPtr>();
-            _metadataSection = new UnsafeList<byte>(64*1024*1024, Allocator.Persistent);
+            _metadataSection = new UnsafeList<byte>(1*1024*1024, Allocator.Temp);
             _nodesAllocation = new PagedAllocation(Allocator.Persistent);
             _trackedNodeCounter = 0;
             _trackedSegmentDataWriteByNode = new Dictionary<IntPtr, int>();

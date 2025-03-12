@@ -23,7 +23,7 @@ namespace Unity.NetCode
         EntityQuery m_PredictedQuery;
         EntityQuery m_NetworkTimeSingleton;
 
-        [BurstCompile]
+        //[BurstCompile]
         public void OnCreate(ref SystemState state)
         {
             m_SimulateHandle = state.GetComponentTypeHandle<Simulate>();
@@ -36,6 +36,7 @@ namespace Unity.NetCode
                 .WithOptions(EntityQueryOptions.IgnoreComponentEnabledState);
             m_PredictedQuery = state.GetEntityQuery(builder);
             m_NetworkTimeSingleton = state.GetEntityQuery(ComponentType.ReadOnly<NetworkTime>());
+			state.World.GetExistingSystemManaged<PredictedSimulationSystemGroup>().AddSystemToPartialTickUpdate(ref state);
         }
         [BurstCompile]
         struct TogglePredictedJob : IJobChunk
@@ -103,6 +104,60 @@ namespace Unity.NetCode
             state.Dependency = predictedJob.ScheduleParallel(m_PredictedQuery, state.Dependency);
         }
     }
+	
+	[DisableAutoCreation]
+	[BurstCompile]
+	public partial struct GhostBeforePredictionDisableSimulateSystem : ISystem
+	{
+		[BurstCompile]
+		private partial struct DisablePredictedJob : IJobChunk
+		{
+			public ComponentTypeHandle<Simulate> simulateHandle;
+			public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
+			{
+				Assert.IsFalse(useEnabledMask);
+				chunk.SetComponentEnabledForAll(ref simulateHandle, false);
+			}
+		}
+
+		[BurstCompile]
+		public void OnUpdate(ref SystemState state)
+		{
+			var query = SystemAPI.QueryBuilder().WithAllRW<Simulate>().WithAny<GhostInstance, GhostChildEntity>()
+				.WithOptions(EntityQueryOptions.IgnoreComponentEnabledState).Build();
+			state.Dependency = new DisablePredictedJob()
+			{
+				simulateHandle = SystemAPI.GetComponentTypeHandle<Simulate>(false),
+			}.ScheduleParallel(query, state.Dependency);
+		}
+	}
+	
+	[DisableAutoCreation]
+	[BurstCompile]
+	public partial struct GhostAfterPredictionDisableSimulateSystem : ISystem
+	{
+		[BurstCompile]
+		private partial struct EnablePredictedJob : IJobChunk
+		{
+			public ComponentTypeHandle<Simulate> simulateHandle;
+			public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
+			{
+				Assert.IsFalse(useEnabledMask);
+				chunk.SetComponentEnabledForAll(ref simulateHandle, true);
+			}
+		}
+
+		[BurstCompile]
+		public void OnUpdate(ref SystemState state)
+		{
+			var query = SystemAPI.QueryBuilder().WithAllRW<Simulate>().WithAny<GhostInstance, GhostChildEntity>()
+			.WithOptions(EntityQueryOptions.IgnoreComponentEnabledState).Build();
+			state.Dependency = new EnablePredictedJob()
+			{
+				simulateHandle = SystemAPI.GetComponentTypeHandle<Simulate>(false),
+			}.ScheduleParallel(query, state.Dependency);
+		}
+	}
 
     class NetcodeServerPredictionRateManager : IRateManager
     {
@@ -153,9 +208,6 @@ namespace Unity.NetCode
         private EntityQuery m_AppliedPredictedTicksQuery;
         private EntityQuery m_UniqueInputTicksQuery;
 
-        private EntityQuery m_GhostQuery;
-        private EntityQuery m_GhostChildQuery;
-
         private NetworkTick m_LastFullPredictionTick;
 
         private int m_TickIdx;
@@ -196,19 +248,6 @@ namespace Unity.NetCode
 
             m_AppliedPredictedTicksQuery = group.World.EntityManager.CreateEntityQuery(ComponentType.ReadWrite<GhostPredictionGroupTickState>());
             m_UniqueInputTicksQuery = group.World.EntityManager.CreateEntityQuery(ComponentType.ReadWrite<UniqueInputTickMap>());
-
-            var builder = new EntityQueryDesc
-            {
-                All = new[]{ComponentType.ReadWrite<Simulate>(), ComponentType.ReadOnly<GhostInstance>()},
-                Options = EntityQueryOptions.IgnoreComponentEnabledState
-            };
-            m_GhostQuery = group.World.EntityManager.CreateEntityQuery(builder);
-            builder = new EntityQueryDesc
-            {
-                All = new[]{ComponentType.ReadWrite<Simulate>(), ComponentType.ReadOnly<GhostChildEntity>()},
-                Options = EntityQueryOptions.IgnoreComponentEnabledState
-            };
-            m_GhostChildQuery = group.World.EntityManager.CreateEntityQuery(builder);
         }
         public bool ShouldGroupUpdate(ComponentSystemGroup group)
         {
@@ -299,9 +338,6 @@ namespace Unity.NetCode
                 networkTime.Flags |= NetworkTimeFlags.IsInPredictionLoop | NetworkTimeFlags.IsFirstPredictionTick;
                 networkTime.Flags &= ~(NetworkTimeFlags.IsFinalPredictionTick|NetworkTimeFlags.IsFinalFullPredictionTick|NetworkTimeFlags.IsFirstTimeFullyPredictingTick);
 
-                group.World.EntityManager.SetComponentEnabled<Simulate>(m_GhostQuery, false);
-                group.World.EntityManager.SetComponentEnabled<Simulate>(m_GhostChildQuery, false);
-
                 m_ClientTickRateQuery.TryGetSingleton<ClientTickRate>(out var clientTickRate);
                 if (clientTickRate.MaxPredictionStepBatchSizeRepeatedTick < 1)
                     clientTickRate.MaxPredictionStepBatchSizeRepeatedTick = 1;
@@ -378,8 +414,6 @@ namespace Unity.NetCode
                 networkTime.PredictedTickIndex++;
                 return true;
             }
-            group.World.EntityManager.SetComponentEnabled<Simulate>(m_GhostQuery, true);
-            group.World.EntityManager.SetComponentEnabled<Simulate>(m_GhostChildQuery, true);
 #if UNITY_EDITOR || NETCODE_DEBUG
             if (!networkTime.IsFinalPredictionTick)
                 throw new InvalidOperationException("IsFinalPredictionTick should not be set before executing the final prediction tick");
@@ -496,36 +530,127 @@ namespace Unity.NetCode
         }
     }
 
-    /// <summary>
-    /// <para>The parent group for all "deterministic" gameplay systems that modify predicted ghosts.
-    /// This system group runs for both the client and server worlds at a fixed time step, as specified by
-    /// the <see cref="ClientServerTickRate.SimulationTickRate"/> setting.</para>
-    /// <para>On the server, this group is only updated once per tick, because it runs in tandem with the <see cref="SimulationSystemGroup"/>
-    /// (i.e. at a fixed time step, at the same rate).
-    /// On the client, the group implements the client-side prediction logic by running the client simulation ahead of the server.</para>
-    /// <para><b>Importantly: Because the client is predicting ahead of the server, all systems in this group will be updated multiple times
-    /// per simulation frame, every single time the client receives a new snapshot (see <see cref="ClientServerTickRate.NetworkTickRate"/>
-    /// and <see cref="ClientServerTickRate.SimulationTickRate"/>). This is called "rollback and re-simulation".</b></para>
-    /// <para>These re-simulation prediction group ticks also get more frequent at higher pings.
-    /// I.e. Simplified: A 200ms client will likely re-simulate roughly x2 more frames than a 100ms connection, with caveats.
-    /// And note: The number of predicted, re-simulated frames can easily reach double digits. Thus, systems in this group
-    /// must be exceptionally fast, and are likely your CPU "hot path".
-    /// <i>To help mitigate this, take a look at prediction group batching here <see cref="ClientTickRate.MaxPredictionStepBatchSizeRepeatedTick"/>.</i></para>
-    /// <para>Pragmatically: This group contains most of the game simulation (or, at least, all simulation that should be "predicted"
-    /// (i.e. simulation that is the same on both client and server)). On the server, all prediction logic is treated as
-    /// authoritative game state (although thankfully it only needs to be simulated once, as it's authoritative).</para>
-    /// <para>Note: This SystemGroup is intentionally added to non-netcode worlds, to help enable single-player testing.</para>
-    /// </summary>
-    /// <remarks> To reiterate: Because child systems in this group are updated so frequently (multiple times per frame on the client,
-    /// and for all predicted ghosts on the server), this group is usually the most expensive on both builds.
-    /// Pay particular attention to the systems that run in this group to keep your performance in check.
-    /// </remarks>
-    [WorldSystemFilter(WorldSystemFilterFlags.Default | WorldSystemFilterFlags.ThinClientSimulation)]
-    [UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst=true)]
-    [UpdateBefore(typeof(FixedStepSimulationSystemGroup))]
-    [UpdateAfter(typeof(BeginSimulationEntityCommandBufferSystem))]
-    public partial class PredictedSimulationSystemGroup : ComponentSystemGroup
-    {}
+	/// <summary>
+	/// <para>The parent group for all "deterministic" gameplay systems that modify predicted ghosts.
+	/// This system group runs for both the client and server worlds at a fixed time step, as specified by
+	/// the <see cref="ClientServerTickRate.SimulationTickRate"/> setting.</para>
+	/// <para>On the server, this group is only updated once per tick, because it runs in tandem with the <see cref="SimulationSystemGroup"/>
+	/// (i.e. at a fixed time step, at the same rate).
+	/// On the client, the group implements the client-side prediction logic by running the client simulation ahead of the server.</para>
+	/// <para><b>Importantly: Because the client is predicting ahead of the server, all systems in this group will be updated multiple times
+	/// per simulation frame, every single time the client receives a new snapshot (see <see cref="ClientServerTickRate.NetworkTickRate"/>
+	/// and <see cref="ClientServerTickRate.SimulationTickRate"/>). This is called "rollback and re-simulation".</b></para>
+	/// <para>These re-simulation prediction group ticks also get more frequent at higher pings.
+	/// I.e. Simplified: A 200ms client will likely re-simulate roughly x2 more frames than a 100ms connection, with caveats.
+	/// And note: The number of predicted, re-simulated frames can easily reach double digits. Thus, systems in this group
+	/// must be exceptionally fast, and are likely your CPU "hot path".
+	/// <i>To help mitigate this, take a look at prediction group batching here <see cref="ClientTickRate.MaxPredictionStepBatchSizeRepeatedTick"/>.</i></para>
+	/// <para>Pragmatically: This group contains most of the game simulation (or, at least, all simulation that should be "predicted"
+	/// (i.e. simulation that is the same on both client and server)). On the server, all prediction logic is treated as
+	/// authoritative game state (although thankfully it only needs to be simulated once, as it's authoritative).</para>
+	/// <para>Note: This SystemGroup is intentionally added to non-netcode worlds, to help enable single-player testing.</para>
+	/// </summary>
+	/// <remarks> To reiterate: Because child systems in this group are updated so frequently (multiple times per frame on the client,
+	/// and for all predicted ghosts on the server), this group is usually the most expensive on both builds.
+	/// Pay particular attention to the systems that run in this group to keep your performance in check.
+	/// </remarks>
+	[WorldSystemFilter(WorldSystemFilterFlags.Default | WorldSystemFilterFlags.ThinClientSimulation)]
+	[UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
+	[UpdateBefore(typeof(FixedStepSimulationSystemGroup))]
+	[UpdateAfter(typeof(BeginSimulationEntityCommandBufferSystem))]
+	public partial class PredictedSimulationSystemGroup : ComponentSystemGroup
+	{
+		private SystemHandle _disableSimulateSystemHandle;
+		private SystemHandle _enableSimulateSystemHandle;
+		private NativeHashSet<SystemHandle> _partialUpdateSystems;
+		private NativeList<SystemHandle> _partialUpdateSystemsSortedList;
+		private bool _hasGeneratedPartialSystemList;
+
+		public void AddSystemToPartialTickUpdate(ref SystemState state)
+		{
+			if (!_partialUpdateSystems.IsCreated)
+				_partialUpdateSystems = new NativeHashSet<SystemHandle>(0, Allocator.Persistent);
+			_partialUpdateSystems.Add(state.SystemHandle);
+		}
+		
+		protected override void OnCreate()
+		{
+			_disableSimulateSystemHandle = World.GetOrCreateSystem<GhostBeforePredictionDisableSimulateSystem>();
+			_enableSimulateSystemHandle = World.GetOrCreateSystem<GhostAfterPredictionDisableSimulateSystem>();
+			_partialUpdateSystemsSortedList = new NativeList<SystemHandle>(Allocator.Persistent);
+			base.OnCreate();
+		}
+
+		protected override void OnDestroy()
+		{
+			if (_partialUpdateSystems.IsCreated)
+				_partialUpdateSystems.Dispose();
+			_partialUpdateSystemsSortedList.Dispose();
+			base.OnDestroy();
+		}
+
+		protected override void OnUpdate()
+		{
+			if (World.IsClient() && !World.IsThinClient())
+			{
+				if (m_systemSortDirty || !_hasGeneratedPartialSystemList)
+				{
+					_hasGeneratedPartialSystemList = true;
+					_partialUpdateSystemsSortedList.Clear();
+					using var allSystemsFlat = GetAllSystemsFlat(Allocator.Temp);
+					foreach (var system in allSystemsFlat)
+					{
+						if (_partialUpdateSystems.Contains(system))
+						{
+							_partialUpdateSystemsSortedList.Add(system);
+						}
+					}
+					
+					UnityEngine.Debug.Log($"{nameof(PredictedSimulationSystemGroup)}: {_partialUpdateSystemsSortedList.Length} systems in partial update");
+				}
+				
+				bool hasRunUpdate = false;
+				// Inline base.OnUpdate(); to insert SingleDependency after first ShouldGroupUpdate
+				// to avoid complete dependency on all previous systems
+				
+				while (RateManager.ShouldGroupUpdate(this))
+				{
+					if (!hasRunUpdate)
+					{
+						_disableSimulateSystemHandle.Update(World.Unmanaged); // TODO: Can this be skipped if we do no updates?
+						EntityManager.BeginSingleSystemDependencyMode();
+						hasRunUpdate = true;
+					}
+					
+					SystemAPI.TryGetSingleton(out NetworkTime networkTime);
+					
+					// Skip systems by default for partial ticks
+					if (!networkTime.IsPartialTick)
+					{
+						UpdateAllSystems();
+					}
+					else
+					{
+						// Only update systems added via AddSystemToPartialTickUpdate
+						foreach (var system in _partialUpdateSystemsSortedList)
+						{
+							system.Update(World.Unmanaged);
+						}
+					}
+				}
+				
+				if (hasRunUpdate)
+				{
+					EntityManager.EndSingleSystemDependencyMode();
+					_enableSimulateSystemHandle.Update(World.Unmanaged);
+				}
+			}
+			else
+			{
+				base.OnUpdate();
+			}
+		}
+	}
 
     /// <summary>
     /// <para>A fixed update group inside the ghost prediction. This is equivalent to <see cref="FixedStepSimulationSystemGroup"/> but for prediction.

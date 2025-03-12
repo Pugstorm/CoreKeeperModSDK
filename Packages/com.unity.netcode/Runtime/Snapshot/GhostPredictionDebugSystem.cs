@@ -165,7 +165,7 @@ namespace Unity.NetCode
         struct PredictionDebugJob : IJobChunk
         {
             public DynamicTypeList DynamicTypeList;
-            public NativeParallelHashMap<ArchetypeChunk, System.IntPtr>.ReadOnly predictionState;
+            public NativeParallelHashMap<ulong, System.IntPtr>.ReadOnly predictionState;
 
             [ReadOnly] public ComponentTypeHandle<GhostInstance> ghostType;
             [ReadOnly] public ComponentTypeHandle<PredictedGhost> predictedGhostType;
@@ -195,7 +195,7 @@ namespace Unity.NetCode
                 // This job is not written to support queries with enableable component types.
                 Assert.IsFalse(useEnabledMask);
 
-                if (!predictionState.TryGetValue(chunk, out var state) ||
+                if (!predictionState.TryGetValue(chunk.SequenceNumber, out var state) ||
                     (*(PredictionBackupState*)state).entityCapacity != chunk.Capacity)
                     return;
 
@@ -215,12 +215,13 @@ namespace Unity.NetCode
                 var typeData = GhostTypeCollection[ghostTypeId];
                 int baseOffset = typeData.FirstComponent;
 
-                Entity* backupEntities = PredictionBackupState.GetEntities(state);
+				var predictionBackupIndex = (int)(tick.TickIndexForValidTick % PredictionBackupState.PredictionHistorySize);
+                Entity* backupEntities = PredictionBackupState.GetEntities(state, predictionBackupIndex);
                 var entities = chunk.GetNativeArray(entityType);
 
                 var PredictedGhosts = chunk.GetNativeArray(ref predictedGhostType);
 
-                byte* dataPtr = PredictionBackupState.GetData(state);
+                byte* dataPtr = PredictionBackupState.GetData(state, predictionBackupIndex);
                 int numBaseComponents = typeData.NumComponents - typeData.NumChildComponents;
                 for (int comp = 0; comp < numBaseComponents; ++comp)
                 {

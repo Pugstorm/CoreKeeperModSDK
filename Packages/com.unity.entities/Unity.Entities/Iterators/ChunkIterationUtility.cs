@@ -1385,7 +1385,7 @@ namespace Unity.Entities
     /// </summary>
     [GenerateTestsForBurstCompatibility]
     [BurstCompile]
-    internal static class EnabledBitUtility
+    public static class EnabledBitUtility
     {
         /// <summary>
         /// Retrieves the next contiguous range of set bits starting at or after the provided index in the provided mask.
@@ -1398,7 +1398,7 @@ namespace Unity.Entities
         /// <returns>True if another range of contiguous bits was found (in which case, the range info is stored in
         /// <paramref name="nextRangeBegin"/> and <paramref name="nextRangeEnd"/>. Otherwise, false.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool TryGetNextRange(v128 mask, int firstIndexToCheck, out int nextRangeBegin, out int nextRangeEnd)
+        public static bool TryGetNextRange(v128 mask, int firstIndexToCheck, out int nextRangeBegin, out int nextRangeEnd)
         {
             mask = ShiftRight(mask, firstIndexToCheck);
 
@@ -1421,7 +1421,7 @@ namespace Unity.Entities
         /// <param name="v">The value to be shifted</param>
         /// <param name="n">The amount of bits to shift</param>
         /// <returns>The shifted value</returns>
-        internal static v128 ShiftRight(in v128 v, int n)
+        public static v128 ShiftRight(in v128 v, int n)
         {
             if (Hint.Unlikely(n >= 128))
                 return default;
@@ -1436,19 +1436,19 @@ namespace Unity.Entities
         }
 
         [BurstCompile]
-        internal static void ShiftRightBurstForTests(ref v128 v, out v128 vOut, int n)
+        public static void ShiftRightBurstForTests(ref v128 v, out v128 vOut, int n)
         {
             vOut = ShiftRight(v, n);
         }
 
-        internal static int tzcnt_u128 (v128 u)
+        public static int tzcnt_u128 (v128 u)
         {
             int hi = math.tzcnt(u.ULong1) + 64;
             int lo = math.tzcnt(u.ULong0);
             return lo == 64 ? hi : lo;
         }
 
-        internal static int countbits (v128 u)
+        public static int countbits (v128 u)
         {
             return math.countbits(u.ULong0) + math.countbits(u.ULong1);
         }

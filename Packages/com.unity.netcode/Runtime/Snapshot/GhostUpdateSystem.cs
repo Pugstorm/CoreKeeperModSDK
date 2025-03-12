@@ -10,6 +10,7 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.NetCode.LowLevel.Unsafe;
 using Unity.Mathematics;
+using UnityEngine.Serialization;
 
 namespace Unity.NetCode
 {
@@ -33,6 +34,174 @@ namespace Unity.NetCode
     [BurstCompile]
     public unsafe partial struct GhostUpdateSystem : ISystem
     {
+
+        /// <summary>
+        /// Singleton entity that contains all the tweakable settings for the <see cref="GhostUpdateSystem"/>.
+        /// </summary>
+        [Serializable]
+        public struct GhostUpdateSystemData : IComponentData
+        {
+            /// <summary>
+            /// Force all ghosts to use pre serialization. This means part of the serialization will be done once for
+            /// all connection instead of once per connection. This can increase CPU time for simple ghosts and ghosts
+            /// which are rarely sent. This switch is meant as a way of measuring which ghosts would benefit from using
+            /// pre-serialization.
+            /// </summary>
+            public bool ForceDontUsePredictionBackup;
+        }
+		
+        // There will be burst/IL problems with using generic job structs, so we're
+        // laying out each job size type here manually
+        [BurstCompile]
+        struct FindEarliestPredictionTickJob : IJobChunk
+        {
+            public Entity GhostCollectionSingleton;
+            [ReadOnly] public BufferLookup<GhostCollectionPrefabSerializer> GhostTypeCollectionFromEntity;
+            [NativeDisableContainerSafetyRestriction] private DynamicBuffer<GhostCollectionPrefabSerializer> GhostTypeCollection;
+
+            [ReadOnly] public NativeParallelHashMap<SpawnedGhost, Entity>.ReadOnly GhostMap;
+    #pragma warning disable 649
+            [NativeSetThreadIndex] public int ThreadIndex;
+    #pragma warning restore 649
+            [ReadOnly] public ComponentTypeHandle<GhostInstance> ghostType;
+            [ReadOnly] public ComponentTypeHandle<SnapshotData> ghostSnapshotDataType;
+            [ReadOnly] public BufferTypeHandle<SnapshotDataBuffer> ghostSnapshotDataBufferType;
+            [ReadOnly] public ComponentTypeHandle<PreSpawnedGhostIndex> prespawnGhostIndexType;
+
+            public NetworkTick predictedTargetTick;
+            public float predictedTargetTickFraction;
+
+            public ComponentTypeHandle<PredictedGhost> PredictedGhostType;
+            public NetworkTick lastPredictedTick;
+
+            public NetworkTick lastFullPredictionTick;
+            public int ghostOwnerId;
+            public uint MaxExtrapolationTicks;
+			
+			public NativeReference<NetworkTick> EarliestPredictionTick;
+			public uint lastSystemVersion;
+			public NativeParallelHashMap<ulong, System.IntPtr>.ReadOnly predictionStateBackup;
+			[ReadOnly] public EntityTypeHandle entityType;
+			public uint tickRate;
+			
+            public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
+            {
+                // This job is not written to support queries with enableable component types.
+                Assert.IsFalse(useEnabledMask);
+
+                GhostTypeCollection = GhostTypeCollectionFromEntity[GhostCollectionSingleton];
+
+                NetworkTick targetTick = predictedTargetTick;
+                float targetTickFraction = predictedTargetTickFraction;
+
+                var deserializerState = new GhostDeserializerState
+                {
+                    GhostMap = GhostMap,
+                    GhostOwner = ghostOwnerId,
+                    SendToOwner = SendToOwnerType.All
+                };
+				
+                var ghostComponents = chunk.GetNativeArray(ref ghostType);
+                int ghostTypeId = ghostComponents.GetFirstGhostTypeId(out var firstGhost);
+                if (ghostTypeId < 0)
+                    return;
+                if (ghostTypeId >= GhostTypeCollection.Length)
+                    return; // serialization data has not been loaded yet. This can only happen for prespawn objects
+				
+                var typeData = GhostTypeCollection[ghostTypeId];
+                var ghostSnapshotDataArray = chunk.GetNativeArray(ref ghostSnapshotDataType);
+                var ghostSnapshotDataBufferArray = chunk.GetBufferAccessor(ref ghostSnapshotDataBufferType);
+
+                var entityRange = new NativeList<int2>(ghostComponents.Length, Allocator.Temp);
+                int2 nextRange = default;
+                var PredictedGhostArray = chunk.GetNativeArray(ref PredictedGhostType);
+                //bool canBeStatic = typeData.StaticOptimization;
+                bool isPrespawn = chunk.Has(ref prespawnGhostIndexType);
+				
+				var earliestPredictionTick = EarliestPredictionTick.Value;
+				
+				var chunkEntities = chunk.GetNativeArray(entityType);
+				var hasBackupState = predictionStateBackup.TryGetValue(chunk.SequenceNumber, out var predictionBackuptState);
+				hasBackupState = hasBackupState && (*(PredictionBackupState*)predictionBackuptState).entityCapacity == chunk.Capacity;
+				var chunkHasStructuralChange = chunk.DidOrderChange(lastSystemVersion);
+
+				var maxRollbackTicks = (tickRate + 1) / 2; // Max support 500ms in general in netcode
+				var maxRollbackTick = targetTick;
+				maxRollbackTick.Subtract(maxRollbackTicks);
+				
+                // Find the ranges of entities which have data to apply, store the data to apply in an array while doing so
+                for (int ent = firstGhost; ent < ghostComponents.Length; ++ent)
+                {
+                    // Pre spawned ghosts might not have the ghost type set yet - in that case we need to skip them until the GHostReceiveSystem has assigned the ghost type
+                    if (isPrespawn && ghostComponents[ent].ghostType != ghostTypeId)
+                    {
+                        if (nextRange.y != 0)
+                            entityRange.Add(nextRange);
+                        nextRange = default;
+                        continue;
+                    }
+					
+                    var snapshotDataBuffer = ghostSnapshotDataBufferArray[ent];
+                    var ghostSnapshotData = ghostSnapshotDataArray[ent];
+
+                    bool hasSnapshot = ghostSnapshotData.GetDataAtTick(targetTick, typeData.PredictionOwnerOffset, ghostOwnerId, targetTickFraction, snapshotDataBuffer, out var data, MaxExtrapolationTicks);
+                    if (!hasSnapshot)
+                    {
+                        // If there is no snapshot before our target tick, try to get the oldest tick we do have and use that
+                        // This deals better with ticks moving backwards and clamps ghosts at the oldest state we do have data for
+                        var oldestSnapshot = ghostSnapshotData.GetOldestTick(snapshotDataBuffer);
+                        hasSnapshot = (oldestSnapshot.IsValid && ghostSnapshotData.GetDataAtTick(oldestSnapshot, typeData.PredictionOwnerOffset, ghostOwnerId, 1, snapshotDataBuffer, out data, MaxExtrapolationTicks));
+                    }
+
+					if (!hasSnapshot)
+					{
+						continue;
+					}
+
+					var snapshotTick = new NetworkTick{SerializedData = *(uint*)data.SnapshotBefore};
+					var predictedData = PredictedGhostArray[ent];
+					// We want to contiue prediction from the last full tick we predicted last time
+					var predictionStartTick = lastFullPredictionTick;
+					// If there is no history, try to use the tick where we left off last time, will only be a valid tick if we ended with a full prediction tick as opposed to a fractional one
+					if (!predictionStartTick.IsValid)
+						predictionStartTick = lastPredictedTick;
+
+					// Fix for structural change by PredictedGhostSpawnRequest, where we force a rollback to not get misspredictions by missing Prediction History
+					// Should be fixed by NetCode 1.3 https://forum.unity.com/threads/removal-of-predictedghostspawnrequest-cause-misspredictions.1601733/#post-9882417
+					if (chunkHasStructuralChange && predictionStartTick.IsValid)
+					{
+						var predictionBackupIndex = (int)(predictionStartTick.TickIndexForValidTick % PredictionBackupState.PredictionHistorySize);
+						var hasBackup = hasBackupState && PredictionBackupState.MatchEntity(predictionBackuptState, ent, chunkEntities[ent], predictionBackupIndex);
+						if (!hasBackup)
+						{
+							predictionStartTick = snapshotTick;
+						}
+					}
+					
+					// If we do not have a backup or we got more data since last time we run from the tick we have snapshot data for
+					if (!predictionStartTick.IsValid || predictedData.AppliedTick != snapshotTick)
+						predictionStartTick = snapshotTick;
+					// If we have newer or equally new data in the
+					else if (!predictionStartTick.IsNewerThan(snapshotTick))
+						predictionStartTick = snapshotTick;
+
+					if (!earliestPredictionTick.IsValid || earliestPredictionTick.IsNewerThan(predictionStartTick))
+					{
+						earliestPredictionTick = predictionStartTick;
+					}
+                }
+				
+				if (!earliestPredictionTick.IsNewerThan(maxRollbackTick))
+				{
+					EarliestPredictionTick.Value = maxRollbackTick;
+				}
+				else
+				{
+					EarliestPredictionTick.Value = earliestPredictionTick;
+				}
+            }
+        }
+
         // There will be burst/IL problems with using generic job structs, so we're
         // laying out each job size type here manually
         [BurstCompile]
@@ -73,12 +242,16 @@ namespace Unity.NetCode
             [ReadOnly] public EntityStorageInfoLookup childEntityLookup;
             [ReadOnly] public BufferTypeHandle<LinkedEntityGroup> linkedEntityGroupType;
 
-            public NetworkTick predictionStateBackupTick;
-            public NativeParallelHashMap<ArchetypeChunk, System.IntPtr>.ReadOnly predictionStateBackup;
+            public NetworkTick lastFullPredictionTick;
+            public NativeParallelHashMap<ulong, System.IntPtr>.ReadOnly predictionStateBackup;
             [ReadOnly] public EntityTypeHandle entityType;
             public int ghostOwnerId;
             public uint MaxExtrapolationTicks;
             public NetDebug netDebug;
+			
+            public bool forceDontUsePredictionBackup;
+            [ReadOnly] public ComponentTypeHandle<DontUsePredictionBackup> DontUsePredictionBackupType;
+			[ReadOnly] public NativeReference<NetworkTick> EarliestPredictionTick;
 
             private void AddPredictionStartTick(NetworkTick targetTick, NetworkTick predictionStartTick)
             {
@@ -160,8 +333,11 @@ namespace Unity.NetCode
                 bool isPrespawn = chunk.Has(ref prespawnGhostIndexType);
                 var restoreFromBackupRange = new NativeList<int>(ghostComponents.Length, Allocator.Temp);
                 var chunkEntities = chunk.GetNativeArray(entityType);
-                var hasBackupState = predictionStateBackup.TryGetValue(chunk, out var predictionBackuptState);
+                var hasBackupState = predictionStateBackup.TryGetValue(chunk.SequenceNumber, out var predictionBackuptState);
                 hasBackupState = hasBackupState && (*(PredictionBackupState*)predictionBackuptState).entityCapacity == chunk.Capacity;
+
+				var dontUsePredictionHistory = forceDontUsePredictionBackup || chunk.Has(ref DontUsePredictionBackupType);
+				var earliestPredictionTick = EarliestPredictionTick.Value;
 
                 // Find the ranges of entities which have data to apply, store the data to apply in an array while doing so
                 for (int ent = firstGhost; ent < ghostComponents.Length; ++ent)
@@ -223,10 +399,15 @@ namespace Unity.NetCode
                             var snapshotTick = new NetworkTick{SerializedData = *(uint*)data.SnapshotBefore};
                             var predictedData = PredictedGhostArray[ent];
                             // We want to contiue prediction from the last full tick we predicted last time
-                            var predictionStartTick = predictionStateBackupTick;
+                            var predictionStartTick = lastFullPredictionTick;
                             // If there is no history, try to use the tick where we left off last time, will only be a valid tick if we ended with a full prediction tick as opposed to a fractional one
                             if (!predictionStartTick.IsValid)
                                 predictionStartTick = lastPredictedTick;
+                            // If we have forced to not use prediction history this means we'll always start at the earliest tick that will be re-predicted (by someone else)
+                            if (dontUsePredictionHistory && earliestPredictionTick.IsValid)
+                            {
+                                predictionStartTick = earliestPredictionTick;
+                            }
                             // If we do not have a backup or we got more data since last time we run from the tick we have snapshot data for
                             if (!predictionStartTick.IsValid || predictedData.AppliedTick != snapshotTick)
                                 predictionStartTick = snapshotTick;
@@ -234,20 +415,36 @@ namespace Unity.NetCode
                             else if (!predictionStartTick.IsNewerThan(snapshotTick))
                                 predictionStartTick = snapshotTick;
 
-                            // If we want to continue prediction, and this is not the currently applied prediction state we must restore the state from the backup
+							// If we want to continue prediction, and this is not the currently applied prediction state we must restore the state from the backup
                             if (predictionStartTick != snapshotTick && predictionStartTick != lastPredictedTick)
                             {
                                 // If we cannot restore the backup and continue prediction, we roll back and resimulate
-                                if(!hasBackupState || !PredictionBackupState.MatchEntity(predictionBackuptState, ent, chunkEntities[ent]))
+								var predictionBackupIndex = (int)(predictionStartTick.TickIndexForValidTick % PredictionBackupState.PredictionHistorySize);
+                                if(!hasBackupState || !PredictionBackupState.MatchEntity(predictionBackuptState, ent, chunkEntities[ent], predictionBackupIndex))
+                                {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS	
+                                    UnityEngine.Debug.LogWarning("Failed to restore backup, probably doing structural changes on the client");
+#endif
                                     predictionStartTick = snapshotTick;
+                                }
                                 else
                                     // If we cannot restore the backup and continue prediction, we roll back and resimulate
                                     restoreFromBackupRange.Add(ent);
                             }
+							
+							// In cases we want to repredict by other ghost target tick, we want to submit earliestPredictionTick as start to AddPredictionStartTick,
+							// but use our snapshot as PredictionStartTick (essentially virtualy moving our snapshot to the earliestPredictionTick)
+							// In cases where earliestPredictionTick == predictionStateBackupTick/lastPredictedTick we don't want to use snapshot
+							// but use their respective history/continuation instead
+							var snapshotTickToUse = predictionStartTick;
+							if (earliestPredictionTick.IsNewerThan(predictionStartTick))
+							{
+								predictionStartTick = earliestPredictionTick;
+							}
 
                             AddPredictionStartTick(targetTick, predictionStartTick);
-
-                            if (predictionStartTick != snapshotTick)
+							
+                            if (snapshotTickToUse != snapshotTick)
                             {
                                 if (nextRange.y != 0)
                                     entityRange.Add(nextRange);
@@ -260,7 +457,8 @@ namespace Unity.NetCode
                                     nextRange.x = ent;
                                 nextRange.y = ent+1;
                             }
-                            predictedData.PredictionStartTick = predictionStartTick;
+							
+                            predictedData.PredictionStartTick = snapshotTickToUse;
                             PredictedGhostArray[ent] = predictedData;
                         }
                         else
@@ -297,10 +495,10 @@ namespace Unity.NetCode
                             // This is a predicted snapshot which does not have any state at all to roll back to, just let it continue from it's last state if possible
                             var predictionStartTick = lastPredictedTick;
                             // Try to restore from backup if last tick was a partial tick
-                            if (!predictionStartTick.IsValid && predictionStateBackupTick.IsValid && hasBackupState &&
-                                PredictionBackupState.MatchEntity(predictionBackuptState, ent, chunkEntities[ent]))
+                            if (!predictionStartTick.IsValid && lastFullPredictionTick.IsValid && hasBackupState &&
+                                PredictionBackupState.MatchEntity(predictionBackuptState, ent, chunkEntities[ent], (int)(lastFullPredictionTick.TickIndexForValidTick % PredictionBackupState.PredictionHistorySize)))
                             {
-                                predictionStartTick = predictionStateBackupTick;
+                                predictionStartTick = lastFullPredictionTick;
                                 restoreFromBackupRange.Add(ent);
                             }
                             if (!predictionStartTick.IsValid)
@@ -329,7 +527,10 @@ namespace Unity.NetCode
                 if(restoreFromBackupRange.Length > 0)
                 {
                     k_RestoreFromBackup.Begin();
-                    RestorePredictionBackup(chunk, predictionBackuptState, restoreFromBackupRange, typeData, ghostChunkComponentTypesPtr, ghostChunkComponentTypesLength);
+                    // Due to Pugstorm modifications, we either have an earliest tick and then everyone starts there, or we do not and then we only revert to the last full tick
+                    var predictedStartTick = earliestPredictionTick.IsValid ? earliestPredictionTick : lastFullPredictionTick;
+					var predictionBackupIndex = (int)(predictedStartTick.TickIndexForValidTick % PredictionBackupState.PredictionHistorySize);
+                    RestorePredictionBackup(chunk, predictionBackuptState, restoreFromBackupRange, typeData, ghostChunkComponentTypesPtr, ghostChunkComponentTypesLength, predictionBackupIndex);
                     k_RestoreFromBackup.End();
                 }
 
@@ -713,37 +914,7 @@ namespace Unity.NetCode
                 }
             }
 
-            static SnapshotData.DataAtTick SetupDynamicDataAtTick(in SnapshotData.DataAtTick dataAtTick,
-                int snapshotOffset, int snapshotSize, int maskBits, in DynamicBuffer<SnapshotDynamicDataBuffer> ghostSnapshotDynamicBuffer, out int buffernLen)
-            {
-                // Retrieve from the snapshot the buffer information and
-                var snapshotData = (int*)(dataAtTick.SnapshotBefore + snapshotOffset);
-                var bufLen = snapshotData[0];
-                var dynamicDataOffset = snapshotData[1];
-                //The dynamic snapshot data is associated with the root entity not the children
-                var dynamicSnapshotDataBeforePtr = SnapshotDynamicBuffersHelper.GetDynamicDataPtr((byte*)ghostSnapshotDynamicBuffer.GetUnsafeReadOnlyPtr(),
-                    dataAtTick.BeforeIdx, ghostSnapshotDynamicBuffer.Length);
-                //var dynamicSnapshotDataCapacity = SnapshotDynamicBuffersHelper.GetDynamicDataCapacity(SnapshotDynamicBuffersHelper.GetHeaderSize(),ghostSnapshotDynamicBuffer.Length);
-                var dynamicMaskSize = SnapshotDynamicBuffersHelper.GetDynamicDataChangeMaskSize(maskBits, bufLen);
-
-#if ENABLE_UNITY_COLLECTIONS_CHECKS
-                if ((dynamicDataOffset + bufLen*snapshotSize) > ghostSnapshotDynamicBuffer.Length)
-                    throw new System.InvalidOperationException("Overflow reading data from dynamic snapshot memory buffer");
-#endif
-                //Copy into the buffer the snapshot data. Use a temporary DataTick to pass some information to the serializer function.
-                //No need to use a DataAtTick per element (would be overkill)
-                buffernLen = bufLen;
-                return new SnapshotData.DataAtTick
-                {
-                    SnapshotBefore = (System.IntPtr)(dynamicSnapshotDataBeforePtr + dynamicDataOffset + dynamicMaskSize),
-                    SnapshotAfter = (System.IntPtr)(dynamicSnapshotDataBeforePtr + dynamicDataOffset + dynamicMaskSize),
-                    //No interpolation factor is necessary
-                    InterpolationFactor = 0.0f,
-                    Tick = dataAtTick.Tick
-                };
-            }
-
-            void RestorePredictionBackup(ArchetypeChunk chunk, IntPtr state, NativeList<int> toRestore, in GhostCollectionPrefabSerializer typeData, DynamicComponentTypeHandle* ghostChunkComponentTypesPtr, int ghostChunkComponentTypesLength)
+            void RestorePredictionBackup(ArchetypeChunk chunk, IntPtr state, NativeList<int> toRestore, in GhostCollectionPrefabSerializer typeData, DynamicComponentTypeHandle* ghostChunkComponentTypesPtr, int ghostChunkComponentTypesLength, int predictionBackupIndex)
             {
                 // The prediction state is assured to exist if this method is called. But we add some checks here to ensure assumptions are correct.
                 Assertions.Assert.IsTrue(state != IntPtr.Zero);
@@ -753,14 +924,13 @@ namespace Unity.NetCode
                 int baseOffset = typeData.FirstComponent;
                 const GhostSendType requiredSendMask = GhostSendType.OnlyPredictedClients;
 
-                byte* dataPtr = PredictionBackupState.GetData(state);
-                ulong* enabledBitPtr = PredictionBackupState.GetEnabledBits(state);
+                byte* dataPtr = PredictionBackupState.GetData(state, predictionBackupIndex);
+                ulong* enabledBitPtr = PredictionBackupState.GetEnabledBits(state, predictionBackupIndex);
                 //bufferBackupDataPtr is null in case there are no buffer for that ghost type
-                byte* bufferBackupDataPtr = PredictionBackupState.GetBufferDataPtr(state);
+                byte* bufferBackupDataPtr = PredictionBackupState.GetBufferDataPtr(state, predictionBackupIndex);
                 int numBaseComponents = typeData.NumComponents - typeData.NumChildComponents;
-                var ghostOwner = PredictionBackupState.GetGhostOwner(state);
+                var ghostOwner = PredictionBackupState.GetGhostOwner(state, predictionBackupIndex);
                 var requiredOwnerMask = SendToOwnerType.All;
-                uint* chunkVersionPtr = PredictionBackupState.GetChunkVersion(state);
                 if (ghostOwnerId != 0 && ghostOwner != 0)
                 {
                     requiredOwnerMask = ghostOwnerId == ghostOwner
@@ -789,24 +959,9 @@ namespace Unity.NetCode
                         if(ghostSerializer.HasGhostFields)
                             dataPtr = PredictionBackupState.GetNextData(dataPtr, compSize, chunk.Capacity);
                         if (ghostSerializer.SerializesEnabledBit != 0)
-                            enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity);
+                            enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity, predictionBackupIndex);
                         continue;
                     }
-
-                    //We just need to check the chunk version when restoring from the backup. If something touched this component,
-                    //it has been touched no matter what. We should not "compensate" or change that semantic.
-                    uint backupVersion = chunkVersionPtr[comp];
-                    k_ChangeFiltering.Begin();
-                    if (!chunk.DidChange(ref ghostChunkComponentTypesPtr[compIdx], backupVersion))
-                    {
-                        if(ghostSerializer.HasGhostFields)
-                            dataPtr = PredictionBackupState.GetNextData(dataPtr, compSize, chunk.Capacity);
-                        if(ghostSerializer.SerializesEnabledBit != 0)
-                            enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity);
-                        k_ChangeFiltering.End();
-                        continue;
-                    }
-                    else k_ChangeFiltering.End();
 
                     if (ghostSerializer.SerializesEnabledBit != 0)
                     {
@@ -816,7 +971,7 @@ namespace Unity.NetCode
                             bool isSet = (enabledBitPtr[ent >> 6] & (1ul << (ent & 0x3f))) != 0;
                             chunk.SetComponentEnabled(ref ghostChunkComponentTypesPtr[compIdx], ent, isSet);
                         }
-                        enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity);
+                        enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity, predictionBackupIndex);
                     }
                     //If the component does not have any ghost fields (so nothing to restore)
                     //we don't need to restore the data and we don't need to advance the
@@ -889,7 +1044,6 @@ namespace Unity.NetCode
                 if (typeData.NumChildComponents > 0)
                 {
                     var linkedEntityGroupAccessor = chunk.GetBufferAccessor(ref linkedEntityGroupType);
-                    var childChunkVersionPtr = chunkVersionPtr + numBaseComponents;
                     for (int comp = numBaseComponents; comp < typeData.NumComponents; ++comp)
                     {
                         int compIdx = GhostComponentIndex[baseOffset + comp].ComponentIndex;
@@ -916,14 +1070,6 @@ namespace Unity.NetCode
 
                             if (!childEntityLookup.TryGetValue(childEnt, out var childChunk) || !childChunk.Chunk.Has(ref readonlyHandle))
                                 continue;
-                            uint backupVersion = childChunkVersionPtr[rootEnt];
-                            k_ChangeFiltering.Begin();
-                            if (!childChunk.Chunk.DidChange(ref readonlyHandle, backupVersion))
-                            {
-                                k_ChangeFiltering.End();
-                                continue;
-                            }
-                            else k_ChangeFiltering.End();
                             if (ghostSerializer.SerializesEnabledBit != 0)
                             {
                                 bool isSet = (enabledBitPtr[rootEnt >> 6] & (1ul << (rootEnt & 0x3f))) != 0;
@@ -973,16 +1119,46 @@ namespace Unity.NetCode
                         // e1,e2,e3 | e1,e2,e3 | e1c1,e2c1,e3c1| ...
                         //So the dataptr, enablebits and chunk versions must be advanced here. Not for each entity restored
                         if (ghostSerializer.SerializesEnabledBit != 0)
-                            enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity);
+                            enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity, predictionBackupIndex);
                         if (ghostSerializer.HasGhostFields)
                         {
                             dataPtr = PredictionBackupState.GetNextData(dataPtr, compSize, chunk.Capacity);
-                            childChunkVersionPtr = PredictionBackupState.GetNextChildChunkVersion(childChunkVersionPtr, chunk.Capacity);
                         }
                     }
                 }
             }
         }
+
+		public static SnapshotData.DataAtTick SetupDynamicDataAtTick(in SnapshotData.DataAtTick dataAtTick,
+            int snapshotOffset, int snapshotSize, int maskBits, in DynamicBuffer<SnapshotDynamicDataBuffer> ghostSnapshotDynamicBuffer, out int buffernLen)
+        {
+            // Retrieve from the snapshot the buffer information and
+            var snapshotData = (int*)(dataAtTick.SnapshotBefore + snapshotOffset);
+            var bufLen = snapshotData[0];
+            var dynamicDataOffset = snapshotData[1];
+            //The dynamic snapshot data is associated with the root entity not the children
+            var dynamicSnapshotDataBeforePtr = SnapshotDynamicBuffersHelper.GetDynamicDataPtr((byte*)ghostSnapshotDynamicBuffer.GetUnsafeReadOnlyPtr(),
+                dataAtTick.BeforeIdx, ghostSnapshotDynamicBuffer.Length);
+            //var dynamicSnapshotDataCapacity = SnapshotDynamicBuffersHelper.GetDynamicDataCapacity(SnapshotDynamicBuffersHelper.GetHeaderSize(),ghostSnapshotDynamicBuffer.Length);
+            var dynamicMaskSize = SnapshotDynamicBuffersHelper.GetDynamicDataChangeMaskSize(maskBits, bufLen);
+
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if ((dynamicDataOffset + bufLen*snapshotSize) > ghostSnapshotDynamicBuffer.Length)
+				throw new System.InvalidOperationException("Overflow reading data from dynamic snapshot memory buffer " + dynamicDataOffset + " " + (bufLen*snapshotSize) + " cap " + ghostSnapshotDynamicBuffer.Length);
+#endif
+            //Copy into the buffer the snapshot data. Use a temporary DataTick to pass some information to the serializer function.
+            //No need to use a DataAtTick per element (would be overkill)
+            buffernLen = bufLen;
+            return new SnapshotData.DataAtTick
+            {
+                SnapshotBefore = (System.IntPtr)(dynamicSnapshotDataBeforePtr + dynamicDataOffset + dynamicMaskSize),
+                SnapshotAfter = (System.IntPtr)(dynamicSnapshotDataBeforePtr + dynamicDataOffset + dynamicMaskSize),
+                //No interpolation factor is necessary
+                InterpolationFactor = 0.0f,
+                Tick = dataAtTick.Tick
+            };
+        }
+		
         [BurstCompile]
         [WithOptions(EntityQueryOptions.IgnoreComponentEnabledState)]
         [WithChangeFilter(typeof(GhostOwner), typeof(GhostOwnerIsLocal))]
@@ -1020,8 +1196,10 @@ namespace Unity.NetCode
         static readonly Unity.Profiling.ProfilerMarker k_ChangeFiltering = new Unity.Profiling.ProfilerMarker("GhostUpdateSystem_ChangeFiltering");
         static readonly Unity.Profiling.ProfilerMarker k_RestoreFromBackup = new Unity.Profiling.ProfilerMarker("GhostUpdateSystem_RestoreFromBackup");
         private EntityQuery m_ghostQuery;
+        private EntityQuery m_predictedGhostQuery;
         private NetworkTick m_LastPredictedTick;
         private NativeReference<NetworkTick> m_LastInterpolatedTick;
+        private NativeReference<NetworkTick> m_EarliestPredictionTick;
         private NativeParallelHashMap<NetworkTick, NetworkTick> m_AppliedPredictedTicks;
 
         BufferLookup<GhostComponentSerializer.State> m_GhostComponentCollectionFromEntity;
@@ -1030,6 +1208,7 @@ namespace Unity.NetCode
         ComponentLookup<NetworkSnapshotAck> m_NetworkSnapshotAckLookup;
 
         ComponentTypeHandle<PredictedGhost> m_PredictedGhostTypeHandle;
+        ComponentTypeHandle<DontUsePredictionBackup> m_DontUsePredictionBackupTypeHandle;
         ComponentTypeHandle<GhostInstance> m_GhostComponentTypeHandle;
         ComponentTypeHandle<SnapshotData> m_SnapshotDataTypeHandle;
         BufferTypeHandle<SnapshotDataBuffer> m_SnapshotDataBufferTypeHandle;
@@ -1061,11 +1240,17 @@ namespace Unity.NetCode
                 .WithAllRW<SnapshotDataBuffer>()
                 .WithAbsent<PendingSpawnPlaceholder, PredictedGhostSpawnRequest>();
             m_ghostQuery = queryBuilder.Build(systemState.EntityManager);
+            queryBuilder.Reset();
+			queryBuilder.WithAll<SnapshotData, GhostInstance, PredictedGhost>()
+                .WithAllRW<SnapshotDataBuffer>()
+                .WithAbsent<PendingSpawnPlaceholder, PredictedGhostSpawnRequest>();
+			m_predictedGhostQuery = queryBuilder.Build(systemState.EntityManager);
+            queryBuilder.Reset();
             systemState.RequireForUpdate<NetworkStreamInGame>();
             systemState.RequireForUpdate<GhostCollection>();
 
             m_LastInterpolatedTick = new NativeReference<NetworkTick>(Allocator.Persistent);
-
+			m_EarliestPredictionTick = new NativeReference<NetworkTick>(Allocator.Persistent);
 
             m_GhostComponentCollectionFromEntity = systemState.GetBufferLookup<GhostComponentSerializer.State>(true);
             m_GhostTypeCollectionFromEntity = systemState.GetBufferLookup<GhostCollectionPrefabSerializer>(true);
@@ -1073,6 +1258,7 @@ namespace Unity.NetCode
             m_NetworkSnapshotAckLookup = systemState.GetComponentLookup<NetworkSnapshotAck>(true);
 
             m_PredictedGhostTypeHandle = systemState.GetComponentTypeHandle<PredictedGhost>();
+            m_DontUsePredictionBackupTypeHandle = systemState.GetComponentTypeHandle<DontUsePredictionBackup>(true);
             m_GhostComponentTypeHandle = systemState.GetComponentTypeHandle<GhostInstance>(true);
             m_SnapshotDataTypeHandle = systemState.GetComponentTypeHandle<SnapshotData>(true);
             m_SnapshotDataBufferTypeHandle = systemState.GetBufferTypeHandle<SnapshotDataBuffer>(true);
@@ -1082,16 +1268,21 @@ namespace Unity.NetCode
             m_EntityTypeHandle = systemState.GetEntityTypeHandle();
             m_GhostOwnerType = systemState.GetComponentTypeHandle<GhostOwner>(true);
             m_GhostOwnerIsLocalType = systemState.GetComponentTypeHandle<GhostOwnerIsLocal>();
+            
+            systemState.EntityManager.CreateEntity(ComponentType.ReadWrite<GhostUpdateSystemData>());
         }
         public void OnDestroy(ref SystemState systemState)
         {
             m_LastInterpolatedTick.Dispose();
+			m_EarliestPredictionTick.Dispose();
             m_AppliedPredictedTicks.Dispose();
         }
 
         [BurstCompile]
         public void OnUpdate(ref SystemState systemState)
         {
+			var systemData = SystemAPI.GetSingleton<GhostUpdateSystemData>();
+			
             var clientTickRate = NetworkTimeSystem.DefaultClientTickRate;
             if (SystemAPI.HasSingleton<ClientTickRate>())
                 clientTickRate = SystemAPI.GetSingleton<ClientTickRate>();
@@ -1116,6 +1307,7 @@ namespace Unity.NetCode
                 m_GhostTypeCollectionFromEntity.Update(ref systemState);
                 m_GhostComponentIndexFromEntity.Update(ref systemState);
                 m_PredictedGhostTypeHandle.Update(ref systemState);
+                m_DontUsePredictionBackupTypeHandle.Update(ref systemState);
                 m_GhostComponentTypeHandle.Update(ref systemState);
                 m_SnapshotDataTypeHandle.Update(ref systemState);
                 m_SnapshotDataBufferTypeHandle.Update(ref systemState);
@@ -1124,7 +1316,43 @@ namespace Unity.NetCode
                 m_PreSpawnedGhostIndexTypeHandle.Update(ref systemState);
                 m_EntityTypeHandle.Update(ref systemState);
                 var localNetworkId = SystemAPI.GetSingleton<NetworkId>().Value;
-                var updateJob = new UpdateJob
+
+				m_EarliestPredictionTick.Value = default;
+
+				if (!SystemAPI.TryGetSingleton<ClientServerTickRate>(out var clientServerTickRate))
+				{
+					clientServerTickRate.ResolveDefaults();
+				}
+
+                var findEarliestPredictionTickJob = new FindEarliestPredictionTickJob()
+                {
+                    GhostCollectionSingleton = SystemAPI.GetSingletonEntity<GhostCollection>(),
+                    GhostTypeCollectionFromEntity = m_GhostTypeCollectionFromEntity,
+
+                    GhostMap = SystemAPI.GetSingleton<SpawnedGhostEntityMap>().Value,
+
+                    predictedTargetTick = networkTime.ServerTick,
+                    predictedTargetTickFraction = networkTime.ServerTickFraction,
+                    PredictedGhostType = m_PredictedGhostTypeHandle,
+                    lastPredictedTick = m_LastPredictedTick,
+
+                    ghostType = m_GhostComponentTypeHandle,
+                    ghostSnapshotDataType = m_SnapshotDataTypeHandle,
+                    ghostSnapshotDataBufferType = m_SnapshotDataBufferTypeHandle,
+                    prespawnGhostIndexType = m_PreSpawnedGhostIndexTypeHandle,
+
+                    lastFullPredictionTick = backupTick,
+                    ghostOwnerId = localNetworkId,
+                    MaxExtrapolationTicks = clientTickRate.MaxExtrapolationTimeSimTicks,
+					
+					EarliestPredictionTick = m_EarliestPredictionTick,
+					lastSystemVersion = systemState.LastSystemVersion,
+					predictionStateBackup = ghostHistoryPrediction.PredictionState,
+					entityType = m_EntityTypeHandle,
+					tickRate = (uint)clientServerTickRate.SimulationTickRate,
+                };
+				
+				var updateJob = new UpdateJob
                 {
                     GhostCollectionSingleton = SystemAPI.GetSingletonEntity<GhostCollection>(),
                     GhostComponentCollectionFromEntity = m_GhostComponentCollectionFromEntity,
@@ -1154,13 +1382,20 @@ namespace Unity.NetCode
                     linkedEntityGroupType = m_LinkedEntityGroupTypeHandle,
                     prespawnGhostIndexType = m_PreSpawnedGhostIndexTypeHandle,
 
-                    predictionStateBackupTick = backupTick,
+                    lastFullPredictionTick = backupTick,
                     predictionStateBackup = ghostHistoryPrediction.PredictionState,
                     entityType = m_EntityTypeHandle,
                     ghostOwnerId = localNetworkId,
                     MaxExtrapolationTicks = clientTickRate.MaxExtrapolationTimeSimTicks,
-                    netDebug = SystemAPI.GetSingleton<NetDebug>()
+                    netDebug = SystemAPI.GetSingleton<NetDebug>(),
+					
+                    forceDontUsePredictionBackup = systemData.ForceDontUsePredictionBackup,
+                    DontUsePredictionBackupType = m_DontUsePredictionBackupTypeHandle,
+					EarliestPredictionTick = m_EarliestPredictionTick,
                 };
+                k_Scheduling.Begin();
+                systemState.Dependency = findEarliestPredictionTickJob.ScheduleByRef(m_predictedGhostQuery, systemState.Dependency);
+                k_Scheduling.End();
                 //@TODO: Use BufferFromEntity
                 var ghostComponentCollection = systemState.EntityManager.GetBuffer<GhostCollectionComponentType>(updateJob.GhostCollectionSingleton);
                 DynamicTypeList.PopulateList(ref systemState, ghostComponentCollection, false, ref updateJob.DynamicTypeList); // Change Filtering is handled on a per-chunk basis, inside the job.

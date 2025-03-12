@@ -32,14 +32,14 @@ namespace Unity.NetCode
     }
     internal unsafe struct GhostPreSerializer : IDisposable
     {
-        public NativeParallelHashMap<ArchetypeChunk, SnapshotPreSerializeData> SnapshotData;
-        private NativeParallelHashMap<ArchetypeChunk, SnapshotPreSerializeData> PreviousSnapshotData;
+        public NativeParallelHashMap<ulong, SnapshotPreSerializeData> SnapshotData;
+        private NativeParallelHashMap<ulong, SnapshotPreSerializeData> PreviousSnapshotData;
         private EntityQuery m_Query;
 
         public GhostPreSerializer(EntityQuery query)
         {
-            SnapshotData = new NativeParallelHashMap<ArchetypeChunk, SnapshotPreSerializeData>(1024, Allocator.Persistent);
-            PreviousSnapshotData = new NativeParallelHashMap<ArchetypeChunk, SnapshotPreSerializeData>(1024, Allocator.Persistent);
+            SnapshotData = new NativeParallelHashMap<ulong, SnapshotPreSerializeData>(1024, Allocator.Persistent);
+            PreviousSnapshotData = new NativeParallelHashMap<ulong, SnapshotPreSerializeData>(1024, Allocator.Persistent);
             m_Query = query;
         }
         void CleanupSnapshotData()
@@ -86,8 +86,7 @@ namespace Unity.NetCode
             NetDebug netDebug,
             NetworkTick currentTick,
             int useCustomSerializer,
-            ref SystemState system,
-            DynamicBuffer<GhostCollectionComponentType> ghostCollection)
+            in DynamicTypeList ghostCollectionDynamicTypeList)
         {
             CleanupSnapshotData();
             var job = new GhostPreSerializeJob
@@ -108,16 +107,16 @@ namespace Unity.NetCode
                 connectionStateData = connectionStateData,
                 netDebug = netDebug,
                 currentTick = currentTick,
-                useCustomSerializer = useCustomSerializer
+                useCustomSerializer = useCustomSerializer,
+                dynamicTypeList = ghostCollectionDynamicTypeList,
             };
-            DynamicTypeList.PopulateList(ref system, ghostCollection, true, ref job.dynamicTypeList);
             return job.ScheduleParallelByRef(m_Query, dependency);
         }
 
         [BurstCompile]
         struct GhostPreSerializeJob : IJobChunk
         {
-            [ReadOnly] public NativeParallelHashMap<ArchetypeChunk, SnapshotPreSerializeData> PreviousSnapshotData;
+            [ReadOnly] public NativeParallelHashMap<ulong, SnapshotPreSerializeData> PreviousSnapshotData;
             [ReadOnly] public BufferLookup<GhostComponentSerializer.State> GhostComponentCollectionFromEntity;
             [ReadOnly] public BufferLookup<GhostCollectionPrefabSerializer> GhostTypeCollectionFromEntity;
             [ReadOnly] public BufferLookup<GhostCollectionComponentIndex> GhostComponentIndexFromEntity;
@@ -132,7 +131,7 @@ namespace Unity.NetCode
 
             public NetDebug netDebug;
             public NetworkTick currentTick;
-            public NativeParallelHashMap<ArchetypeChunk, SnapshotPreSerializeData>.ParallelWriter SnapshotData;
+            public NativeParallelHashMap<ulong, SnapshotPreSerializeData>.ParallelWriter SnapshotData;
             public Entity GhostCollectionSingleton;
             public DynamicTypeList dynamicTypeList;
             public int useCustomSerializer;
@@ -197,7 +196,7 @@ namespace Unity.NetCode
                 }
                 int snapshotDataCapacity = typeData.SnapshotSize * chunk.Capacity;
                 // Determine the required allocation size
-                if (!PreviousSnapshotData.TryGetValue(chunk, out var snapshot) || snapshot.Capacity != snapshotDataCapacity || snapshot.DynamicCapacity < dynamicDataCapacity)
+                if (!PreviousSnapshotData.TryGetValue(chunk.SequenceNumber, out var snapshot) || snapshot.Capacity != snapshotDataCapacity || snapshot.DynamicCapacity < dynamicDataCapacity)
                 {
                     // Allocate a new snapshot
                     if (snapshot.Data != null)
@@ -211,7 +210,7 @@ namespace Unity.NetCode
                 }
                 snapshot.DynamicSize = dynamicDataCapacity;
                 // Add to the new snapshot data lookup
-                if (!SnapshotData.TryAdd(chunk, snapshot))
+                if (!SnapshotData.TryAdd(chunk.SequenceNumber, snapshot))
                 {
                     netDebug.LogError("Could not register snapshot data for pre-serialization");
                     UnsafeUtility.Free(snapshot.Data, Allocator.Persistent);

@@ -468,7 +468,7 @@ namespace Unity.NetCode
                     //and predictDelta is negative (client is too far ahead)
                     if (predictDelta < 0.0f)
                     {
-                        SystemAPI.GetSingleton<NetDebug>().LogError($"Large serverTick prediction error. Server tick rollback to {curPredict} delta: {predictDelta}");
+                        SystemAPI.GetSingleton<NetDebug>().LogWarning($"Large serverTick prediction error. Server tick rollback to {curPredict} delta: {predictDelta}");
                     }
                     netTimeData.predictTargetTick = curPredict;
                     netTimeData.subPredictTargetTick = 0;
@@ -535,9 +535,17 @@ namespace Unity.NetCode
             newInterpolationTargetTick.Subtract((uint)netTimeData.currentInterpolationFrames);
             var targetTickDelta = newInterpolationTargetTick.TicksSince(netTimeData.interpolateTargetTick) - netTimeData.subInterpolateTargetTick - deltaTicks;
             float interpolationTimeScale = 1f;
+			
+			// For cases where server laggs and we want to make sure interpolation is not infront of prediction tick
+			// as it would cause us to send uint wrap around RemoteInterpolationDelay to server
+			if (netTimeData.interpolateTargetTick.IsNewerThan(netTimeData.predictTargetTick))
+			{
+				netTimeData.interpolateTargetTick = newInterpolationTargetTick;
+				netTimeData.subInterpolateTargetTick = 0f;
+			}
             //if we are behind (10 tick is quite a lot though, this require 100 frame to recover with 10% deltaTime scaling)
             //We don't check the abs value because for negative delta (we want to move backward) we just scale down the interpolationTimeScale
-            if (targetTickDelta < 10)
+            else if (targetTickDelta < 10)
             {
                 interpolationTimeScale = math.clamp(1.0f + targetTickDelta*clientTickRate.InterpolationDelayCorrectionFraction,
                     clientTickRate.InterpolationTimeScaleMin, clientTickRate.InterpolationTimeScaleMax);

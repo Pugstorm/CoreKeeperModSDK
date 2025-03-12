@@ -6,4 +6,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Unity.NetCode.Physics.Hybrid")]
 [assembly: InternalsVisibleTo("Unity.NetCode.Hybrid")]
 [assembly: InternalsVisibleTo("Configuration")]
-
+[assembly: InternalsVisibleTo("PugConversion")]

@@ -34,7 +34,6 @@ MonoBehaviour:
   - mscorlib.dll
   - netstandard.dll
   - mcs.dll
-  - ^System.
   - ^Mono.
   - ^Unity
   - ^Microsoft.
@@ -50,4 +49,4 @@ MonoBehaviour:
   - SpriteInstancing.dll
   sdkAssemblyPath: Assets/Plugins/CoreKeeperModSDK/
   gameAssemblyPath: Assets/Plugins/CoreKeeper/
-  initializedToVersion: 2
+  initializedToVersion: 3

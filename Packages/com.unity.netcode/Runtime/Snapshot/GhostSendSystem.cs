@@ -12,7 +12,6 @@ using Unity.Mathematics;
 using Unity.NetCode.LowLevel.Unsafe;
 using Unity.Networking.Transport;
 
-
 namespace Unity.NetCode
 {
     internal struct GhostCleanup : ICleanupComponentData
@@ -46,8 +45,13 @@ namespace Unity.NetCode
         /// was stored could have been overwritten.
         /// The default size is designed to work with a round trip time of about 500ms at 60hz network tick rate.
         /// </summary>
+#if PUG_GHOST_SNAPSHOT_HISTORY_SIZE_8
+        public const int SnapshotHistorySize = 8;
+#elif PUG_GHOST_SNAPSHOT_HISTORY_SIZE_16
+        public const int SnapshotHistorySize = 16;
+#else
         public const int SnapshotHistorySize = 32;
-        public const uint MaxNewPrefabsPerSnapshot = 32u; // At most around half the snapshot can consist of new prefabs to use
+#endif
         public const int MaxDespawnsPerSnapshot = 100; // At most around one quarter the snapshot can consist of despawns
         /// <summary>
         /// Prepend to all serialized ghosts in the snapshot their compressed size. This can be used by the client
@@ -314,13 +318,14 @@ namespace Unity.NetCode
     [UpdateInGroup(typeof(SimulationSystemGroup), OrderLast = true)]
     [UpdateAfter(typeof(EndSimulationEntityCommandBufferSystem))]
     [BurstCompile]
-    public partial struct GhostSendSystem : ISystem
+    public partial struct GhostSendSystem : ISystem, ISystemStartStop
     {
         NativeParallelHashMap<RelevantGhostForConnection, int> m_GhostRelevancySet;
 
         EntityQuery ghostQuery;
         EntityQuery ghostSpawnQuery;
         EntityQuery ghostDespawnQuery;
+        EntityQuery ghostDespawnQueryDisabled;
         EntityQuery prespawnSharedComponents;
 
         EntityQueryMask internalGlobalRelevantQueryMask;
@@ -333,6 +338,7 @@ namespace Unity.NetCode
         NativeList<int> m_DestroyedPrespawns;
         NativeQueue<int> m_DestroyedPrespawnsQueue;
         NativeReference<NetworkTick> m_DespawnAckedByAllTick;
+        NativeList<GhostCleanup> m_PendingDespawns;
 #if UNITY_EDITOR
         NativeArray<uint> m_UpdateLen;
         NativeArray<uint> m_UpdateCounts;
@@ -352,7 +358,7 @@ namespace Unity.NetCode
 #endif
 
         NativeParallelHashMap<SpawnedGhost, Entity> m_GhostMap;
-        NativeQueue<SpawnedGhost> m_FreeSpawnedGhostQueue;
+        NativeQueue<GhostCleanup> m_FreeSpawnedGhostQueue;
 
         Profiling.ProfilerMarker m_PrioritizeChunksMarker;
         Profiling.ProfilerMarker m_GhostGroupMarker;
@@ -393,6 +399,8 @@ namespace Unity.NetCode
         int m_CurrentCleanupConnectionState;
         uint m_SentSnapshots;
         ComponentTypeHandle<GhostImportance> m_GhostImportanceType;
+        
+        DynamicTypeList m_DynamicGhostCollectionComponentTypeList;
 
         public void OnCreate(ref SystemState state)
         {
@@ -404,18 +412,20 @@ namespace Unity.NetCode
             EntityQueryDesc filterSpawn = new EntityQueryDesc
             {
                 All = new ComponentType[] {typeof(GhostInstance)},
-                None = new ComponentType[] {typeof(GhostCleanup), typeof(PreSpawnedGhostIndex)}
-            };
-            EntityQueryDesc filterDespawn = new EntityQueryDesc
-            {
-                All = new ComponentType[] {typeof(GhostCleanup)},
-                None = new ComponentType[] {typeof(GhostInstance)}
+                None = new ComponentType[] {typeof(GhostCleanup), typeof(PreSpawnedGhostIndex), typeof(Disabled)}
             };
             ghostSpawnQuery = state.GetEntityQuery(filterSpawn);
-            ghostDespawnQuery = state.GetEntityQuery(filterDespawn);
+			using var ghostDespawnQueryBuilder = new EntityQueryBuilder(Allocator.Temp)
+			.WithAll<GhostCleanup>().WithNone<GhostInstance>()
+			.AddAdditionalQuery().WithAll<GhostCleanup, GhostInstance, Disabled>();
+            ghostDespawnQuery = state.GetEntityQuery(ghostDespawnQueryBuilder);
             prespawnSharedComponents = state.GetEntityQuery(ComponentType.ReadOnly<SubSceneGhostComponentHash>());
             internalGlobalRelevantQueryMask = state.GetEntityQuery(ComponentType.ReadOnly<PrespawnSceneLoaded>()).GetEntityQueryMask();
             netcodeEmptyQuery = state.GetEntityQuery(new EntityQueryDesc { None = new ComponentType[] { typeof(GhostInstance) } }).GetEntityQueryMask(); // "default" just matches everything so we need to specify None to have a real "no query is set"
+			using var ghostDespawnQueryDisabledBuilder = new EntityQueryBuilder(Allocator.Temp)
+			.WithAll<GhostCleanup, GhostInstance, Disabled>();
+			ghostDespawnQueryDisabled = state.GetEntityQuery(ghostDespawnQueryDisabledBuilder);
+			prespawnSharedComponents = state.GetEntityQuery(ComponentType.ReadOnly<SubSceneGhostComponentHash>());
 
             m_FreeGhostIds = new NativeQueue<int>(Allocator.Persistent);
             m_AllocatedGhostIds = new NativeArray<int>(2, Allocator.Persistent);
@@ -424,6 +434,7 @@ namespace Unity.NetCode
             m_DestroyedPrespawns = new NativeList<int>(Allocator.Persistent);
             m_DestroyedPrespawnsQueue = new NativeQueue<int>(Allocator.Persistent);
             m_DespawnAckedByAllTick = new NativeReference<NetworkTick>(Allocator.Persistent);
+			m_PendingDespawns = new NativeList<GhostCleanup>(Allocator.Persistent);
 #if UNITY_EDITOR
 #if UNITY_2022_2_14F1_OR_NEWER
             int maxThreadCount = JobsUtility.ThreadIndexCount;
@@ -453,7 +464,7 @@ namespace Unity.NetCode
             SystemAPI.SetSingleton(new GhostRelevancy(m_GhostRelevancySet));
 
             m_GhostMap = new NativeParallelHashMap<SpawnedGhost, Entity>(1024, Allocator.Persistent);
-            m_FreeSpawnedGhostQueue = new NativeQueue<SpawnedGhost>(Allocator.Persistent);
+            m_FreeSpawnedGhostQueue = new NativeQueue<GhostCleanup>(Allocator.Persistent);
 
             var spawnedGhostMap = state.EntityManager.CreateEntity(ComponentType.ReadWrite<SpawnedGhostEntityMap>());
             state.EntityManager.SetName(spawnedGhostMap, "SpawnedGhostEntityMapSingleton");
@@ -537,6 +548,7 @@ namespace Unity.NetCode
             m_DestroyedPrespawns.Dispose();
             m_DestroyedPrespawnsQueue.Dispose();
             m_DespawnAckedByAllTick.Dispose();
+			m_PendingDespawns.Dispose();
             foreach (var connectionState in m_ConnectionStates)
             {
                 connectionState.Dispose();
@@ -557,6 +569,18 @@ namespace Unity.NetCode
             m_UpdateLen.Dispose();
             m_UpdateCounts.Dispose();
 #endif
+        }
+        
+        [BurstCompile]
+        public void OnStartRunning(ref SystemState state)
+        {
+            var ghostComponentCollection = SystemAPI.GetSingletonBuffer<GhostCollectionComponentType>();
+            DynamicTypeList.PopulateList(ref state, ghostComponentCollection, true, ref m_DynamicGhostCollectionComponentTypeList);
+        }
+
+        [BurstCompile]
+        public void OnStopRunning(ref SystemState state)
+        {
         }
 
         [BurstCompile]
@@ -683,7 +707,7 @@ namespace Unity.NetCode
             [NativeDisableContainerSafetyRestriction] DynamicBuffer<GhostCollectionPrefabSerializer> GhostTypeCollection;
             [NativeDisableContainerSafetyRestriction] DynamicBuffer<GhostCollectionComponentIndex> GhostComponentIndex;
             public ConcurrentDriverStore concurrentDriverStore;
-            [ReadOnly] public NativeList<ArchetypeChunk> despawnChunks;
+            [ReadOnly] public NativeList<GhostCleanup> despawns;
             [ReadOnly] public NativeList<ArchetypeChunk> ghostChunks;
 
             [ReadOnly] public NativeArray<ConnectionStateData> connectionState;
@@ -773,7 +797,7 @@ namespace Unity.NetCode
             public int defaultSnapshotPacketSize;
             public int initialTempWriterCapacity;
 
-            [ReadOnly] public NativeParallelHashMap<ArchetypeChunk, SnapshotPreSerializeData> SnapshotPreSerializeData;
+            [ReadOnly] public NativeParallelHashMap<ulong, SnapshotPreSerializeData> SnapshotPreSerializeData;
 #if UNITY_EDITOR
             [NativeDisableParallelForRestriction] public NativeArray<uint> UpdateLen;
             [NativeDisableParallelForRestriction] public NativeArray<uint> UpdateCounts;
@@ -920,51 +944,6 @@ namespace Unity.NetCode
 
                 // Write the list of ghost snapshots the client has not acked yet
                 var GhostCollection = GhostCollectionFromEntity[GhostCollectionSingleton];
-                uint numLoadedPrefabs = snapshotAckCopy.NumLoadedPrefabs;
-                if (numLoadedPrefabs > (uint)GhostCollection.Length)
-                {
-                    // The received ghosts by remote might not have been updated yet
-                    numLoadedPrefabs = 0;
-                    // Override the copy of the snapshot ack so the GhostChunkSerializer can skip this check
-                    snapshotAckCopy.NumLoadedPrefabs = 0;
-                }
-                uint numNewPrefabs = math.min((uint)GhostCollection.Length - numLoadedPrefabs, GhostSystemConstants.MaxNewPrefabsPerSnapshot);
-                dataStream.WritePackedUInt(numNewPrefabs, compressionModel);
-#if NETCODE_DEBUG
-                if (enablePacketLogging == 1)
-                    debugLog.Append(FixedString.Format("NewPrefabs: {0}", numNewPrefabs));
-#endif
-                if (numNewPrefabs > 0)
-                {
-                    dataStream.WriteUInt(numLoadedPrefabs);
-#if NETCODE_DEBUG
-                    if (enablePacketLogging == 1)
-                    {
-                        debugLog.Append(FixedString.Format(" LoadedPrefabs: {0}\n", numNewPrefabs));
-                    }
-#endif
-                    int prefabNum = (int)numLoadedPrefabs;
-                    for (var i = 0; i < numNewPrefabs; ++i)
-                    {
-                        dataStream.WriteUInt(GhostCollection[prefabNum].GhostType.guid0);
-                        dataStream.WriteUInt(GhostCollection[prefabNum].GhostType.guid1);
-                        dataStream.WriteUInt(GhostCollection[prefabNum].GhostType.guid2);
-                        dataStream.WriteUInt(GhostCollection[prefabNum].GhostType.guid3);
-                        dataStream.WriteULong(GhostCollection[prefabNum].Hash);
-#if NETCODE_DEBUG
-                        if (enablePacketLogging == 1)
-                        {
-                            debugLog.Append(FixedString.Format("\t {0}-{1}-{2}-{3}",
-                                GhostCollection[prefabNum].GhostType.guid0, GhostCollection[prefabNum].GhostType.guid1,
-                                GhostCollection[prefabNum].GhostType.guid2,
-                                GhostCollection[prefabNum].GhostType.guid3));
-                            debugLog.Append(FixedString.Format(" Hash:{0}\n", GhostCollection[prefabNum].Hash));
-                        }
-#endif
-                        ++prefabNum;
-                    }
-                }
-
 
                 NativeList<PrioChunk> serialChunks;
                 int totalCount, maxCount;
@@ -1106,7 +1085,7 @@ namespace Unity.NetCode
 #endif
 
                     // Do not send entities with a ghost type which the client has not acked yet
-                    if (ghostType >= numLoadedPrefabs)
+                    if (ghostType >= GhostCollection.Length)
                     {
 #if NETCODE_DEBUG
                         if (enablePacketLogging == 1)
@@ -1193,22 +1172,18 @@ namespace Unity.NetCode
             {
                 ghostStateData.AckedDespawnTick = ackTick;
                 ghostStateData.DespawnRepeatCount = 0;
-                for (var chunk = 0; chunk < despawnChunks.Length; ++chunk)
-                {
-                    var ghostStates = despawnChunks[chunk].GetNativeArray(ref ghostSystemStateType);
-                    for (var ent = 0; ent < ghostStates.Length; ++ent)
-                    {
-                        ref var state = ref ghostStateData.GetGhostState(ghostStates[ent]);
-                        state.LastDespawnSendTick = NetworkTick.Invalid;
-                        if (ghostStateData.AckedDespawnTick.IsValid &&
-                            !ghostStates[ent].despawnTick.IsNewerThan(ghostStateData.AckedDespawnTick))
-                        {
-                            var despawnAckTick = ghostStates[ent].despawnTick;
-                            despawnAckTick.Decrement();
-                            ghostStateData.AckedDespawnTick = despawnAckTick;
-                        }
-                    }
-                }
+				for (var ent = 0; ent < despawns.Length; ++ent)
+				{
+					ref var state = ref ghostStateData.GetGhostState(despawns[ent]);
+					state.LastDespawnSendTick = NetworkTick.Invalid;
+					if (ghostStateData.AckedDespawnTick.IsValid &&
+						!despawns[ent].despawnTick.IsNewerThan(ghostStateData.AckedDespawnTick))
+					{
+						var despawnAckTick = despawns[ent].despawnTick;
+						despawnAckTick.Decrement();
+						ghostStateData.AckedDespawnTick = despawnAckTick;
+					}
+				}
                 var irrelevant = clearHistoryData.GetKeyArray(Allocator.Temp);
                 for (int i = 0; i < irrelevant.Length; ++i)
                 {
@@ -1239,104 +1214,100 @@ namespace Unity.NetCode
                 uint despawnRepeatTicks = 5u;
                 uint repeatNextFrame = 0;
                 uint repeatThisFrame = ghostStateData.DespawnRepeatCount;
-                for (var chunk = 0; chunk < despawnChunks.Length; ++chunk)
-                {
-                    var ghostStates = despawnChunks[chunk].GetNativeArray(ref ghostSystemStateType);
-                    for (var ent = 0; ent < ghostStates.Length; ++ent)
-                    {
-                        ref var state = ref ghostStateData.GetGhostState(ghostStates[ent]);
-                        // If the despawn has already been acked we can just mark it as not relevant to make sure it is not sent again
-                        // All desapwn messages are sent for despawnRepeatTicks consecutive frames, if any of those is received the despawn is acked
-                        if (state.LastDespawnSendTick.IsValid)
-                        {
-                            bool isReceived = snapshotAck.IsReceivedByRemote(state.LastDespawnSendTick);
-                            var despawnCheckTick = state.LastDespawnSendTick;
-                            for (uint i = 1; i < despawnRepeatTicks; ++i)
-                            {
-                                despawnCheckTick.Increment();
-                                isReceived |= snapshotAck.IsReceivedByRemote(despawnCheckTick);
-                            }
-                            if (isReceived)
-                            {
-                                // Already despawned - mark it as not relevant to make sure it does not go out of sync if the ack mask is full
-                                state.Flags &= (~ConnectionStateData.GhostStateFlags.IsRelevant);
-                            }
-                        }
-                        // not relevant, will be despawned by the relevancy system or is alrady despawned
-                        if ((state.Flags & ConnectionStateData.GhostStateFlags.IsRelevant) == 0)
-                        {
-                            if (!clearHistoryData.ContainsKey(ghostStates[ent].ghostId))
-                            {
-                                // The ghost is irrelevant and not waiting for relevancy despawn, it is already deleted and can be ignored
-                                continue;
-                            }
-                            else
-                            {
+				for (var ent = 0; ent < despawns.Length; ++ent)
+				{
+					ref var state = ref ghostStateData.GetGhostState(despawns[ent]);
+					// If the despawn has already been acked we can just mark it as not relevant to make sure it is not sent again
+					// All desapwn messages are sent for despawnRepeatTicks consecutive frames, if any of those is received the despawn is acked
+					if (state.LastDespawnSendTick.IsValid)
+					{
+						bool isReceived = snapshotAck.IsReceivedByRemote(state.LastDespawnSendTick);
+						var despawnCheckTick = state.LastDespawnSendTick;
+						for (uint i = 1; i < despawnRepeatTicks; ++i)
+						{
+							despawnCheckTick.Increment();
+							isReceived |= snapshotAck.IsReceivedByRemote(despawnCheckTick);
+						}
+						if (isReceived)
+						{
+							// Already despawned - mark it as not relevant to make sure it does not go out of sync if the ack mask is full
+							state.Flags &= (~ConnectionStateData.GhostStateFlags.IsRelevant);
+						}
+					}
+					// not relevant, will be despawned by the relevancy system or is alrady despawned
+					if ((state.Flags & ConnectionStateData.GhostStateFlags.IsRelevant) == 0)
+					{
+						if (!clearHistoryData.ContainsKey(despawns[ent].ghostId))
+						{
+							// The ghost is irrelevant and not waiting for relevancy despawn, it is already deleted and can be ignored
+							continue;
+						}
+						else
+						{
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-                                // This path is only expected to be taken when a despawn happened while waiting for relevancy despawn
-                                // In that case the LastDespawnSentTick should always be zero
-                                UnityEngine.Debug.Assert(!state.LastDespawnSendTick.IsValid);
+							// This path is only expected to be taken when a despawn happened while waiting for relevancy despawn
+							// In that case the LastDespawnSentTick should always be zero
+							UnityEngine.Debug.Assert(!state.LastDespawnSendTick.IsValid);
 #endif
-                                // Treat this as a regular despawn instead, since regular depsawns have higher priority
-                                state.LastDespawnSendTick = clearHistoryData[ghostStates[ent].ghostId];
-                                clearHistoryData.Remove(ghostStates[ent].ghostId);
-                                state.Flags |= ConnectionStateData.GhostStateFlags.IsRelevant;
-                            }
-                        }
+							// Treat this as a regular despawn instead, since regular depsawns have higher priority
+							state.LastDespawnSendTick = clearHistoryData[despawns[ent].ghostId];
+							clearHistoryData.Remove(despawns[ent].ghostId);
+							state.Flags |= ConnectionStateData.GhostStateFlags.IsRelevant;
+						}
+					}
 
-                        // The despawn is pending or will be sent - update the pending despawn tick
-                        if (ghostStateData.AckedDespawnTick.IsValid &&
-                            !ghostStates[ent].despawnTick.IsNewerThan(ghostStateData.AckedDespawnTick))
-                        {
-                            // We are going to send (or wait for) a ghost despawned at tick despawnTick, that means
-                            // despawnTick cannot be treated as a tick where all desapwns are acked.
-                            // We set the despawnAckTick to despawnTick-1 since that is the newest tick that could possibly have all despawns acked
-                            var despawnAckTick = ghostStates[ent].despawnTick;
-                            despawnAckTick.Decrement();
-                            ghostStateData.AckedDespawnTick = despawnAckTick;
-                        }
-                        // If the despawn was sent less than despawnRepeatTicks ticks ago we must send it again
-                        var despawnRepeatTick = state.LastDespawnSendTick;
-                        if (state.LastDespawnSendTick.IsValid)
-                            despawnRepeatTick.Add(despawnRepeatTicks);
-                        if (!state.LastDespawnSendTick.IsValid || !despawnRepeatTick.IsNewerThan(currentTick))
-                        {
-                            // Depsawn has been sent, waiting for an ack to see if it needs to be resent
-                            if (state.LastDespawnSendTick.IsValid && (!ackTick.IsValid || despawnRepeatTick.IsNewerThan(ackTick)))
-                                continue;
+					// The despawn is pending or will be sent - update the pending despawn tick
+					if (ghostStateData.AckedDespawnTick.IsValid &&
+						!despawns[ent].despawnTick.IsNewerThan(ghostStateData.AckedDespawnTick))
+					{
+						// We are going to send (or wait for) a ghost despawned at tick despawnTick, that means
+						// despawnTick cannot be treated as a tick where all desapwns are acked.
+						// We set the despawnAckTick to despawnTick-1 since that is the newest tick that could possibly have all despawns acked
+						var despawnAckTick = despawns[ent].despawnTick;
+						despawnAckTick.Decrement();
+						ghostStateData.AckedDespawnTick = despawnAckTick;
+					}
+					// If the despawn was sent less than despawnRepeatTicks ticks ago we must send it again
+					var despawnRepeatTick = state.LastDespawnSendTick;
+					if (state.LastDespawnSendTick.IsValid)
+						despawnRepeatTick.Add(despawnRepeatTicks);
+					if (!state.LastDespawnSendTick.IsValid || !despawnRepeatTick.IsNewerThan(currentTick))
+					{
+						// Depsawn has been sent, waiting for an ack to see if it needs to be resent
+						if (state.LastDespawnSendTick.IsValid && (!ackTick.IsValid || despawnRepeatTick.IsNewerThan(ackTick)))
+							continue;
 
-                            // We cannot break since all ghosts must be checked for despawn ack tick
-                            if (despawnLen+repeatThisFrame >= GhostSystemConstants.MaxDespawnsPerSnapshot)
-                                continue;
+						// We cannot break since all ghosts must be checked for despawn ack tick
+						if (despawnLen+repeatThisFrame >= GhostSystemConstants.MaxDespawnsPerSnapshot)
+							continue;
 
-                            // Update when we last sent this and send it
-                            state.LastDespawnSendTick = currentTick;
-                            despawnRepeatTick = currentTick;
-                            despawnRepeatTick.Add(despawnRepeatTicks);
-                        }
-                        else
-                        {
-                            // This is a repeat, it will be counted in despawn length and this reserved length can be reduced
-                            --repeatThisFrame;
-                        }
-                        // Check if this despawn is expected to be resent next tick
-                        var nextTick = currentTick;
-                        nextTick.Increment();
-                        if (despawnRepeatTick.IsNewerThan(nextTick))
-                            ++repeatNextFrame;
-                        dataStream.WritePackedUInt(EncodeGhostId(ghostStates[ent].ghostId), compressionModel);
+						// Update when we last sent this and send it
+						state.LastDespawnSendTick = currentTick;
+						despawnRepeatTick = currentTick;
+						despawnRepeatTick.Add(despawnRepeatTicks);
+					}
+					else
+					{
+						// This is a repeat, it will be counted in despawn length and this reserved length can be reduced
+						--repeatThisFrame;
+					}
+					// Check if this despawn is expected to be resent next tick
+					var nextTick = currentTick;
+					nextTick.Increment();
+					if (despawnRepeatTick.IsNewerThan(nextTick))
+						++repeatNextFrame;
+					dataStream.WritePackedUInt(EncodeGhostId(despawns[ent].ghostId), compressionModel);
 #if NETCODE_DEBUG
-                        if (enablePacketLogging == 1)
-                        {
-                            if (despawnLen == 0)
-                                debugLog.Append(msg);
+					if (enablePacketLogging == 1)
+					{
+						if (despawnLen == 0)
+							debugLog.Append(msg);
 
-                            debugLog.Append(FixedString.Format(" {0}", ghostStates[ent].ghostId));
-                        }
+						debugLog.Append(FixedString.Format(" {0}", despawns[ent].ghostId));
+					}
 #endif
-                        ++despawnLen;
-                    }
-                }
+					++despawnLen;
+				}
                 // Send out the current list of destroyed prespawned entities for despawning for all new client's loaded scenes
                 // We do this by adding all despawned prespawn to the list of irrelevant ghosts and rely on relevancy depsawns
                 var newPrespawnLoadedRanges = connectionState[connectionIdx].NewLoadedPrespawnRanges;
@@ -1559,10 +1530,10 @@ namespace Unity.NetCode
             }
 
             unsafe bool TryGetChunkStateOrNew(ArchetypeChunk ghostChunk,
-                ref UnsafeHashMap<ArchetypeChunk, GhostChunkSerializationState> chunkStates,
+                ref UnsafeHashMap<ulong, GhostChunkSerializationState> chunkStates,
                 out GhostChunkSerializationState chunkState)
             {
-                if (chunkStates.TryGetValue(ghostChunk, out chunkState))
+                if (chunkStates.TryGetValue(ghostChunk.SequenceNumber, out chunkState))
                 {
                     if (chunkState.sequenceNumber == ghostChunk.SequenceNumber)
                     {
@@ -1570,7 +1541,7 @@ namespace Unity.NetCode
                     }
 
                     chunkState.FreeSnapshotData();
-                    chunkStates.Remove(ghostChunk);
+                    chunkStates.Remove(ghostChunk.SequenceNumber);
                 }
 
                 var ghosts = ghostChunk.GetComponentDataPtrRO(ref ghostComponentType);
@@ -1589,7 +1560,7 @@ namespace Unity.NetCode
                 importanceTick.Subtract(FirstSendImportanceMultiplier);
                 chunkState.SetLastUpdate(importanceTick);
 
-                chunkStates.TryAdd(ghostChunk, chunkState);
+                chunkStates.TryAdd(ghostChunk.SequenceNumber, chunkState);
 #if NETCODE_DEBUG
                 if (enablePacketLogging == 1)
                 {
@@ -1824,7 +1795,6 @@ namespace Unity.NetCode
             var commandBufferConcurrent = commandBuffer.AsParallelWriter();
 
             // Setup the tick at which ghosts were despawned, cleanup ghosts which have been despawned and acked by al connections
-            var freeGhostIds = m_FreeGhostIds.AsParallelWriter();
             var prespawnDespawn = m_DestroyedPrespawnsQueue.AsParallelWriter();
             var freeSpawnedGhosts = m_FreeSpawnedGhostQueue.AsParallelWriter();
             m_PrespawnGhostIdRangeFromEntity.Update(ref state);
@@ -1833,14 +1803,16 @@ namespace Unity.NetCode
             state.Dependency = new GhostDespawnParallelJob
             {
                 CommandBufferConcurrent = commandBufferConcurrent,
-                CurrentTick = currentTick,
-                DespawnAckedByAllTick = m_DespawnAckedByAllTick,
-                FreeGhostIds = freeGhostIds,
                 FreeSpawnedGhosts = freeSpawnedGhosts,
                 GhostMap = m_GhostMap,
                 PrespawnDespawn = prespawnDespawn,
                 PrespawnIdRanges = prespawnIdRanges,
             }.ScheduleParallel(ghostDespawnQuery, state.Dependency);
+            k_Scheduling.End();
+			
+            k_Scheduling.Begin();
+            state.Dependency = new GhostDespawnResetGhostIdJob()
+			.ScheduleParallel(ghostDespawnQueryDisabled, state.Dependency);
             k_Scheduling.End();
 
             // Copy destroyed entities in the parallel write queue populated by ghost cleanup to a single list
@@ -1852,7 +1824,18 @@ namespace Unity.NetCode
                 DespawnQueue = m_DestroyedPrespawnsQueue,
                 FreeSpawnQueue = m_FreeSpawnedGhostQueue,
                 GhostMap = m_GhostMap,
+				PendingDespawns = m_PendingDespawns,
             }.Schedule(state.Dependency);
+            k_Scheduling.End();
+			
+            k_Scheduling.Begin();
+			state.Dependency = new FinishUpDespawnsJob
+			{
+				DespawnAckedByAllTick = m_DespawnAckedByAllTick,
+				FreeGhostIds = m_FreeGhostIds,
+				PendingDespawns = m_PendingDespawns,
+				CurrentTick = currentTick,
+			}.Schedule(state.Dependency);
             k_Scheduling.End();
 
             // If the ghost collection has not been initialized yet the send ystem can not process any ghosts
@@ -1908,20 +1891,20 @@ namespace Unity.NetCode
             state.Dependency = spawnJob.Schedule(JobHandle.CombineDependencies(state.Dependency, spawnChunkHandle));
             k_Scheduling.End();
 
-            // Create chunk arrays for ghosts and despawned ghosts
-            var despawnChunks = ghostDespawnQuery.ToArchetypeChunkListAsync(state.WorldUpdateAllocator, out var despawnChunksHandle);
+            // Create chunk arrays for ghosts
             var ghostChunks = ghostQuery.ToArchetypeChunkListAsync(state.WorldUpdateAllocator, out var ghostChunksHandle);
-            state.Dependency = JobHandle.CombineDependencies(state.Dependency, despawnChunksHandle, ghostChunksHandle);
+            state.Dependency = JobHandle.CombineDependencies(state.Dependency, ghostChunksHandle);
 
             SystemAPI.TryGetSingletonEntity<PrespawnSceneLoaded>(out var prespawnSceneLoadedEntity);
-            PrespawnHelper.PopulateSceneHashLookupTable(prespawnSharedComponents, state.EntityManager, m_SceneSectionHashLookup);
+            //PrespawnHelper.PopulateSceneHashLookupTable(prespawnSharedComponents, state.EntityManager, m_SceneSectionHashLookup);
+            m_DynamicGhostCollectionComponentTypeList.Update(ref state);
 
             ref readonly var networkStreamDriver = ref SystemAPI.GetSingletonRW<NetworkStreamDriver>().ValueRO;
             // If there are any connections to send data to, serialize the data for them in parallel
             UpdateSerializeJobDependencies(ref state);
-            var customSerializers = m_CustomSerializerFromEntity[ghostCollectionSingleton];
             var serializeJob = new SerializeJob
             {
+                DynamicGhostCollectionComponentTypeList = m_DynamicGhostCollectionComponentTypeList,
                 GhostCollectionSingleton = ghostCollectionSingleton,
                 GhostComponentCollectionFromEntity = m_GhostComponentCollectionFromEntity,
                 GhostTypeCollectionFromEntity = m_GhostTypeCollectionFromEntity,
@@ -1929,7 +1912,7 @@ namespace Unity.NetCode
                 GhostCollectionFromEntity = m_GhostCollectionFromEntity,
                 SubSceneHashSharedIndexMap = m_SceneSectionHashLookup,
                 concurrentDriverStore = networkStreamDriver.ConcurrentDriverStore,
-                despawnChunks = despawnChunks,
+				despawns = m_PendingDespawns,
                 ghostChunks = ghostChunks,
                 connectionState = m_ConnectionsToProcess.AsDeferredJobArray(),
                 ackFromEntity = m_SnapshotAckFromEntity,
@@ -2062,7 +2045,6 @@ namespace Unity.NetCode
                 serializeJob.ghostImportancePerChunkTypeHandle = state.GetDynamicSharedComponentTypeHandle(new ComponentType { TypeIndex = TypeIndex.Null, AccessModeType = ComponentType.AccessMode.ReadOnly });
             }
 
-            var ghostComponentCollection = state.EntityManager.GetBuffer<GhostCollectionComponentType>(ghostCollectionSingleton);
             m_GhostTypeComponentType.Update(ref state);
 
             k_Scheduling.Begin();
@@ -2082,12 +2064,9 @@ namespace Unity.NetCode
                 serializeJob.netDebug,
                 currentTick,
                 systemData.m_UseCustomSerializer,
-                ref state,
-                ghostComponentCollection);
+                in m_DynamicGhostCollectionComponentTypeList);
             k_Scheduling.End();
             serializeJob.SnapshotPreSerializeData = m_GhostPreSerializer.SnapshotData;
-
-            DynamicTypeList.PopulateList(ref state, ghostComponentCollection, true, ref serializeJob.DynamicGhostCollectionComponentTypeList);
 
             k_Scheduling.Begin();
             state.Dependency = serializeJob.ScheduleByRef(m_ConnectionsToProcess, 1, state.Dependency);
@@ -2261,10 +2240,10 @@ namespace Unity.NetCode
             public unsafe void Execute()
             {
                 var conCount = math.min(CleanupConnectionStatePerTick, ConnectionStates.Length);
-                var existingChunks = new UnsafeHashMap<ArchetypeChunk, int>(GhostChunks.Length, Allocator.Temp);
+                var existingChunks = new UnsafeHashMap<ulong, int>(GhostChunks.Length, Allocator.Temp);
                 foreach (var chunk in GhostChunks)
                 {
-                    existingChunks.TryAdd(chunk, 1);
+                    existingChunks.TryAdd(chunk.SequenceNumber, 1);
                 }
                 for (int con = 0; con < conCount; ++con)
                 {
@@ -2289,10 +2268,11 @@ namespace Unity.NetCode
         [BurstCompile]
         struct GhostDespawnSingleJob : IJob
         {
-            public NativeQueue<SpawnedGhost> FreeSpawnQueue;
+            public NativeQueue<GhostCleanup> FreeSpawnQueue;
             public NativeQueue<int> DespawnQueue;
             public NativeList<int> DespawnList;
             public NativeParallelHashMap<SpawnedGhost, Entity> GhostMap;
+			public NativeList<GhostCleanup> PendingDespawns;
 
             public void Execute()
             {
@@ -2305,9 +2285,10 @@ namespace Unity.NetCode
                 }
 
                 while (FreeSpawnQueue.TryDequeue(out var spawnedGhost))
-                {
-                    GhostMap.Remove(spawnedGhost);
-                }
+				{
+					GhostMap.Remove(new SpawnedGhost { spawnTick = spawnedGhost.spawnTick, ghostId = spawnedGhost.ghostId });
+					PendingDespawns.Add(spawnedGhost);
+				}
             }
         }
 
@@ -2315,38 +2296,74 @@ namespace Unity.NetCode
         partial struct GhostDespawnParallelJob : IJobEntity
         {
             [ReadOnly] public NativeParallelHashMap<SpawnedGhost, Entity> GhostMap;
-            [ReadOnly] public NativeReference<NetworkTick> DespawnAckedByAllTick;
             [ReadOnly] public DynamicBuffer<PrespawnGhostIdRange> PrespawnIdRanges;
             public EntityCommandBuffer.ParallelWriter CommandBufferConcurrent;
             public NativeQueue<int>.ParallelWriter PrespawnDespawn;
-            public NativeQueue<int>.ParallelWriter FreeGhostIds;
-            public NativeQueue<SpawnedGhost>.ParallelWriter FreeSpawnedGhosts;
-            public NetworkTick CurrentTick;
+            public NativeQueue<GhostCleanup>.ParallelWriter FreeSpawnedGhosts;
 
             public void Execute(Entity entity, [EntityIndexInQuery]int entityIndexInQuery, ref GhostCleanup ghost)
-            {
-                var ackedByAllTick = DespawnAckedByAllTick.Value;
-                if (!ghost.despawnTick.IsValid)
-                {
-                    ghost.despawnTick = CurrentTick;
-                }
-                else if (ackedByAllTick.IsValid && !ghost.despawnTick.IsNewerThan(ackedByAllTick))
-                {
-                    if (PrespawnHelper.IsRuntimeSpawnedGhost(ghost.ghostId))
-                        FreeGhostIds.Enqueue(ghost.ghostId);
-                    CommandBufferConcurrent.RemoveComponent<GhostCleanup>(entityIndexInQuery, entity);
-                }
+			{
+				CommandBufferConcurrent.RemoveComponent<GhostCleanup>(entityIndexInQuery, entity);
+				// This only happened when in ghost map before, but only other effect seems to be remove from GhostMap
+				// And now we add it to the pending despawns list
                 //Remove the ghost from the mapping as soon as possible, regardless of clients acknowledge
+                FreeSpawnedGhosts.Enqueue(ghost);
                 var spawnedGhost = new SpawnedGhost {ghostId = ghost.ghostId, spawnTick = ghost.spawnTick};
+				// Not sure if this check is needed anymore, but keeping it so that PrespawnDespawn (that we don't use)
+				// are getting the same values as before
                 if (!GhostMap.ContainsKey(spawnedGhost))
                 {
                     return;
                 }
-                FreeSpawnedGhosts.Enqueue(spawnedGhost);
                 //If there is no allocated range, do not add to the queue. That means the subscene the
                 //prespawn belongs to has been unloaded
                 if (PrespawnHelper.IsPrespawnGhostId(ghost.ghostId) && PrespawnIdRanges.GhostIdRangeIndex(ghost.ghostId) >= 0)
                     PrespawnDespawn.Enqueue(ghost.ghostId);
+            }
+        }
+
+		/// <summary>
+		/// Since we want to support Disabled entities as well, this allows us to immediately remove GhostCleanup and
+		/// then this job will take care of remaining cleanup.
+		/// </summary>
+        [BurstCompile]
+        partial struct FinishUpDespawnsJob : IJob
+        {
+            [ReadOnly] public NativeReference<NetworkTick> DespawnAckedByAllTick;
+            public NativeQueue<int> FreeGhostIds;
+            public NativeList<GhostCleanup> PendingDespawns;
+            public NetworkTick CurrentTick;
+
+            public void Execute()
+			{
+				for (int i = PendingDespawns.Length - 1; i >= 0; --i)
+				{
+					var ghost = PendingDespawns[i];
+					var ackedByAllTick = DespawnAckedByAllTick.Value;
+					if (!ghost.despawnTick.IsValid)
+					{
+						ghost.despawnTick = CurrentTick;
+						PendingDespawns[i] = ghost;
+					}
+					else if (ackedByAllTick.IsValid && !ghost.despawnTick.IsNewerThan(ackedByAllTick))
+					{
+						if (PrespawnHelper.IsRuntimeSpawnedGhost(ghost.ghostId))
+							FreeGhostIds.Enqueue(ghost.ghostId);
+						PendingDespawns.RemoveAtSwapBack(i);
+					}
+				}
+			}
+        }
+
+		/// <summary>
+		/// Reset the GhostInstance component on despawn by disable.
+		/// </summary>
+        [BurstCompile]
+        partial struct GhostDespawnResetGhostIdJob : IJobEntity
+        {
+            public void Execute(ref GhostInstance ghost)
+			{
+				ghost = default;
             }
         }
 
@@ -2359,9 +2376,9 @@ namespace Unity.NetCode
             int maxThreadCount = JobsUtility.MaxJobThreadCount;
 #endif
 
-            var numLoadedPrefabs = SystemAPI.GetSingleton<GhostCollection>().NumLoadedPrefabs;
+			var numPrefabs = SystemAPI.GetSingletonBuffer<GhostCollectionPrefab>().Length;
             const int intsPerCacheLine = JobsUtility.CacheLineSize / 4;
-            netStats.Size = numLoadedPrefabs * 3 + 3 + 1;
+            netStats.Size = numPrefabs * 3 + 3 + 1;
             // Round up to an even cache line size in order to reduce false sharing
             netStats.Stride = (netStats.Size + intsPerCacheLine-1) & (~(intsPerCacheLine-1));
             netStats.Workers = maxThreadCount;

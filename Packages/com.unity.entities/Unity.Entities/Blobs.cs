@@ -30,7 +30,7 @@ namespace Unity.Entities
 
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     [BurstCompile]
-    internal unsafe struct BlobAssetOwner : ISharedComponentData, IRefCounted
+    public unsafe struct BlobAssetOwner : ISharedComponentData, IRefCounted
     {
         [FieldOffset(0)]
         public BlobAssetBatch* BlobAssetBatchPtr;
@@ -57,7 +57,7 @@ namespace Unity.Entities
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 16)]
-    internal unsafe struct BlobAssetBatch
+    public unsafe struct BlobAssetBatch
     {
         [FieldOffset(0)]
         private int     TotalDataSize;

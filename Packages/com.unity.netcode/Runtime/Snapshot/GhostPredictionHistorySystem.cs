@@ -20,7 +20,9 @@ namespace Unity.NetCode
     // backup state resized accordingly. All buffers contents start to a 16 bytes aligned offset: Align(b1Elem*b1ElemSize, 16), Align(b2Elem*b2ElemSize, 16) ...
 
     internal unsafe struct PredictionBackupState
-    {
+	{
+		public const int PredictionHistorySize = 12;
+		
         // If ghost type has changed the data must be discarded as the chunk is now used for something else
         public int ghostType;
         public int entityCapacity;
@@ -31,9 +33,6 @@ namespace Unity.NetCode
         //the ghost component serialized size
         public int dataOffset;
         public int dataSize;
-        //chunk versions
-        public int chunkVersionsOffset;
-        public int chunkVersionsSize;
         //the capacity for the dynamic data. Dynamic Buffers are store after the component backup
         public int bufferDataCapacity;
         public int bufferDataOffset;
@@ -44,23 +43,77 @@ namespace Unity.NetCode
             var entitiesSize = (ushort)GetEntitiesSize(entityCapacity, out var _);
             var headerSize = GetHeaderSize();
             // each enabled bit is a unique array big enough to fit all entities
-            var enabledBitSize = (((entityCapacity+63)&(~63))/8 * enabledBits + 15) & (~15);
-            var versionSize = (sizeof(int) * numComponents * entityCapacity + 15) & ~15;
-            var state = (PredictionBackupState*)UnsafeUtility.Malloc(headerSize + enabledBitSize + entitiesSize + versionSize + dataSize + buffersDataCapacity, 16, Allocator.Persistent);
+            var enabledBitSize = GetEnabledBitsSize(entityCapacity, enabledBits);
+			var size = headerSize + entitiesSize + (enabledBitSize + dataSize + buffersDataCapacity) * PredictionHistorySize;
+            var state = (PredictionBackupState*)UnsafeUtility.Malloc(size, 16, Allocator.Persistent);
             state->ghostType = ghostTypeId;
             state->entityCapacity = entityCapacity;
             state->entitiesOffset = headerSize;
+			// Clear the entities since that is what we use to detect empty backup slots
+			UnsafeUtility.MemClear(((byte*)state) + state->entitiesOffset, entitiesSize);
             state->enabledBitOffset = headerSize + entitiesSize;
             state->ghostOwnerOffset = predictionOwnerOffset;
             state->enabledBits = enabledBits;
-            state->chunkVersionsOffset = headerSize + entitiesSize + enabledBitSize;
-            state->chunkVersionsSize = versionSize;
-            state->dataOffset = state->chunkVersionsOffset + versionSize;
+            state->dataOffset = state->enabledBitOffset + enabledBitSize * PredictionHistorySize;
             state->dataSize = dataSize;
             state->bufferDataCapacity = buffersDataCapacity;
-            state->bufferDataOffset = state->dataOffset + dataSize;
+            state->bufferDataOffset = state->dataOffset + dataSize * PredictionHistorySize;
             return (IntPtr)state;
         }
+
+        public static IntPtr Realloc(IntPtr oldState, int ghostTypeId, int enabledBits, int numComponents, int dataSize, int entityCapacity, int buffersDataCapacity, int predictionOwnerOffset)
+        {
+			if (oldState == IntPtr.Zero)
+			{
+				return AllocNew(ghostTypeId, enabledBits, numComponents, dataSize, entityCapacity, buffersDataCapacity, predictionOwnerOffset);
+			}
+			
+			var oldPs = (PredictionBackupState*)oldState;
+			if (buffersDataCapacity <= oldPs->bufferDataCapacity)
+			{
+				return oldState;
+			}
+			
+            var entitiesSize = (ushort)GetEntitiesSize(entityCapacity, out var _);
+            var headerSize = GetHeaderSize();
+            // each enabled bit is a unique array big enough to fit all entities
+            var enabledBitSize = GetEnabledBitsSize(entityCapacity, enabledBits);
+			
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+			if (oldPs->ghostType != ghostTypeId)
+				throw new InvalidOperationException($"Ghost type has changed from {oldPs->ghostType} to {ghostTypeId}.");
+			if (oldPs->entityCapacity != entityCapacity)
+				throw new InvalidOperationException($"Entity capacity has changed from {oldPs->entityCapacity} to {entityCapacity}.");
+			if (oldPs->enabledBits != enabledBits)
+				throw new InvalidOperationException($"Enabled bits has changed from {oldPs->enabledBits} to {enabledBits}.");
+			if (oldPs->dataSize != dataSize)
+				throw new InvalidOperationException($"Data size has changed from {oldPs->dataSize} to {dataSize}.");
+			if (oldPs->ghostOwnerOffset != predictionOwnerOffset)
+				throw new InvalidOperationException($"Ghost owner offset has changed from {oldPs->ghostOwnerOffset} to {predictionOwnerOffset}.");
+#endif
+
+			var size = headerSize + entitiesSize + (enabledBitSize + dataSize + buffersDataCapacity) * PredictionHistorySize;
+            var state = (PredictionBackupState*)UnsafeUtility.Malloc(size, 16, Allocator.Persistent);
+			// Clear the entities since that is what we use to detect empty backup slots
+			UnsafeUtility.MemClear(((byte*)state) + ((PredictionBackupState*)oldState)->entitiesOffset, entitiesSize);
+			
+			// move everything except buffer
+			UnsafeUtility.MemCpy(state, (void*)oldState, headerSize + entitiesSize + (enabledBitSize + dataSize) * PredictionHistorySize);
+            state->bufferDataCapacity = buffersDataCapacity;
+
+			// buffer sizes has increased
+			for (int i = 0; i < PredictionHistorySize; ++i)
+			{
+				var oldBufferPtr = GetBufferDataPtr(oldState, i);
+				var newBufferPtr = GetBufferDataPtr((IntPtr)state, i);
+				UnsafeUtility.MemCpy(newBufferPtr, oldBufferPtr, GetBufferDataCapacity(oldState));
+			}
+			
+			UnsafeUtility.Free((void*)oldState, Allocator.Persistent);
+			
+            return (IntPtr)state;
+        }
+		
         public static int GetHeaderSize()
         {
             return (UnsafeUtility.SizeOf<PredictionBackupState>() + 15) & (~15);
@@ -68,68 +121,108 @@ namespace Unity.NetCode
         public static int GetEntitiesSize(int chunkCapacity, out int singleEntitySize)
         {
             singleEntitySize = UnsafeUtility.SizeOf<Entity>();
-            return ((singleEntitySize * chunkCapacity) + 15) & (~15);
+            return ((singleEntitySize * chunkCapacity * PredictionHistorySize) + 15) & (~15);
         }
+#if false
+		public static int GetEntityCount(IntPtr state, int index)
+		{
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+			if (index < 0 || index >= PredictionHistorySize)
+				throw new InvalidOperationException("prediction backup history index");
+#endif
+			
+            var ps = ((PredictionBackupState*) state);
+			byte* entityCounts = ((byte*)state) + ps->entityCountOffset;
+			return entityCounts[index];
+		}
+		public static void SetEntityCount(IntPtr state, int count, int index)
+		{
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+			if (index < 0 || index >= PredictionHistorySize)
+				throw new InvalidOperationException("prediction backup history index");
+			if (count > 128)
+				throw new InvalidOperationException("prediction backup history entity count");
+#endif
+			
+			var ps = ((PredictionBackupState*) state);
+			byte* entityCounts = ((byte*)state) + ps->entityCountOffset;
+			entityCounts[index] = (byte)count;
+		}
+#endif
         public static int GetDataSize(int componentSize, int chunkCapacity)
         {
             return (componentSize * chunkCapacity + 15) &(~15);
         }
-        public static Entity* GetEntities(IntPtr state)
+        public static Entity* GetEntities(IntPtr state, int index)
         {
             var ps = ((PredictionBackupState*) state);
-            return (Entity*)(((byte*)state) + ps->entitiesOffset);
+			return (Entity*)(((byte*)state) + ps->entitiesOffset + UnsafeUtility.SizeOf<Entity>() * ps->entityCapacity * index);
         }
-        public static bool MatchEntity(IntPtr state, int ent, in Entity entity)
+        public static bool MatchEntity(IntPtr state, int ent, in Entity entity, int index)
         {
             var ps = ((PredictionBackupState*) state);
-            return ((Entity*)(((byte*)state) + ps->entitiesOffset))[ent] == entity;
+            return ((Entity*)(((byte*)state) + ps->entitiesOffset + UnsafeUtility.SizeOf<Entity>() * ps->entityCapacity * index))[ent] == entity;
         }
-        public static byte* GetData(IntPtr state)
+        public static byte* GetData(IntPtr state, int index)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+			if (index < 0 || index >= PredictionHistorySize)
+				throw new InvalidOperationException("prediction backup history index");
+#endif
             var ps = ((PredictionBackupState*) state);
-            return ((byte*) state) + ps->dataOffset;
-        }
-
-        public static uint* GetChunkVersion(IntPtr state)
-        {
-            var ps = ((PredictionBackupState*) state);
-            return (uint*)((byte*)state + ps->chunkVersionsOffset);
+            return ((byte*) state) + ps->dataOffset + ps->dataSize * index;
         }
 
         public static int GetBufferDataCapacity(IntPtr state)
         {
             return ((PredictionBackupState*) state)->bufferDataCapacity;
         }
-        public static byte* GetBufferDataPtr(IntPtr state)
+        public static byte* GetBufferDataPtr(IntPtr state, int index)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+			if (index < 0 || index >= PredictionHistorySize)
+				throw new InvalidOperationException("prediction backup history index");
+#endif
             var ps = ((PredictionBackupState*) state);
-            return ((byte*) state) + ps->bufferDataOffset;
+            return ((byte*) state) + ps->bufferDataOffset + ps->bufferDataCapacity * index;
         }
         public static byte* GetNextData(byte* data, int componentSize, int chunkCapacity)
         {
             return data + GetDataSize(componentSize, chunkCapacity);
         }
-        public static ulong* GetEnabledBits(IntPtr state)
-        {
+        public static ulong* GetEnabledBits(IntPtr state, int index)
+		{
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+			if (index < 0 || index >= PredictionHistorySize)
+				throw new InvalidOperationException("prediction backup history index");
+#endif
             var ps = ((PredictionBackupState*) state);
-            return (ulong*)(((byte*) state) + ps->enabledBitOffset);
+			var size = GetEnabledBitsSize(ps->entityCapacity, ps->enabledBits);
+            return (ulong*)(((byte*) state) + ps->enabledBitOffset + size * index);
         }
-        public static ulong* GetNextEnabledBits(ulong* data, int chunkCapacity)
+        public static ulong* GetNextEnabledBits(ulong* data, int chunkCapacity, int index)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+			if (index < 0 || index >= PredictionHistorySize)
+				throw new InvalidOperationException("prediction backup history index");
+#endif
             return data + (chunkCapacity+63)/64;
         }
-        public static int GetGhostOwner(IntPtr state)
+		private static int GetEnabledBitsSize(int entityCapacity, int enabledBits)
+		{
+            return (((entityCapacity+63)&(~63))/8 * enabledBits + 15) & (~15);
+		}
+        public static int GetGhostOwner(IntPtr state, int index)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+			if (index < 0 || index >= PredictionHistorySize)
+				throw new InvalidOperationException("prediction backup history index");
+#endif
             var ps = ((PredictionBackupState*) state);
             if (ps->ghostOwnerOffset != -1)
-                return *(((byte*)state) + ps->dataOffset + ps->ghostOwnerOffset);
+                return *(((byte*)state) + ps->dataOffset + ps->dataSize * index + ps->ghostOwnerOffset);
             //return an invalid owner (0)
             return 0;
-        }
-
-        public static uint* GetNextChildChunkVersion(uint* changeVersionPtr, int chunkCapacity)
-        {
-            return changeVersionPtr + chunkCapacity;
         }
     }
 
@@ -143,7 +236,7 @@ namespace Unity.NetCode
 
     internal struct GhostPredictionHistoryState : IComponentData
     {
-        public NativeParallelHashMap<ArchetypeChunk, System.IntPtr>.ReadOnly PredictionState;
+        public NativeParallelHashMap<ulong, System.IntPtr>.ReadOnly PredictionState;
     }
 
     /// <summary>
@@ -160,7 +253,7 @@ namespace Unity.NetCode
     [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
     [UpdateInGroup(typeof(PredictedSimulationSystemGroup), OrderLast = true)]
     [BurstCompile]
-    public unsafe partial struct GhostPredictionHistorySystem : ISystem
+    public unsafe partial struct GhostPredictionHistorySystem : ISystem, ISystemStartStop
     {
         struct PredictionStateEntry
         {
@@ -168,8 +261,8 @@ namespace Unity.NetCode
             public System.IntPtr data;
         }
 
-        NativeParallelHashMap<ArchetypeChunk, System.IntPtr> m_PredictionState;
-        NativeParallelHashMap<ArchetypeChunk, int> m_StillUsedPredictionState;
+        NativeParallelHashMap<ulong, System.IntPtr> m_PredictionState;
+        NativeParallelHashMap<ulong, int> m_StillUsedPredictionState;
         NativeQueue<PredictionStateEntry> m_NewPredictionState;
         NativeQueue<PredictionStateEntry> m_UpdatedPredictionState;
         EntityQuery m_PredictionQuery;
@@ -184,12 +277,14 @@ namespace Unity.NetCode
         BufferLookup<GhostCollectionPrefabSerializer> m_GhostCollectionPrefabSerializerFromEntity;
         BufferLookup<GhostCollectionComponentIndex> m_GhostCollectionComponentIndexFromEntity;
         BufferLookup<GhostCollectionPrefab> m_GhostCollectionPrefabFromEntity;
+        
+        DynamicTypeList m_DynamicTypeList;
 
         [BurstCompile]
         public void OnCreate(ref SystemState state)
         {
-            m_PredictionState = new NativeParallelHashMap<ArchetypeChunk, System.IntPtr>(128, Allocator.Persistent);
-            m_StillUsedPredictionState = new NativeParallelHashMap<ArchetypeChunk, int>(128, Allocator.Persistent);
+            m_PredictionState = new NativeParallelHashMap<ulong, System.IntPtr>(128, Allocator.Persistent);
+            m_StillUsedPredictionState = new NativeParallelHashMap<ulong, int>(128, Allocator.Persistent);
             m_NewPredictionState = new NativeQueue<PredictionStateEntry>(Allocator.Persistent);
             m_UpdatedPredictionState = new NativeQueue<PredictionStateEntry>(Allocator.Persistent);
             var builder = new EntityQueryBuilder(Allocator.Temp)
@@ -233,10 +328,28 @@ namespace Unity.NetCode
         }
 
         [BurstCompile]
+        public void OnStartRunning(ref SystemState state)
+        {
+            if (m_DynamicTypeList.Length > 0)
+            {
+                // Already initialized
+                return;
+            }
+            var ghostComponentCollection = SystemAPI.GetSingletonBuffer<GhostCollectionComponentType>();
+            DynamicTypeList.PopulateList(ref state, ghostComponentCollection, true, ref m_DynamicTypeList);
+        }
+
+        [BurstCompile]
+        public void OnStopRunning(ref SystemState state)
+        {
+        }
+
+        [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
             var networkTime = SystemAPI.GetSingleton<NetworkTime>();
-            if (!networkTime.IsFinalFullPredictionTick)
+			// Save all full prediction ticks
+            if (!networkTime.IsInPredictionLoop || networkTime.IsPartialTick)
                 return;
             SystemAPI.SetSingleton(new GhostSnapshotLastBackupTick { Value = networkTime.ServerTick });
 
@@ -244,9 +357,13 @@ namespace Unity.NetCode
             var newPredictionState = m_NewPredictionState;
             var stillUsedPredictionState = m_StillUsedPredictionState;
             var updatedPredictionState = m_UpdatedPredictionState;
-            stillUsedPredictionState.Clear();
-            if (stillUsedPredictionState.Capacity < predictionState.Capacity)
-                stillUsedPredictionState.Capacity = predictionState.Capacity;
+
+            var setCapacityJob = new SetCapacityJob
+            {
+                predictionState = predictionState,
+                stillUsedPredictionState = stillUsedPredictionState,
+            };
+            state.Dependency = setCapacityJob.Schedule(state.Dependency);
 
             m_GhostComponentHandle.Update(ref state);
             m_GhostTypeComponentHandle.Update(ref state);
@@ -257,8 +374,12 @@ namespace Unity.NetCode
             m_GhostCollectionPrefabSerializerFromEntity.Update(ref state);
             m_GhostCollectionComponentIndexFromEntity.Update(ref state);
             m_GhostCollectionPrefabFromEntity.Update(ref state);
+            m_DynamicTypeList.Update(ref state);
+            
             var backupJob = new PredictionBackupJob
             {
+                DynamicTypeList = m_DynamicTypeList,
+                
                 predictionState = predictionState,
                 stillUsedPredictionState = stillUsedPredictionState.AsParallelWriter(),
                 newPredictionState = newPredictionState.AsParallelWriter(),
@@ -276,10 +397,10 @@ namespace Unity.NetCode
 
                 childEntityLookup = state.GetEntityStorageInfoLookup(),
                 linkedEntityGroupType = m_LinkedEntityGroupHandle,
+				
+				serverTick = networkTime.ServerTick,
             };
 
-            var ghostComponentCollection = state.EntityManager.GetBuffer<GhostCollectionComponentType>(backupJob.GhostCollectionSingleton);
-            DynamicTypeList.PopulateList(ref state, ghostComponentCollection, true, ref backupJob.DynamicTypeList);
             state.Dependency = backupJob.ScheduleParallelByRef(m_PredictionQuery, state.Dependency);
 
             var cleanupJob = new CleanupPredictionStateJob
@@ -295,8 +416,8 @@ namespace Unity.NetCode
         [BurstCompile]
         struct CleanupPredictionStateJob : IJob
         {
-            public NativeParallelHashMap<ArchetypeChunk, System.IntPtr> predictionState;
-            [ReadOnly] public NativeParallelHashMap<ArchetypeChunk, int> stillUsedPredictionState;
+            public NativeParallelHashMap<ulong, System.IntPtr> predictionState;
+            [ReadOnly] public NativeParallelHashMap<ulong, int> stillUsedPredictionState;
             public NativeQueue<PredictionStateEntry> newPredictionState;
             public NativeQueue<PredictionStateEntry> updatedPredictionState;
             public void Execute()
@@ -314,22 +435,35 @@ namespace Unity.NetCode
                 }
                 while (newPredictionState.TryDequeue(out var newState))
                 {
-                    if (!predictionState.TryAdd(newState.chunk, newState.data))
+                    if (!predictionState.TryAdd(newState.chunk.SequenceNumber, newState.data))
                     {
                         // Remove the old value, free it and add the new one - this happens when a chunk is reused too quickly
-                        predictionState.TryGetValue(newState.chunk, out var alloc);
+                        predictionState.TryGetValue(newState.chunk.SequenceNumber, out var alloc);
                         UnsafeUtility.Free((void*)alloc, Allocator.Persistent);
-                        predictionState.Remove(newState.chunk);
+                        predictionState.Remove(newState.chunk.SequenceNumber);
                         // And add it again
-                        predictionState.TryAdd(newState.chunk, newState.data);
+                        predictionState.TryAdd(newState.chunk.SequenceNumber, newState.data);
                     }
                 }
                 while (updatedPredictionState.TryDequeue(out var updatedState))
                 {
-                    if(!predictionState.ContainsKey(updatedState.chunk))
+                    if(!predictionState.ContainsKey(updatedState.chunk.SequenceNumber))
                         throw new InvalidOperationException($"Prediction backup state has been updated but is not present in the map.");
-                    predictionState[updatedState.chunk] = updatedState.data;
+                    predictionState[updatedState.chunk.SequenceNumber] = updatedState.data;
                 }
+            }
+        }
+
+        [BurstCompile]
+        struct SetCapacityJob : IJob
+        {
+            public NativeParallelHashMap<ulong, System.IntPtr> predictionState;
+            public NativeParallelHashMap<ulong, int> stillUsedPredictionState;
+            public void Execute()
+            {
+                stillUsedPredictionState.Clear();
+                if (stillUsedPredictionState.Capacity < predictionState.Capacity)
+                    stillUsedPredictionState.Capacity = predictionState.Capacity;
             }
         }
 
@@ -338,8 +472,8 @@ namespace Unity.NetCode
         {
             public DynamicTypeList DynamicTypeList;
 
-            [ReadOnly]public NativeParallelHashMap<ArchetypeChunk, System.IntPtr> predictionState;
-            public NativeParallelHashMap<ArchetypeChunk, int>.ParallelWriter stillUsedPredictionState;
+            [ReadOnly]public NativeParallelHashMap<ulong, System.IntPtr> predictionState;
+            public NativeParallelHashMap<ulong, int>.ParallelWriter stillUsedPredictionState;
             public NativeQueue<PredictionStateEntry>.ParallelWriter newPredictionState;
             public NativeQueue<PredictionStateEntry>.ParallelWriter updatedPredictionState;
             [ReadOnly] public ComponentTypeHandle<GhostInstance> ghostComponentType;
@@ -356,6 +490,8 @@ namespace Unity.NetCode
 
             [ReadOnly] public EntityStorageInfoLookup childEntityLookup;
             [ReadOnly] public BufferTypeHandle<LinkedEntityGroup> linkedEntityGroupType;
+
+			public NetworkTick serverTick;
 
             const GhostSendType requiredSendMask = GhostSendType.OnlyPredictedClients;
 
@@ -466,7 +602,8 @@ namespace Unity.NetCode
                 int baseOffset = typeData.FirstComponent;
                 int predictionOwnerOffset = -1;
                 var ghostOwnerTypeIndex = TypeManager.GetTypeIndex<GhostOwner>();
-                if (!predictionState.TryGetValue(chunk, out var state) ||
+				var predictionBackupIndex = (int)(serverTick.TickIndexForValidTick % PredictionBackupState.PredictionHistorySize);
+                if (!predictionState.TryGetValue(chunk.SequenceNumber, out var state) ||
                     (*(PredictionBackupState*)state).ghostType != ghostTypeId ||
                     (*(PredictionBackupState*)state).entityCapacity != chunk.Capacity)
                 {
@@ -520,7 +657,7 @@ namespace Unity.NetCode
                 }
                 else
                 {
-                    stillUsedPredictionState.TryAdd(chunk, 1);
+                    stillUsedPredictionState.TryAdd(chunk.SequenceNumber, 1);
                     if (typeData.NumBuffers > 0)
                     {
                         //resize the backup state to fit the dynamic buffers contents
@@ -531,23 +668,20 @@ namespace Unity.NetCode
                             var dataSize = ((PredictionBackupState*)state)->dataSize;
                             var enabledBits = ((PredictionBackupState*)state)->enabledBits;
                             var ghostOwnerOffset = ((PredictionBackupState*)state)->ghostOwnerOffset;
-                            var newState =  PredictionBackupState.AllocNew(ghostTypeId, enabledBits, typeData.NumComponents, dataSize, chunk.Capacity, buffersDataCapacity, ghostOwnerOffset);
-                            UnsafeUtility.Free((void*) state, Allocator.Persistent);
-                            state = newState;
-                            updatedPredictionState.Enqueue(new PredictionStateEntry{chunk = chunk, data = newState});
-                        }
+                            state = PredictionBackupState.Realloc(state, ghostTypeId, enabledBits, typeData.NumComponents, dataSize, chunk.Capacity, buffersDataCapacity, ghostOwnerOffset);
+							updatedPredictionState.Enqueue(new PredictionStateEntry { chunk = chunk, data = state });
+						}
                     }
                 }
-                Entity* entities = PredictionBackupState.GetEntities(state);
+                Entity* entities = PredictionBackupState.GetEntities(state, predictionBackupIndex);
                 var srcEntities = chunk.GetNativeArray(entityType).GetUnsafeReadOnlyPtr();
                 UnsafeUtility.MemCpy(entities, srcEntities, chunk.Count * singleEntitySize);
                 if (chunk.Count < chunk.Capacity)
                     UnsafeUtility.MemClear(entities + chunk.Count, (chunk.Capacity - chunk.Count) * singleEntitySize);
 
-                byte* dataPtr = PredictionBackupState.GetData(state);
-                byte* bufferBackupDataPtr = PredictionBackupState.GetBufferDataPtr(state);
-                ulong* enabledBitPtr = PredictionBackupState.GetEnabledBits(state);
-                uint* changeVersionPtr = PredictionBackupState.GetChunkVersion(state);
+                byte* dataPtr = PredictionBackupState.GetData(state, predictionBackupIndex);
+                byte* bufferBackupDataPtr = PredictionBackupState.GetBufferDataPtr(state, predictionBackupIndex);
+                ulong* enabledBitPtr = PredictionBackupState.GetEnabledBits(state, predictionBackupIndex);
 
                 int numBaseComponents = typeData.NumComponents - typeData.NumChildComponents;
                 int bufferBackupDataOffset = 0;
@@ -567,17 +701,13 @@ namespace Unity.NetCode
                         ? GhostComponentSerializer.DynamicBufferComponentSnapshotSize
                         : ghostSerializer.ComponentSize;
 
-                    //store the change version for this component for the root entity. There is only one entry
-                    //per component for this chunk for root entities.
-                    changeVersionPtr[comp] = chunkVersion;
-
                     if (ghostSerializer.SerializesEnabledBit != 0)
                     {
                         var handle = ghostChunkComponentTypesPtr[compIdx];
                         var bitArray = chunk.GetEnableableBits(ref handle);
                         UnsafeUtility.MemCpy(enabledBitPtr, &bitArray, ((chunk.Count+63)&(~63))/8);
 
-                        enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity);
+                        enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity, predictionBackupIndex);
                     }
 
                     // Note that `HasGhostFields` reads the `SnapshotSize` of this type, BUT we're saving the entire component.
@@ -589,9 +719,6 @@ namespace Unity.NetCode
                     if (!chunk.Has(ref ghostChunkComponentTypesPtr[compIdx]))
                     {
                         UnsafeUtility.MemClear(dataPtr, chunk.Count * compSize);
-                        //reset the change version to 0. The component data is not present. And it case it will, it must
-                        //considered changed
-                        changeVersionPtr[comp] = 0;
                     }
                     else if (!ghostSerializer.ComponentType.IsBuffer)
                     {
@@ -628,7 +755,6 @@ namespace Unity.NetCode
                     //the layout looks like
                     //ChildComp1     ChildComp2
                     //e1, e2 .. en | e1, e2 .. en
-                    var childChangeVersions = changeVersionPtr + numBaseComponents;
                     for (int comp = numBaseComponents; comp < typeData.NumComponents; ++comp)
                     {
                         int compIdx = GhostComponentIndex[baseOffset + comp].ComponentIndex;
@@ -654,12 +780,11 @@ namespace Unity.NetCode
                                     var arr = childChunk.Chunk.GetEnableableBits(ref handle);
                                     var bits = new UnsafeBitArray(&arr, sizeof(v128));
                                     isSet = bits.IsSet(childChunk.IndexInChunk) ? 1u : 0u;
-                                    childChangeVersions[rootEnt] = childChunk.Chunk.GetChangeVersion(ref ghostChunkComponentTypesPtr[compIdx]);
                                 }
                                 enabledBitPtr[rootEnt>>6] &= ~(1ul<<(rootEnt&0x3f));
                                 enabledBitPtr[rootEnt>>6] |= (isSet<<(rootEnt&0x3f));
                             }
-                            enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity);
+                            enabledBitPtr = PredictionBackupState.GetNextEnabledBits(enabledBitPtr, chunk.Capacity, predictionBackupIndex);
                         }
                         var isBuffer = ghostSerializer.ComponentType.IsBuffer;
                         var compSize = isBuffer ? GhostComponentSerializer.DynamicBufferComponentSnapshotSize : ghostSerializer.ComponentSize;
@@ -681,15 +806,10 @@ namespace Unity.NetCode
                                 {
                                     var compData = (byte*) childChunk.Chunk.GetDynamicComponentDataArrayReinterpret<byte>(ref ghostChunkComponentTypesPtr[compIdx], compSize).GetUnsafeReadOnlyPtr();
                                     UnsafeUtility.MemCpy(tempDataPtr, compData + childChunk.IndexInChunk * compSize, compSize);
-                                    //store the change version for the component
-                                    childChangeVersions[rootEnt] = childChunk.Chunk.GetChangeVersion(ref ghostChunkComponentTypesPtr[compIdx]);
                                 }
                                 else
                                 {
                                     UnsafeUtility.MemClear(tempDataPtr, compSize);
-                                    //reset the change version to 0. The component data is not present. And it case it will, it must
-                                    //considered changed
-                                    childChangeVersions[rootEnt] = 0;
                                 }
                                 tempDataPtr += compSize;
                             }
@@ -713,17 +833,11 @@ namespace Unity.NetCode
                                     if (size > 0)
                                         UnsafeUtility.MemCpy(bufferBackupDataPtr + bufferBackupDataOffset, (byte*) bufferPtr, size * bufElemSize);
                                     bufferBackupDataOffset += size * bufElemSize;
-                                    //store the change version for the component. Will be used by GhostSendSystem when restoring
-                                    //components from the backup.
-                                    childChangeVersions[rootEnt] = childChunk.Chunk.GetChangeVersion(ref ghostChunkComponentTypesPtr[compIdx]);
                                 }
                                 else
                                 {
                                     //reset the entry to 0. Don't use memcpy in this case (is faster this way)
                                     ((long*) tempDataPtr)[0] = 0;
-                                    //reset the change version to 0. The component data is not present. And it case it will, it must
-                                    //considered changed
-                                    childChangeVersions[rootEnt] = 0;
                                 }
 
                                 tempDataPtr += compSize;
@@ -733,7 +847,6 @@ namespace Unity.NetCode
                         }
 
                         dataPtr = PredictionBackupState.GetNextData(dataPtr, compSize, chunk.Capacity);
-                        childChangeVersions = PredictionBackupState.GetNextChildChunkVersion(childChangeVersions, chunk.Capacity);
                     }
                 }
             }

@@ -101,7 +101,7 @@ namespace Unity.NetCode
         #if UNITY_EDITOR || !UNITY_CLIENT
         private NetworkEndpoint SanitizeConnectAddress(in NetworkEndpoint endpoint, int driverId)
         {
-            if (endpoint.IsLoopback)
+            if (endpoint.IsLoopback || endpoint.Family == NetworkFamily.Custom)
                 return endpoint;
 
             if (DriverStore.GetDriverType(driverId) == TransportType.IPC)

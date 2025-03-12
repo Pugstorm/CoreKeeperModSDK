@@ -28,7 +28,7 @@ namespace Unity.Entities
             m_Manager = manager;
         }
 
-        internal EntityArchetype CreateArchetype(ComponentType* types, int count)
+        public EntityArchetype CreateArchetype(ComponentType* types, int count)
         {
             return m_Manager.CreateArchetype(types, count);
         }

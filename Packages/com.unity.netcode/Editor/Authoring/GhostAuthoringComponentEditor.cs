@@ -18,6 +18,7 @@ namespace Unity.NetCode.Editor
         SerializedProperty TrackInterpolationDelay;
         SerializedProperty GhostGroup;
         SerializedProperty UsePreSerialization;
+        SerializedProperty DontUsePredictionBackup;
         SerializedProperty Importance;
 
 
@@ -39,6 +40,7 @@ namespace Unity.NetCode.Editor
             TrackInterpolationDelay = serializedObject.FindProperty("TrackInterpolationDelay");
             GhostGroup = serializedObject.FindProperty("GhostGroup");
             UsePreSerialization = serializedObject.FindProperty("UsePreSerialization");
+            DontUsePredictionBackup = serializedObject.FindProperty("DontUsePredictionBackup");
             Importance = serializedObject.FindProperty("Importance");
         }
 
@@ -101,6 +103,7 @@ namespace Unity.NetCode.Editor
             }
             EditorGUILayout.PropertyField(GhostGroup);
             EditorGUILayout.PropertyField(UsePreSerialization);
+            EditorGUILayout.PropertyField(DontUsePredictionBackup);
 
             if (serializedObject.ApplyModifiedProperties())
             {

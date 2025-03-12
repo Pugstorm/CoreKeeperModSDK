@@ -1,0 +1,31 @@
+{
+    "name": "Unity.Networking.Transport",
+    "rootNamespace": "",
+    "references": [
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.Services.Relay",
+        "Unity.Logging"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "noEngineReferences": false,
+    "versionDefines": [
+        {
+            "name": "com.unity.services.relay",
+            "expression": "1.0",
+            "define": "RELAY_SDK_INSTALLED"
+        },
+        {
+            "name": "com.unity.logging",
+            "expression": "0.0",
+            "define": "USE_UNITY_LOGGING"
+        }
+    ]
+}

@@ -1,5 +1,6 @@
 {
     "name": "Unity.NetCode.TestsUtils",
+    "rootNamespace": "",
     "references": [
         "Unity.Burst",
         "Unity.Collections",
@@ -14,16 +15,22 @@
         "Unity.PerformanceTesting",
         "Unity.Logging",
         "Unity.Entities.Build",
-        "Unity.Scenes"
-    ],
-    "optionalUnityReferences": [
-        "TestAssemblies"
+        "Unity.Scenes",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": true,
     "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
     "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS",
+        "DONT_INCLUDE_NETCODE_TESTS_BECAUSE_THEY_BREAK_MULTIPLAYER"
+    ],
     "versionDefines": [
       {
         "name": "com.unity.logging",

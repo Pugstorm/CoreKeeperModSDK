@@ -88,6 +88,12 @@ namespace Unity.NetCode
     /// </summary>
     internal struct GhostPrefabRuntimeStrip : IComponentData
     {}
+	
+	/// <summary>
+	/// A component added to ghost prefabs which have been processed by the ghost collection system.
+	/// </summary>
+	public struct GhostPrefabInCollection : IComponentData
+	{}
 
     /// <summary>
     /// A component used to identify the singleton which owns the ghost collection lists and data.
@@ -96,26 +102,6 @@ namespace Unity.NetCode
     /// </summary>
     public struct GhostCollection : IComponentData
     {
-        /// <summary>
-        /// The number of prefabs that have been loaded into the <see cref="GhostCollectionPrefab"/> collection.
-        /// Use to determine which ghosts types the server can stream to the clients.
-        /// <para>
-        /// The server reports (to the client) the list of loaded prefabs (with their see <see cref="GhostTypeComponent"/> guid)
-        /// as part of the snapshot protocol.
-        /// The list is dynamic; new prefabs can be added/loaded at runtime (on the server), and the new ones will be reported to the client.
-        /// </para>
-        /// <para>
-        /// Clients report (to the server) the number of loaded prefabs, as part of the command protocol.
-        /// When the client receives a ghost snapshot, the ghost prefab list is processed, and the <see cref="GhostCollectionPrefab"/> collection
-        /// is updated with any new ghost types not already present in the collection.
-        /// <para>
-        /// The client does not need to have loaded ALL prefab types in the <see cref="GhostCollectionPrefab"/> to initialize the world. I.e. They can
-        /// be loaded/added dynamically into the world (i.e when streaming a sub-scene), and the <see cref="GhostCollectionPrefab.Loading"/> state
-        /// should be used in that case (to inform the <see cref="GhostCollection"/> that the specified prefabs are currently being loaded into the world).
-        /// </para>
-        /// </para>
-        /// </summary>
-        public int NumLoadedPrefabs;
         #if UNITY_EDITOR || NETCODE_DEBUG
         /// <summary>
         /// Only for debug, the current length of the predicted error names list. Used by the <see cref="GhostPredictionDebugSystem"/>.
@@ -138,6 +124,7 @@ namespace Unity.NetCode
     /// The list is sorted by the value of the <see cref="GhostType"/> guid.
     /// </remarks>
     [InternalBufferCapacity(0)]
+    [AssumeReadOnly]
     public struct GhostCollectionPrefab : IBufferElementData
     {
         /// <summary>

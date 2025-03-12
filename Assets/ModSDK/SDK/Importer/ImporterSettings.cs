@@ -35,7 +35,7 @@ namespace PugMod
 
 		public const string GAME_NAME = "CoreKeeper";
 		
-		private const int CURRENT_VERSION = 2;
+		private const int CURRENT_VERSION = 3;
 		private const string SETTINGS_PATH = "Assets/ModSDK/ModSDKSettings.asset";
 
 		public bool includeAllAssemblies = true;
@@ -104,6 +104,12 @@ namespace PugMod
 				includeGameAssemblies.Add("System.Text.Encodings.dll");
 				includeGameAssemblies.Add("System.Text.Json.dll");
 				includeGameAssemblies.Add("System.Runtime.CompilerServices.Unsafe.dll");
+			}
+
+			if (initializedToVersion < 3)
+			{
+				// At least System.Collections.Immutable is needed
+				excludeGameAssemblies.Remove("^System.");
 			}
 
 			initializedToVersion = CURRENT_VERSION;

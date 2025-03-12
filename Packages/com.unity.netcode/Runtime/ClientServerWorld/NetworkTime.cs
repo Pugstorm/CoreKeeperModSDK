@@ -42,6 +42,7 @@ namespace Unity.NetCode
     /// <summary>
     /// Present on both client and server world, singleton component that contains all the timing characterist of the client/server simulation loop.
     /// </summary>
+    [AssumeReadOnly]
     public struct NetworkTime : IComponentData
     {
         /// <summary>

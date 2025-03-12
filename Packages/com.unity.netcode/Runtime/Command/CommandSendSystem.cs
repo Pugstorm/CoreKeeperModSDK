@@ -55,7 +55,12 @@ namespace Unity.NetCode
     [UpdateInGroup(typeof(PredictedSimulationSystemGroup), OrderFirst = true)]
     public partial class CopyCommandBufferToInputSystemGroup : ComponentSystemGroup
     {
-    }
+		protected override void OnCreate()
+		{
+			base.OnCreate();
+			World.GetExistingSystemManaged<PredictedSimulationSystemGroup>().AddSystemToPartialTickUpdate(ref CheckedStateRef);
+		}
+	}
 
     /// <summary>
     /// This group contains all core-generated system that are used to compare commands for sake of identifing the ticks the client
@@ -127,7 +132,6 @@ namespace Unity.NetCode
     /// <para>- Flushes all the serialized commands present in the <see cref="OutgoingCommandDataStreamBuffer"/>.</para>
     /// <para>- Acks the latest received snapshot to the server.</para>
     /// <para>- Sends the client local and remote time (used to calculate the Round Trip Time) back to the server.</para>
-    /// <para>- Sends the loaded ghost prefabs to the server.</para>
     /// <para>- Calculates the current client interpolation delay (used for lag compensation).</para>
     /// </summary>
     [UpdateInGroup(typeof(CommandSendSystemGroup), OrderLast = true)]
@@ -144,7 +148,6 @@ namespace Unity.NetCode
             4 + //the local time (used for RTT calc)
             4 + //the delta in between the local time and the last received remote time. Used to calculate the elapsed RTT and remove the time spent on client to resend the ack.
             4 + //the interpolation delay
-            4 + //the loaded prefabs
             4; //the first command tick
 
         [BurstCompile]
@@ -170,7 +173,6 @@ namespace Unity.NetCode
             public NativeArray<uint> netStats;
 #endif
             public uint localTime;
-            public int numLoadedPrefabs;
             public NetworkTick inputTargetTick;
             public uint interpolationDelay;
             public unsafe void Execute(DynamicBuffer<OutgoingCommandDataStreamBuffer> rpcData,
@@ -203,7 +205,6 @@ namespace Unity.NetCode
 
                 writer.WriteUInt(returnTime);
                 writer.WriteUInt(interpolationDelay);
-                writer.WriteUInt((uint)numLoadedPrefabs);
                 writer.WriteUInt(inputTargetTick.SerializedData);
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
                 Assertions.Assert.AreEqual(writer.Length, k_CommandHeadersBytes);
@@ -246,7 +247,6 @@ namespace Unity.NetCode
                 netStats = SystemAPI.GetSingletonRW<GhostStatsCollectionCommand>().ValueRO.Value,
 #endif
                 localTime = NetworkTimeSystem.TimestampMS,
-                numLoadedPrefabs = SystemAPI.GetSingleton<GhostCollection>().NumLoadedPrefabs,
                 inputTargetTick = targetTick,
                 interpolationDelay = (uint)interpolationDelay
             };

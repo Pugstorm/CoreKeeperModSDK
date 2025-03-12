@@ -86,6 +86,9 @@ namespace Unity.Entities
     {
     }
 
+    /// <summary>
+    /// Attribute that indicates that a component should be assumed read-only, write access will always be a sync point.
+    /// </summary>
     public class AssumeReadOnlyAttribute : Attribute
     {
     }
@@ -207,6 +210,11 @@ namespace Unity.Entities
         /// The component type is decorated with the <seealso cref="BakingTypeAttribute"/> attribute.
         /// </summary>
         public bool IsBakingOnlyType { [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return  (Value & TypeManager.BakingOnlyTypeFlag) != 0; } }
+
+        /// <summary>
+        /// The component type is decorated with the <seealso cref="AssumeReadOnlyAttribute"/> attribute.
+        /// </summary>
+        public bool AssumeReadOnlyType { [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return  (Value & TypeManager.AssumeAlwaysReadOnlyFlag) != 0; } }
 
         /// <summary>
         /// Zero-based index for the <seealso cref="Unity.Entities.TypeIndex"/> stored in Value (the type index with no flags).
@@ -504,6 +512,11 @@ namespace Unity.Entities
         /// Maximum number of unique component types supported by the <seealso cref="TypeManager"/>/>
         /// </summary>
         public const int MaximumTypesCount = 1 << 13;
+        
+        /// <summary>
+        /// Bitflag set for component types which allocate 0 bytes in Chunk storage
+        /// </summary>
+        public const int AssumeAlwaysReadOnlyFlag = 1 << 16;
 
         /// <summary>
         /// Bitflag set for component types that do not contain an <seealso cref="Entity"/> member.
@@ -3272,6 +3285,7 @@ namespace Unity.Entities
             bool isBakingOnlyType = Attribute.IsDefined(type, typeof(BakingTypeAttribute));
             var isIEquatable = type.GetInterfaces().Any(i => i.Name.Contains("IEquatable"));
             var isChunkSerializable = IsComponentChunkSerializable(type, category, hasEntityReferences, caches);
+            bool assumeAlwaysReadOnly = Attribute.IsDefined(type, typeof(AssumeReadOnlyAttribute));
 
             if (typeIndex != 0)
             {
@@ -3316,6 +3330,9 @@ namespace Unity.Entities
 
                 if (!isChunkSerializable)
                     typeIndex |= IsNotChunkSerializableTypeFlag;
+                
+                if (assumeAlwaysReadOnly)
+                    typeIndex |= AssumeAlwaysReadOnlyFlag;
             }
 
             return new TypeInfo(typeIndex, category, entityOffsetCount, entityOffsetIndex,

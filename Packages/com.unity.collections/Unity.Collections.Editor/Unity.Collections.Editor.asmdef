@@ -1,0 +1,19 @@
+{
+    "name": "Unity.Collections.Editor",
+    "references": [
+        "Unity.Collections"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "versionDefines":
+    [
+        {
+            "name": "Unity",
+            "expression": "2022.2.14f1",
+            "define": "UNITY_2022_2_14F1_OR_NEWER"
+        }
+    ]
+}

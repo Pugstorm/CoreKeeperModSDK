@@ -5,7 +5,7 @@ namespace Unity.Entities.UI
     /// attribute of type <see cref="TAttribute"/>.
     /// </summary>
     /// <typeparam name="TValue">The type of the field value to inspect.</typeparam>
-    internal abstract class PropertyInspector<TValue> : InspectorBase<TValue>, IPropertyDrawer
+    public abstract class PropertyInspector<TValue> : InspectorBase<TValue>, IPropertyDrawer
     {
     }
 
@@ -15,7 +15,7 @@ namespace Unity.Entities.UI
     /// </summary>
     /// <typeparam name="TValue">The type of the field value to inspect.</typeparam>
     /// <typeparam name="TAttribute">The property drawer type. </typeparam>
-    internal abstract class PropertyInspector<TValue, TAttribute> : InspectorBase<TValue>, IPropertyDrawer<TAttribute>
+    public abstract class PropertyInspector<TValue, TAttribute> : InspectorBase<TValue>, IPropertyDrawer<TAttribute>
         where TAttribute : UnityEngine.PropertyAttribute
     {
         /// <summary>

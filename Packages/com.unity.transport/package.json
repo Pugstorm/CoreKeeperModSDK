@@ -1,0 +1,55 @@
+{
+  "name": "com.unity.transport",
+  "displayName": "Unity Transport",
+  "version": "2.1.0",
+  "unity": "2022.2",
+  "unityRelease": "0a18",
+  "description": "Unity network transport layer - the low-level interface for connecting and sending data through a network",
+  "dependencies": {
+    "com.unity.collections": "2.2.1",
+    "com.unity.burst": "1.8.8",
+    "com.unity.mathematics": "1.3.1"
+  },
+  "relatedPackages": {
+    "com.unity.transport.tests": "0.0.0"
+  },
+  "_upm": {
+    "changelog": "### New features\n* It is now possible to configure the maximum message size that the transport will send through a new `maxMessageSize` parameter in `NetworkSettings.WithNetworkConfigParameters`. This is useful for environments where network equipment mishandles larger packets (like some mobile networks or VPNs). The value excludes IP and UDP headers, but includes headers added by the transport itself (e.g. reliability headers). The default value is 1400. Note that it is recommended that both client and server be configured to use the same value.\n* Added new values `AuthenticationFailure` and `ProtocolError` to the `Error.DisconnectReason` enum. These values are respectively returned when a connection fails to be established because of DTLS/TLS handshake failure, and for unexpected and unrecoverable errors encountered by the transport (e.g. unexpected socket errors or malformed WebSocket frames).\n* Added a new `NetworkFamily.Custom` value and proper support for it in `NetworkEndpoint`. This value is intended for usage with custom `INetworkInterface` implementations, where endpoints are not IP addresses.\n\n### Changes\n* Updated Collections dependency to 2.2.1.\n* Updated Burst dependency to 1.8.8.\n* Updated Mathematics dependency to 1.3.1.\n* `NetworkDriver.GetRelayConnectionStatus` will now return the new enum value `RelayConnectionStatus.NotUsingRelay` when called on a `NetworkDriver` that has not been configured to use Unity Relay. The previous behavior was to throw an exception. This can be used to safely determine if a driver is using Relay, even from Burst-compiled code.\n* `RelayServerData` now exposes a `IsWebSocket` field that can be used to determine if the server data will be using a WebSocket endpoint. This value is set automatically if constructing the `RelayServerData` from an allocation object, and can be set through a new optional `isWebSocket` parameter for low-level constructors.\n* `NetworkEndpoint.RawPort` is now obsolete. There is little use for this API since it basically only converts to/from network byte order. There are standard C# APIs to do this.\n\n### Fixes\n* Fixed a possible crash when using secure WebSockets that would occur if a connection was closed suddenly with pending packets waiting to be sent.\n* Fixed an issue where empty messages would not properly be received if sent on a non-default pipeline.\n* Fixed \"Input string was not in a correct format\" log when listening on a port already in use."
+  },
+  "upmCi": {
+    "footprint": "64f999ac3b1e584257d9d025c5c761c76dcc538e"
+  },
+  "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.transport@2.1/manual/index.html",
+  "repository": {
+    "url": "https://github.cds.internal.unity3d.com/unity/com.unity.transport.git",
+    "type": "git",
+    "revision": "6f83b98fdc9ce9f33261055e34cedb5583730039"
+  },
+  "samples": [
+    {
+      "displayName": "Cross-play Example",
+      "description": "Example of how to use MultiNetworkDriver to create a server that accepts both UDP and WebSocket connections.",
+      "path": "Samples~/CrossPlay"
+    },
+    {
+      "displayName": "Jobified Client and Server",
+      "description": "Very simple client and server implementations using jobs. Meant to tie in with the package documentation.",
+      "path": "Samples~/JobifiedClientServer"
+    },
+    {
+      "displayName": "Ping Sample",
+      "description": "Small application to compute round-trip time (ping) between client and server.",
+      "path": "Samples~/Ping"
+    },
+    {
+      "displayName": "Ping Sample (with Relay)",
+      "description": "Small application to compute round-trip time (ping) between client and host, using Unity Relay.",
+      "path": "Samples~/RelayPing"
+    },
+    {
+      "displayName": "Simple Client and Server",
+      "description": "Simplest possible client and server implementations. Meant to tie in with the package documentation.",
+      "path": "Samples~/SimpleClientServer"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 {
     "name": "Unity.NetCode.EditorTests",
+    "rootNamespace": "",
     "references": [
         "Unity.Build",
         "Unity.Burst",
@@ -31,7 +32,8 @@
     ],
     "autoReferenced": false,
     "defineConstraints": [
-        "UNITY_INCLUDE_TESTS"
+        "UNITY_INCLUDE_TESTS",
+        "DONT_INCLUDE_NETCODE_TESTS_BECAUSE_THEY_BREAK_MULTIPLAYER"
     ],
     "versionDefines": [
       {

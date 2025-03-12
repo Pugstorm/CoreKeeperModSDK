@@ -370,7 +370,7 @@ namespace Unity.NetCode
         public void OnUpdate(ref SystemState state)
         {
             var networkTime = SystemAPI.GetSingleton<NetworkTime>();
-            var commandBuffer = SystemAPI.GetSingleton<NetworkGroupCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
+            var commandBuffer = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
             var netDebug = SystemAPI.GetSingleton<NetDebug>();
             FixedString128Bytes debugPrefix = $"[{state.WorldUnmanaged.Name}][Connection]";
 
@@ -685,9 +685,8 @@ namespace Unity.NetCode
                                     uint remoteTime = reader.ReadUInt();
                                     uint localTimeMinusRTT = reader.ReadUInt();
                                     uint interpolationDelay = reader.ReadUInt();
-                                    uint numLoadedPrefabs = reader.ReadUInt();
 
-                                    snapshotAck.UpdateRemoteAckedData(remoteTime, numLoadedPrefabs, interpolationDelay);
+                                    snapshotAck.UpdateRemoteAckedData(remoteTime, interpolationDelay);
                                     snapshotAck.UpdateRemoteTime(remoteTime, localTimeMinusRTT, localTime);
                                     var tickReader = reader;
                                     var cmdTick = new NetworkTick{SerializedData = tickReader.ReadUInt()};

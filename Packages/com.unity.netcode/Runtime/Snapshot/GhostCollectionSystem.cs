@@ -35,11 +35,19 @@ namespace Unity.NetCode
     /// </para>
     /// </summary>
     [BurstCompile]
-    [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
+    [UpdateInGroup(typeof(InitializationSystemGroup))]
     [CreateAfter(typeof(DefaultVariantSystemGroup))]
     [WorldSystemFilter(WorldSystemFilterFlags.Default | WorldSystemFilterFlags.ThinClientSimulation)]
     public partial struct GhostCollectionSystem : ISystem
     {
+		internal struct GhostCollectionPrefabComparer : IComparer<GhostCollectionPrefab>
+		{
+			public int Compare(GhostCollectionPrefab x, GhostCollectionPrefab y)
+			{
+				return x.GhostType.CompareTo(y.GhostType);
+			}
+		}
+		
         struct ComponentHashComparer : IComparer<GhostComponentSerializer.State>
         {
             public int Compare(GhostComponentSerializer.State x, GhostComponentSerializer.State y)
@@ -75,11 +83,11 @@ namespace Unity.NetCode
         private int m_PrevPredictionErrorNamesCount;
         private int m_PrevGhostNamesCount;
 #endif
-
-        private EntityQuery m_InGameQuery;
+		
         private EntityQuery m_AllConnectionsQuery;
         private EntityQuery m_RuntimeStripQuery;
-
+		private EntityQuery m_GhostPrefabQuery;
+		
         private struct UsedComponentType
         {
             public int UsedIndex;
@@ -99,7 +107,8 @@ namespace Unity.NetCode
         // R2: if a ghost present the same components, with the same fields but different [GhostField] attributes (such as, subType, interpolated, composite)
         //     must result in a different hash, even though the resulting serialization sizes and masks are the same
         internal static ulong CalculateComponentCollectionHash(DynamicBuffer<GhostComponentSerializer.State> ghostComponentCollection)
-        {
+		{
+			return 0; // TODO(Max): Remove when we have solved why this is 0 only on client
             ulong componentCollectionHash = 0;
             for (int i = 0; i < ghostComponentCollection.Length; ++i)
             {
@@ -162,7 +171,9 @@ namespace Unity.NetCode
         [BurstCompile]
         public void OnCreate(ref SystemState state)
         {
-            using var entityQueryBuilder = new EntityQueryBuilder(Allocator.Temp).WithAll<GhostPrefabMetaData, Prefab, GhostPrefabRuntimeStrip>();
+            using var entityQueryBuilder = new EntityQueryBuilder(Allocator.Temp)
+			.WithAll<GhostPrefabMetaData, Prefab, GhostPrefabRuntimeStrip>()
+			.WithOptions(EntityQueryOptions.IncludeDisabledEntities | EntityQueryOptions.IncludePrefab);
             m_RuntimeStripQuery = state.GetEntityQuery(entityQueryBuilder);
 
             state.RequireForUpdate<GhostCollection>();
@@ -187,16 +198,21 @@ namespace Unity.NetCode
             {
                 Serializers = m_CustomSerializers
             });
-            entityQueryBuilder.Reset();
-            entityQueryBuilder.WithAll<NetworkStreamInGame>();
-            m_InGameQuery = state.GetEntityQuery(entityQueryBuilder);
+
             entityQueryBuilder.Reset();
             entityQueryBuilder.WithAll<NetworkId>();
             m_AllConnectionsQuery = state.GetEntityQuery(entityQueryBuilder);
             entityQueryBuilder.Reset();
-            entityQueryBuilder.WithAll<Prefab, GhostType>().WithNone<GhostPrefabRuntimeStrip>();
+            entityQueryBuilder.WithAll<Prefab, GhostType>().WithNone<GhostPrefabRuntimeStrip>()
+			.WithOptions(EntityQueryOptions.IncludeDisabledEntities | EntityQueryOptions.IncludePrefab);
             m_RegisterGhostTypesQuery = state.GetEntityQuery(entityQueryBuilder);
 
+			entityQueryBuilder.Reset();
+			entityQueryBuilder.WithAll<GhostType, Prefab>().WithNone<GhostPrefabInCollection>()
+			.WithOptions(EntityQueryOptions.IncludePrefab);
+			m_GhostPrefabQuery = state.GetEntityQuery(entityQueryBuilder);
+			state.RequireForUpdate(m_GhostPrefabQuery);
+			
             if (!SystemAPI.TryGetSingletonEntity<CodeGhostPrefab>(out m_CodePrefabSingleton))
                 m_CodePrefabSingleton = state.EntityManager.CreateSingletonBuffer<CodeGhostPrefab>();
         }
@@ -250,41 +266,6 @@ namespace Unity.NetCode
             }
             RuntimeStripPrefabs(ref state, in netDebug);
 
-            // if not in game clear the ghost collections
-            if (m_InGameQuery.IsEmptyIgnoreFilter)
-            {
-                state.EntityManager.GetBuffer<GhostCollectionPrefab>(m_CollectionSingleton).Clear();
-                state.EntityManager.GetBuffer<GhostCollectionPrefabSerializer>(m_CollectionSingleton).Clear();
-                state.EntityManager.GetBuffer<GhostCollectionComponentIndex>(m_CollectionSingleton).Clear();
-                state.EntityManager.GetBuffer<GhostCollectionComponentType>(m_CollectionSingleton).Clear();
-                for (int i = 0; i < m_AllComponentTypes.Length; ++i)
-                {
-                    var ctype = m_AllComponentTypes[i];
-                    ctype.UsedIndex = -1;
-                    m_AllComponentTypes[i] = ctype;
-                }
-
-#if UNITY_EDITOR || NETCODE_DEBUG
-                m_PendingNameAssignments.Clear();
-                m_PredictionErrorNames.Clear();
-                m_GhostNames.Clear();
-                m_currentPredictionErrorNamesCount = 0;
-                m_currentPredictionErrorCount = 0;
-                if (m_PrevPredictionErrorNamesCount > 0 || m_PrevGhostNamesCount > 0)
-                {
-                    SystemAPI.GetSingletonRW<GhostStatsCollectionData>().ValueRW.SetGhostNames(state.WorldUnmanaged.Name, m_GhostNames, m_PredictionErrorNames);
-                    if (SystemAPI.TryGetSingletonBuffer<GhostNames>(out var ghosts))
-                        UpdateGhostNames(ghosts, m_GhostNames);
-                    if (SystemAPI.TryGetSingletonBuffer<PredictionErrorNames>(out var predictionErrors))
-                        UpdatePredictionErrorNames(predictionErrors, m_PredictionErrorNames);
-                    m_PrevPredictionErrorNamesCount = 0;
-                    m_PrevGhostNamesCount = 0;
-                }
-#endif
-                SystemAPI.SetSingleton(default(GhostCollection));
-                return;
-            }
-
             // TODO: Using run on these is only required because the prefab processing cannot run in a job yet
             var ghostCollectionFromEntity = SystemAPI.GetBufferLookup<GhostCollectionPrefab>();
             var collectionSingleton = m_CollectionSingleton;
@@ -313,7 +294,7 @@ namespace Unity.NetCode
                 using var ghostTypes = m_RegisterGhostTypesQuery.ToComponentDataArray<GhostType>(Allocator.Temp);
                 var ghostCollectionList = ghostCollectionFromEntity[collectionSingleton];
 
-                if (state.WorldUnmanaged.IsServer())
+
                 {
                     // The server adds all ghost prefabs to the ghost collection if they are not already there
                     for (int i = 0; i < ghostEntities.Length; i++)
@@ -332,28 +313,14 @@ namespace Unity.NetCode
                         }
                     }
                 }
-                else
-                {
-                    // The client scans for Entity.Null and sets up the correct prefab
-                    for (int i = 0; i < ghostEntities.Length; i++)
-                    {
-                        var ent = ghostEntities[i];
-                        var ghostType = ghostTypes[i];
-                        for (int j = 0; j < ghostCollectionList.Length; ++j)
-                        {
-                            var ghost = ghostCollectionList[j];
-                            if (ghost.GhostPrefab == Entity.Null && ghost.GhostType == ghostType)
-                            {
-#if NETCODE_DEBUG
-                                ValidatePrefabGUID(ent, ghostType, codePrefabs, ghostTypeFromEntity);
-#endif
-                                ghost.GhostPrefab = ent;
-                                ghostCollectionList[j] = ghost;
-                            }
-                        }
-                    }
-                }
+				
+				// Sort prefabs since we need this list to be the same on client and server
+				ghostCollectionList.AsNativeArray().Sort(new GhostCollectionPrefabComparer());
             }
+			
+			var ghostCollection = SystemAPI.GetBuffer<GhostCollectionPrefab>(m_CollectionSingleton);
+			var ghostSerializerCollection = SystemAPI.GetBuffer<GhostCollectionPrefabSerializer>(m_CollectionSingleton);
+			var addedPrefabs = new NativeList<Entity>(ghostCollection.Length - ghostSerializerCollection.Length, Allocator.Temp);
 
             var ctx = new AddComponentCtx
             {
@@ -390,6 +357,7 @@ namespace Unity.NetCode
                     // Ensure it was added (can fail due to collection checks):
                     if (ctx.ghostPrefabSerializerCollection.Length > i)
                         hash = HashGhostType(ctx.ghostPrefabSerializerCollection[i], in netDebug, in ctx.ghostName, in entityPrefabName, in ghost.GhostPrefab);
+					addedPrefabs.Add(ghost.GhostPrefab);
                 }
 
                 if ((ghost.Hash != 0 && ghost.Hash != hash) || hash == 0)
@@ -457,18 +425,19 @@ namespace Unity.NetCode
 #if UNITY_EDITOR || NETCODE_DEBUG
             SystemAPI.SetSingleton(new GhostCollection
             {
-                NumLoadedPrefabs = ctx.ghostPrefabSerializerCollection.Length,
                 NumPredictionErrors = m_currentPredictionErrorCount,
                 IsInGame = true
             });
 #else
             SystemAPI.SetSingleton(new GhostCollection
             {
-                NumLoadedPrefabs = ctx.ghostPrefabSerializerCollection.Length,
                 IsInGame = true
             });
 #endif
-        }
+			// Mark added prefabs as being in collection already so we don't have to check twice
+			state.EntityManager.AddComponent<GhostPrefabInCollection>(addedPrefabs);
+			addedPrefabs.Dispose();
+		}
 
         /// <summary>
         /// Small helper function (a hack, really) to manually look for this invalid hash inside the in-process ServerWorld[s], for easier debugging.

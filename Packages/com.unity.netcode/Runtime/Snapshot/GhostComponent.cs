@@ -118,7 +118,7 @@ namespace Unity.NetCode
     [DontSupportPrefabOverrides]
     [Serializable]
     public struct GhostType : IComponentData,
-        IEquatable<GhostType>
+        IEquatable<GhostType>, IComparable<GhostType>
     {
         /// <summary>
         /// The first 4 bytes of the prefab guid
@@ -240,6 +240,17 @@ namespace Unity.NetCode
             result = (result*31) ^ guid3.GetHashCode();
             return result;
         }
+		
+		public int CompareTo(GhostType other)
+		{
+			var guid0Comparison = guid0.CompareTo(other.guid0);
+			if (guid0Comparison != 0) return guid0Comparison;
+			var guid1Comparison = guid1.CompareTo(other.guid1);
+			if (guid1Comparison != 0) return guid1Comparison;
+			var guid2Comparison = guid2.CompareTo(other.guid2);
+			if (guid2Comparison != 0) return guid2Comparison;
+			return guid3.CompareTo(other.guid3);
+		}
     }
 
 
@@ -291,6 +302,13 @@ namespace Unity.NetCode
         {
             return !PredictionStartTick.IsValid || tick.IsNewerThan(PredictionStartTick);
         }
+    }
+
+    /// <summary>
+    /// Skip using the prediction backup, always rerun the prediction from the last received snapshot.
+    /// </summary>
+    public struct DontUsePredictionBackup : IComponentData
+    {
     }
 
     /// <summary>

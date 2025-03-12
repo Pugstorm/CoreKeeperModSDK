@@ -38,7 +38,7 @@ namespace Unity.NetCode
         public ComponentTypeHandle<GhostChildEntity> ghostChildEntityComponentType;
         public BufferTypeHandle<GhostGroup> ghostGroupType;
         public NetworkSnapshotAck snapshotAck;
-        public UnsafeHashMap<ArchetypeChunk, GhostChunkSerializationState> chunkSerializationData;
+        public UnsafeHashMap<ulong, GhostChunkSerializationState> chunkSerializationData;
         public DynamicComponentTypeHandle* ghostChunkComponentTypesPtr;
         public int ghostChunkComponentTypesLength;
         public NetworkTick currentTick;
@@ -62,7 +62,7 @@ namespace Unity.NetCode
         FixedString512Bytes debugLog;
 #endif
 
-        [ReadOnly] public NativeParallelHashMap<ArchetypeChunk, SnapshotPreSerializeData> SnapshotPreSerializeData;
+        [ReadOnly] public NativeParallelHashMap<ulong, SnapshotPreSerializeData> SnapshotPreSerializeData;
         public byte forceSingleBaseline;
         public byte keepSnapshotHistoryOnStructuralChange;
         public byte snaphostHasCompressedGhostSize;
@@ -145,7 +145,7 @@ namespace Unity.NetCode
             {
                 chunkState.EnsureDynamicDataCapacity(currentSnapshot.SnapshotDynamicDataSize, chunk.Capacity);
                 //Update the chunk state
-                chunkSerializationData[chunk] = chunkState;
+                chunkSerializationData[chunk.SequenceNumber] = chunkState;
                 currentSnapshot.SnapshotDynamicData = chunkState.GetDynamicDataPtr(writeIndex, chunk.Capacity, out currentSnapshot.SnapshotDynamicDataCapacity);
                 if(currentSnapshot.SnapshotDynamicData == null)
                     throw new InvalidOperationException("failed to create history snapshot storage for dynamic data buffer");
@@ -375,7 +375,7 @@ namespace Unity.NetCode
         [Conditional("UNITY_EDITOR"), Conditional("NETCODE_DEBUG")]
         private void ComponentScopeBegin(int serializerIdx)
         {
-            #if UNITY_EDITOR || NETCODE_DEBUG
+            #if NETCODE_DEBUG
             if (enablePerComponentProfiling == 1)
                 GhostComponentCollection[serializerIdx].ProfilerMarker.Begin();
             #endif
@@ -383,7 +383,7 @@ namespace Unity.NetCode
         [Conditional("UNITY_EDITOR"), Conditional("NETCODE_DEBUG")]
         private void ComponentScopeEnd(int serializerIdx)
         {
-            #if UNITY_EDITOR || NETCODE_DEBUG
+            #if NETCODE_DEBUG
             if (enablePerComponentProfiling == 1)
                 GhostComponentCollection[serializerIdx].ProfilerMarker.End();
             #endif
@@ -580,7 +580,7 @@ namespace Unity.NetCode
             var oldTempWriter = tempWriter;
 
             SnapshotPreSerializeData preSerializedSnapshot = default;
-            var hasPreserializeData = chunk.Has(ref preSerializedGhostType) && SnapshotPreSerializeData.TryGetValue(chunk, out preSerializedSnapshot);
+            var hasPreserializeData = chunk.Has(ref preSerializedGhostType) && SnapshotPreSerializeData.TryGetValue(chunk.SequenceNumber, out preSerializedSnapshot);
             var hasCustomSerializer = useCustomSerializer != 0 && typeData.CustomSerializer.Ptr.IsCreated;
             var lastSerializedEntity = endIndex;
 
@@ -1250,10 +1250,7 @@ namespace Unity.NetCode
                     throw new InvalidOperationException("Ghost group contains an member which does not have a GhostChildEntityComponent.");
                 #endif
                 // Entity does not have valid state initialized yet, wait some more
-                if (!chunkSerializationData.TryGetValue(groupChunk.Chunk, out var chunkState))
-                    return false;
-                // Prefab for this ghost type has not been acked yet
-                if (chunkState.ghostType >= snapshotAck.NumLoadedPrefabs)
+                if (!chunkSerializationData.TryGetValue(groupChunk.Chunk.SequenceNumber, out var chunkState))
                     return false;
             }
             return true;
@@ -1265,7 +1262,7 @@ namespace Unity.NetCode
             {
                 if (!childEntityLookup.TryGetValue(ghostGroup[i].Value, out var groupChunk))
                     throw new InvalidOperationException("Ghost group contains an member which is not a valid entity.");
-                if (!chunkSerializationData.TryGetValue(groupChunk.Chunk, out var chunkState))
+                if (!chunkSerializationData.TryGetValue(groupChunk.Chunk.SequenceNumber, out var chunkState))
                     throw new InvalidOperationException("Ghost group member does not have state.");
                 var childGhostType = chunkState.ghostType;
                 #if ENABLE_UNITY_COLLECTIONS_CHECKS
@@ -1333,7 +1330,7 @@ namespace Unity.NetCode
                     {
                         if (!childEntityLookup.TryGetValue(ghostGroup[i].Value, out groupChunk))
                             throw new InvalidOperationException("Ghost group contains an member which is not a valid entity.");
-                        if (chunkSerializationData.TryGetValue(groupChunk.Chunk, out chunkState))
+                        if (chunkSerializationData.TryGetValue(groupChunk.Chunk.SequenceNumber, out chunkState))
                         {
                             var groupSnapshotEntity =
                                 chunkState.GetEntity(dataSize, groupChunk.Chunk.Capacity, writeIndex);
@@ -1351,7 +1348,7 @@ namespace Unity.NetCode
         //to store all the dynamic buffer contents (if any)
         private unsafe int GatherDynamicBufferSize(in ArchetypeChunk chunk, int startIndex, int ghostType)
         {
-            if (chunk.Has(ref preSerializedGhostType) && SnapshotPreSerializeData.TryGetValue(chunk, out var preSerializedSnapshot))
+            if (chunk.Has(ref preSerializedGhostType) && SnapshotPreSerializeData.TryGetValue(chunk.SequenceNumber, out var preSerializedSnapshot))
             {
                 return preSerializedSnapshot.DynamicSize;
             }
@@ -1527,7 +1524,7 @@ namespace Unity.NetCode
                     // GetLastValidTick is required to know that the memory used by LastChunk is currently used as a chunk storing ghosts, without that check the chunk memory could be reused for
                     // something else before or during this loop causing it to access invalid memory (which could also change during the loop)
                     if ((keepSnapshotHistoryOnStructuralChange == 1) && ghostState.LastChunk != default && GhostTypeCollection[ghostType].NumBuffers == 0 &&
-                        chunkSerializationData.TryGetValue(ghostState.LastChunk, out var prevChunkState) && prevChunkState.GetLastValidTick() == currentTick &&
+                        chunkSerializationData.TryGetValue(ghostState.LastChunk.SequenceNumber, out var prevChunkState) && prevChunkState.GetLastValidTick() == currentTick &&
                         prevChunkState.IsSameSizeAndCapacity(snapshotSize, ghostState.LastChunk.Capacity))
                     {
                         uint* snapshotIndex = prevChunkState.GetSnapshotIndex();
@@ -1610,7 +1607,7 @@ namespace Unity.NetCode
 
             int relevantGhostCount = chunk.Count - serialChunk.startIndex;
             bool canSkipZeroChange = false;
-            if (chunkSerializationData.TryGetValue(chunk, out chunkState))
+            if (chunkSerializationData.TryGetValue(chunk.SequenceNumber, out chunkState))
             {
                 uint* snapshotIndex = chunkState.GetSnapshotIndex();
                 int writeIndex = chunkState.GetSnapshotWriteIndex();

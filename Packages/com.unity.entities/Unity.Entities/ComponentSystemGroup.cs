@@ -35,7 +35,7 @@ namespace Unity.Entities
     [DebuggerTypeProxy(typeof(ComponentSystemGroupDebugView))]
     public abstract unsafe partial class ComponentSystemGroup : SystemBase
     {
-        private bool m_systemSortDirty = false;
+        protected bool m_systemSortDirty = false;
 
         // Initial memory block size in bytes
         const int InitialSystemGroupAllocatorBlockSizeInBytes = 128 * 1024;    // 128k
@@ -123,6 +123,39 @@ namespace Unity.Entities
                 ret.Add(entry.IsManaged ? m_managedSystemsToUpdate[entry.Index].SystemHandle : m_UnmanagedSystemsToUpdate[entry.Index]);
             }
             return ret;
+        }
+
+        /// <summary>
+        /// Get the list of all systems in this group, managed and unmanaged alike, sorted by update order. Includes other ComponentSystemGroup and all recursively included systems.
+        /// </summary>
+        /// <param name="allocator">Which allocator to use to allocate the returned list.</param>
+        /// <returns>A NativeList of systems</returns>
+        public NativeList<SystemHandle> GetAllSystemsFlat(Allocator allocator = Allocator.Temp)
+        {
+            var ret = new NativeList<SystemHandle>(16, allocator);
+			GetAllSystemsFlatRecurse(ref ret);
+            return ret;
+        }
+		
+        private void GetAllSystemsFlatRecurse(ref NativeList<SystemHandle> ret)
+        {
+            for (int i = 0; i < m_MasterUpdateList.Length; i++)
+            {
+                var entry = m_MasterUpdateList[i];
+				if (!entry.IsManaged)
+				{
+					ret.Add(m_UnmanagedSystemsToUpdate[entry.Index]);
+					continue;
+				}
+				
+				var managedSystem = m_managedSystemsToUpdate[entry.Index];
+				ret.Add(managedSystem.SystemHandle);
+                if (TypeManager.IsSystemAGroup(managedSystem.GetType()))
+                {
+                    var childGroup = managedSystem as ComponentSystemGroup;
+					childGroup.GetAllSystemsFlatRecurse(ref ret);
+                }
+            }
         }
 
         internal DoubleRewindableAllocators* m_RateGroupAllocators = null;
@@ -689,7 +722,7 @@ namespace Unity.Entities
             }
         }
 
-        void UpdateAllSystems()
+        protected void UpdateAllSystems()
         {
             if (m_systemSortDirty)
                 SortSystems();

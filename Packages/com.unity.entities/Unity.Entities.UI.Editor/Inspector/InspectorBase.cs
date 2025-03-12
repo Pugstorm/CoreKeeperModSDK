@@ -10,7 +10,7 @@ namespace Unity.Entities.UI
     /// Base class for defining a custom inspector for values of type <see cref="T"/>.
     /// </summary>
     /// <typeparam name="T">The type of the value to inspect.</typeparam>
-    internal abstract class InspectorBase<T> : IInspector<T>
+    public abstract class InspectorBase<T> : IInspector<T>
     {
         internal InspectorBase()
         {

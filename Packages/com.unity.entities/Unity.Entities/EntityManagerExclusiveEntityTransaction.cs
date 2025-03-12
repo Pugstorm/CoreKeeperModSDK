@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
@@ -115,6 +116,36 @@ namespace Unity.Entities
             AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
         #endif
             m_EntityDataAccess->DependencyManager->EndExclusiveTransaction();
+        }
+
+        [Conditional("UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY")]
+        public void BeginSingleSystemDependencyMode()
+        {
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            var access = GetCheckedEntityDataAccess();
+
+        #if ENABLE_UNITY_COLLECTIONS_CHECKS || UNITY_DOTS_DEBUG
+            if (access->DependencyManager->IsInSingleSystemDependencyMode)
+                throw new InvalidOperationException("Single system dependency already enabled.");
+        #endif
+
+            access->DependencyManager->BeginSingleSystemDependencyMode();
+#endif
+        }
+
+        [Conditional("UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY")]
+        public void EndSingleSystemDependencyMode()
+        {
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            var access = GetCheckedEntityDataAccess();
+
+        #if ENABLE_UNITY_COLLECTIONS_CHECKS || UNITY_DOTS_DEBUG
+            if (!access->DependencyManager->IsInSingleSystemDependencyMode)
+                throw new InvalidOperationException("Single system dependency mode not enabled.");
+        #endif
+            
+            access->DependencyManager->EndSingleSystemDependencyMode();
+#endif
         }
 
         // ----------------------------------------------------------------------------------------------------------

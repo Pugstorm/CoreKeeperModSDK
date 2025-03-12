@@ -147,6 +147,111 @@ namespace Unity.NetCode.LowLevel
             CopyDataFromSnapshot(snapshotBuffer, dataOffset + offset, serializerIndex, ref componentData);
             return true;
         }
+        
+        public unsafe bool TryGetComponentDataFromSnapshotHistory<T>(int ghostTypeIndex, SnapshotData snapshotData,
+            in DynamicBuffer<SnapshotDataBuffer> snapshotBuffer, out T componentData, NetworkTick tick, float tickFraction) where T : unmanaged, IComponentData
+        {
+            componentData = default;
+            var offset = GetComponentDataOffset(TypeManager.GetTypeIndex<T>(), ghostTypeIndex, out var serializerIndex);
+            if (offset < 0)
+                return false;
+
+            //var snapshotSize = m_ghostPrefabType.ElementAtRO(ghostTypeIndex).SnapshotSize;
+            
+            //From here retrieving the data requires the serializer for this component type and ghost
+            ref readonly var serializer = ref m_ghostSerializers.ElementAtRO(serializerIndex);
+            //Force copy the type, not matter what the client filter is. Worst scenario, the component
+            //has the default data (as it should be).
+            var deserializerState = new GhostDeserializerState
+            {
+                GhostMap = m_ghostMap,
+                //SnapshotTick = tick,
+                SendToOwner = SendToOwnerType.All
+            };
+
+            if (!snapshotData.GetDataAtTick(tick, 0, default, tickFraction, snapshotBuffer, out var dataAtTick, 1))
+            {
+                return false;
+            }
+
+            dataAtTick.SnapshotBefore += offset;
+            dataAtTick.SnapshotAfter += offset;
+            
+            //var dataOffsetBefore = snapshotSize * slotIndexBefore;
+            //var dataOffsetAfter = snapshotSize * slotIndexAfter;
+            //TODO: we may eventually use a more specialized version of this function that does less things and specifically designed for that
+            //var snapshotBufferPtr = (byte*)snapshotBuffer.GetUnsafeReadOnlyPtr();
+            //var snapshotBefore = snapshotBufferPtr + dataOffsetBefore + offset;
+            //var snapshotAfter = snapshotBufferPtr + dataOffsetAfter + offset;
+            //var dataAtTick = new SnapshotData.DataAtTick
+            //{
+            //    SnapshotBefore = (System.IntPtr)snapshotBefore,
+            //    SnapshotAfter = (System.IntPtr)snapshotAfter,
+            //    RequiredOwnerSendMask = SendToOwnerType.All,
+            //    //Tick = tick,
+            //    //BeforeIdx = slotIndexBefore,
+            //    //AfterIdx = slotIndexAfter,
+            //    InterpolationFactor = interpolationFactor,
+            //};
+            m_ghostSerializers[serializerIndex].CopyFromSnapshot.Invoke(
+                (System.IntPtr)UnsafeUtility.AddressOf(ref deserializerState),
+                (System.IntPtr)UnsafeUtility.AddressOf(ref dataAtTick),
+                0,
+                0,
+                (System.IntPtr)UnsafeUtility.AddressOf(ref componentData), serializer.ComponentSize,
+                1);
+            return true;
+        }
+		
+		public unsafe bool TryCopyBufferFromSnapshotHistory<T>(int ghostTypeIndex, SnapshotData snapshotData,
+            in DynamicBuffer<SnapshotDataBuffer> snapshotBuffer, in DynamicBuffer<SnapshotDynamicDataBuffer> dynamicDataBuffer, 
+			DynamicBuffer<T> dynamicBuffer, NetworkTick tick, float tickFraction) where T : unmanaged, IBufferElementData
+        {
+            var offset = GetComponentDataOffset(TypeManager.GetTypeIndex<T>(), ghostTypeIndex, out var serializerIndex);
+            if (offset < 0)
+                return false;
+			
+            //From here retrieving the data requires the serializer for this component type and ghost
+            ref readonly var serializer = ref m_ghostSerializers.ElementAtRO(serializerIndex);
+			
+            //Force copy the type, not matter what the client filter is. Worst scenario, the component
+            //has the default data (as it should be).
+            var deserializerState = new GhostDeserializerState
+            {
+                GhostMap = m_ghostMap,
+                //SnapshotTick = tick,
+                SendToOwner = SendToOwnerType.All
+            };
+
+            if (!snapshotData.GetDataAtTick(tick, 0, default, tickFraction, snapshotBuffer, out var dataAtTick, 1))
+            {
+                return false;
+            }
+			
+			// Same as in GhostUpdateSystem
+			var dynamicDataSize = m_ghostSerializers[serializerIndex].SnapshotSize;
+			var compSize = m_ghostSerializers[serializerIndex].ComponentSize;
+			var maskBits = m_ghostSerializers[serializerIndex].ChangeMaskBits;
+			var dynamicDataAtTick = GhostUpdateSystem.SetupDynamicDataAtTick(dataAtTick, offset, dynamicDataSize, maskBits, dynamicDataBuffer, out var bufLen);
+
+			if (dynamicBuffer.Length != bufLen)
+			{
+				dynamicBuffer.ResizeUninitialized(bufLen);
+			}
+			
+			var rwBufData = (byte*)dynamicBuffer.GetUnsafePtr();
+			
+			m_ghostSerializers[serializerIndex].CopyFromSnapshot.Invoke(
+				(System.IntPtr)UnsafeUtility.AddressOf(ref deserializerState),
+				(System.IntPtr) UnsafeUtility.AddressOf(ref dynamicDataAtTick), 
+				0, 
+				dynamicDataSize,
+				(System.IntPtr)rwBufData, 
+				compSize, 
+				bufLen);
+			
+            return true;
+        }
 
         /// <summary>
         /// Try to retrieve the data for a component type <typeparam name="T"></typeparam> from the spawning buffer.

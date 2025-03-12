@@ -1,3 +1,6 @@
+#if UNITY_EDITOR && !NETCODE_NDEBUG
+#define NETCODE_DEBUG
+#endif
 #if USING_OBSOLETE_METHODS_VIA_INTERNALSVISIBLETO
 #pragma warning disable 0436
 #endif
@@ -147,7 +150,9 @@ namespace Unity.NetCode
         }
 
         private LogLevelType m_LogLevel;
+#if NETCODE_DEBUG
         internal NativeHashMap<int, FixedString128Bytes>.ReadOnly ComponentTypeNameLookup;
+#endif
 
 #if USING_UNITY_LOGGING
         private LogLevel m_CurrentLogLevel;

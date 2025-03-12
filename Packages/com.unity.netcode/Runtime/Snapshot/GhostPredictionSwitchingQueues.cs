@@ -100,11 +100,105 @@ namespace Unity.NetCode
     [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
     [UpdateAfter(typeof(GhostReceiveSystem))]
     [UpdateBefore(typeof(GhostUpdateSystem))]
+    public partial struct GhostOwnerPredictionSwitchingSystem : ISystem
+    {
+        NativeQueue<OwnerSwithchingEntry> m_OwnerPredictedQueue;
+        ComponentLookup<PredictionSwitchingSmoothing> m_PredictionSwitchingSmoothingLookup;
+
+        public void OnCreate(ref SystemState state)
+        {
+            m_PredictionSwitchingSmoothingLookup = state.GetComponentLookup<PredictionSwitchingSmoothing>(true);
+            m_OwnerPredictedQueue = new NativeQueue<OwnerSwithchingEntry>(Allocator.Persistent);
+            var singletonEntity = state.EntityManager.CreateEntity(ComponentType.ReadOnly<GhostOwnerPredictedSwitchingQueue>());
+            state.EntityManager.SetName(singletonEntity, (FixedString64Bytes)"GhostOwnerPredictionQueue");
+            SystemAPI.SetSingleton(new GhostOwnerPredictedSwitchingQueue
+            {
+                SwitchOwnerQueue = m_OwnerPredictedQueue
+            });
+        }
+
+        [BurstCompile]
+        public void OnDestroy(ref SystemState state)
+        {
+            m_OwnerPredictedQueue.Dispose();
+        }
+
+        [BurstCompile]
+        public void OnUpdate(ref SystemState state)
+        {
+            //Checking the value for this queues on the main thread requires we are waiting for writers.
+            state.CompleteDependency();
+            FixedList64Bytes<Entity> batchedDeletedWarnings = default;
+            uint batchedDeletedCount = 0;
+            //if the client is not connected to the server, or not in game the queue should be empty. Worst case scenario,
+            //the client disconnect and in that case the GhostReceiveSystem already destroy all the entities.
+            //This is then detected in the ConvertOwnerPredictedGhost method, so it is safe.
+            //However, if the client is not in game and asking for converting or switching owner should just skipped and the queues
+            //cleared
+            if (!SystemAPI.HasSingleton<NetworkStreamInGame>())
+            {
+                m_OwnerPredictedQueue.Clear();
+                return;
+            }
+            if (m_OwnerPredictedQueue.Count > 0)
+            {
+#if UNITY_EDITOR
+                UpdateAnalyticsSwitchCount();
+#endif
+                var netDebug = SystemAPI.GetSingleton<NetDebug>();
+                var ghostUpdateVersion = SystemAPI.GetSingleton<GhostUpdateVersion>();
+                var prefabs = SystemAPI.GetSingletonBuffer<GhostCollectionPrefab>().ToNativeArray(Allocator.Temp);
+                var networkId = SystemAPI.GetSingleton<NetworkId>();
+                while (m_OwnerPredictedQueue.TryDequeue(out var ownerSwitching))
+                {
+                    //This is unfortunately necessary because components are added and removed
+                    //invalidating the lookup safety handle. That is really mostly a restriction
+                    //(almost a bug i would say).
+                    m_PredictionSwitchingSmoothingLookup.Update(ref state);
+                    m_PredictionSwitchingSmoothingLookup.TryGetComponent(ownerSwitching.TargetEntity, out var smoothing);
+                    PredictionSwitchingUtilities.ConvertOwnerPredictedGhost(state.EntityManager,
+                        ownerSwitching.TargetEntity, ownerSwitching.NewOwner, networkId.Value,
+                        ghostUpdateVersion, netDebug, prefabs,
+                        smoothing.TransitionDurationSeconds, ref batchedDeletedWarnings, ref batchedDeletedCount);
+                }
+
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+                if (batchedDeletedWarnings.Length > 0)
+                {
+                    FixedString512Bytes batchedWarning = $"Failed to 'switch prediction' on {batchedDeletedCount} entities as they don't exist! Likely destroyed after added to the queue. Subset of destroyed entities:[";
+                    foreach (var entity in batchedDeletedWarnings)
+                    {
+                        batchedWarning.Append(entity.ToFixedString());
+                        batchedWarning.Append(',');
+                    }
+                    if (batchedDeletedWarnings.Length == batchedWarning.Capacity)
+                        batchedWarning.Append((FixedString32Bytes)"etc");
+                    batchedWarning.Append((FixedString32Bytes)"].");
+                    netDebug.DebugLog(batchedWarning);
+                }
+#endif
+            }
+        }
+
+#if UNITY_EDITOR
+        void UpdateAnalyticsSwitchCount()
+        {
+            ref var analyticsData = ref SystemAPI.GetSingletonRW<PredictionSwitchingAnalyticsData>().ValueRW;
+            analyticsData.NumTimesSwitchedOwner += m_OwnerPredictedQueue.Count;
+        }
+#endif
+    }
+
+    /// <summary>System that applies the prediction switching on the queued entities (via <see cref="GhostPredictionSwitchingQueues"/>).</summary>
+    [BurstCompile]
+    [WorldSystemFilter(WorldSystemFilterFlags.ClientSimulation)]
+    [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
+    // This system doesn't depend on the ghost receive system like owner prediction so run before to avoid nasty sync point
+    [UpdateBefore(typeof(GhostReceiveSystem))]
     public partial struct GhostPredictionSwitchingSystem : ISystem
     {
         NativeQueue<ConvertPredictionEntry> m_ConvertToInterpolatedQueue;
         NativeQueue<ConvertPredictionEntry> m_ConvertToPredictedQueue;
-        NativeQueue<OwnerSwithchingEntry> m_OwnerPredictedQueue;
         ComponentLookup<PredictionSwitchingSmoothing> m_PredictionSwitchingSmoothingLookup;
 
         public void OnCreate(ref SystemState state)
@@ -115,19 +209,12 @@ namespace Unity.NetCode
             m_ConvertToInterpolatedQueue = new NativeQueue<ConvertPredictionEntry>(Allocator.Persistent);
             m_ConvertToPredictedQueue = new NativeQueue<ConvertPredictionEntry>(Allocator.Persistent);
             m_PredictionSwitchingSmoothingLookup = state.GetComponentLookup<PredictionSwitchingSmoothing>(true);
-            m_OwnerPredictedQueue = new NativeQueue<OwnerSwithchingEntry>(Allocator.Persistent);
-            var singletonEntity = state.EntityManager.CreateEntity(
-                ComponentType.ReadOnly<GhostPredictionSwitchingQueues>(),
-                ComponentType.ReadOnly<GhostOwnerPredictedSwitchingQueue>());
+            var singletonEntity = state.EntityManager.CreateEntity(ComponentType.ReadOnly<GhostPredictionSwitchingQueues>());
             state.EntityManager.SetName(singletonEntity, (FixedString64Bytes)"GhostPredictionQueues");
             SystemAPI.SetSingleton(new GhostPredictionSwitchingQueues
             {
                 ConvertToInterpolatedQueue = m_ConvertToInterpolatedQueue.AsParallelWriter(),
                 ConvertToPredictedQueue = m_ConvertToPredictedQueue.AsParallelWriter(),
-            });
-            SystemAPI.SetSingleton(new GhostOwnerPredictedSwitchingQueue
-            {
-                SwitchOwnerQueue = m_OwnerPredictedQueue
             });
         }
 
@@ -136,7 +223,6 @@ namespace Unity.NetCode
         {
             m_ConvertToPredictedQueue.Dispose();
             m_ConvertToInterpolatedQueue.Dispose();
-            m_OwnerPredictedQueue.Dispose();
         }
 
 #if UNITY_EDITOR
@@ -162,10 +248,9 @@ namespace Unity.NetCode
             {
                 m_ConvertToPredictedQueue.Clear();
                 m_ConvertToInterpolatedQueue.Clear();
-                m_OwnerPredictedQueue.Clear();
                 return;
             }
-            if (m_ConvertToPredictedQueue.Count + m_ConvertToInterpolatedQueue.Count + m_OwnerPredictedQueue.Count > 0)
+            if (m_ConvertToPredictedQueue.Count + m_ConvertToInterpolatedQueue.Count > 0)
             {
 #if UNITY_EDITOR
                 UpdateAnalyticsSwitchCount();
@@ -173,19 +258,6 @@ namespace Unity.NetCode
                 var netDebug = SystemAPI.GetSingleton<NetDebug>();
                 var ghostUpdateVersion = SystemAPI.GetSingleton<GhostUpdateVersion>();
                 var prefabs = SystemAPI.GetSingletonBuffer<GhostCollectionPrefab>().ToNativeArray(Allocator.Temp);
-                var networkId = SystemAPI.GetSingleton<NetworkId>();
-                while (m_OwnerPredictedQueue.TryDequeue(out var ownerSwitching))
-                {
-                    //This is unfortunately necessary because components are added and removed
-                    //invalidating the lookup safety handle. That is really mostly a restriction
-                    //(almost a bug i would say).
-                    m_PredictionSwitchingSmoothingLookup.Update(ref state);
-                    m_PredictionSwitchingSmoothingLookup.TryGetComponent(ownerSwitching.TargetEntity, out var smoothing);
-                    PredictionSwitchingUtilities.ConvertOwnerPredictedGhost(state.EntityManager,
-                        ownerSwitching.TargetEntity, ownerSwitching.NewOwner, networkId.Value,
-                        ghostUpdateVersion, netDebug, prefabs,
-                        smoothing.TransitionDurationSeconds, ref batchedDeletedWarnings, ref batchedDeletedCount);
-                }
                 while (m_ConvertToPredictedQueue.TryDequeue(out var conversion))
                 {
                     PredictionSwitchingUtilities.ConvertGhostToPredicted(state.EntityManager, ghostUpdateVersion, netDebug, prefabs, conversion.TargetEntity, conversion.TransitionDurationSeconds, ref batchedDeletedWarnings, ref batchedDeletedCount);
@@ -219,7 +291,6 @@ namespace Unity.NetCode
             ref var analyticsData = ref SystemAPI.GetSingletonRW<PredictionSwitchingAnalyticsData>().ValueRW;
             analyticsData.NumTimesSwitchedToPredicted += m_ConvertToPredictedQueue.Count;
             analyticsData.NumTimesSwitchedToInterpolated += m_ConvertToInterpolatedQueue.Count;
-            analyticsData.NumTimesSwitchedOwner += m_OwnerPredictedQueue.Count;
         }
 #endif
     }

@@ -48,6 +48,10 @@ namespace Unity.Entities
 
         JobHandle              m_ExclusiveTransactionDependency;
         byte                   _IsInTransaction;
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+        JobHandle              m_SingleSystemDependency;
+        byte                   _UsesSingleSystemDependency;
+#endif
 
         private ProfilerMarker m_Marker;
         private WorldUnmanaged m_World;
@@ -98,6 +102,10 @@ namespace Unity.Entities
 
             m_DependencyHandlesCount = 0;
             _IsInTransaction = 0;
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            _UsesSingleSystemDependency = 0;
+            m_SingleSystemDependency = default;
+#endif
             m_ExclusiveTransactionDependency = default;
 
 #if ENABLE_UNITY_COLLECTIONS_CHECKS || UNITY_DOTS_DEBUG
@@ -130,6 +138,13 @@ namespace Unity.Entities
                     systemState->m_JobHandle.Complete();
             }
 
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            m_SingleSystemDependency.Complete();
+            m_SingleSystemDependency = default;
+            if (_UsesSingleSystemDependency != 0)
+                return;
+#endif
+            
             if (m_DependencyHandlesCount != 0)
             {
                 AssertCompleteSyncPoint();
@@ -160,6 +175,11 @@ namespace Unity.Entities
 
         public void Dispose()
         {
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            m_SingleSystemDependency.Complete();
+            m_SingleSystemDependency = default;
+#endif
+            
             GetCombinedDependencyForAllTypes().Complete();
 
             Memory.Unmanaged.Free(m_TypeArrayIndices, Allocator.Persistent);
@@ -179,14 +199,77 @@ namespace Unity.Entities
 
         public void PreDisposeCheck()
         {
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            if (_UsesSingleSystemDependency != 0)
+            {
+                m_SingleSystemDependency.Complete();
+                m_SingleSystemDependency = default;
+            }
+#endif
+            
             GetCombinedDependencyForAllTypes().Complete();
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             Safety.PreDisposeCheck();
 #endif
         }
 
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+        private void HandleAssumeReadOnlyDependencies(TypeIndex* readerTypes, ref int readerTypesCount, TypeIndex* writerTypes, ref int writerTypesCount, out bool isWritingToReadOnly)
+        {
+            isWritingToReadOnly = false;
+            
+            for (int i = readerTypesCount - 1; i >= 0; --i)
+            {
+                if (readerTypes[i].AssumeReadOnlyType)
+                {
+                    // remove, need to keep same sorting
+                    --readerTypesCount;
+                    for (int j = i; j < readerTypesCount; ++j)
+                    {
+                        readerTypes[j] = readerTypes[j + 1];
+                    }
+                }
+            }
+
+            for (int i = writerTypesCount - 1; i >= 0; --i)
+            {
+                if (writerTypes[i].AssumeReadOnlyType)
+                {
+                    isWritingToReadOnly = true;
+                    // remove, need to keep same sorting
+                    --writerTypesCount;
+                    for (int j = i; j < writerTypesCount; ++j)
+                    {
+                        writerTypes[j] = writerTypes[j + 1];
+                    }
+                }
+            }
+        }
+#endif
+
         public void CompleteDependenciesNoChecks(TypeIndex* readerTypes, int readerTypesCount, TypeIndex* writerTypes, int writerTypesCount)
         {
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            if (_UsesSingleSystemDependency != 0)
+            {
+                HandleAssumeReadOnlyDependencies(readerTypes, ref readerTypesCount, writerTypes, ref writerTypesCount, out bool needsToCompleteAllJobs);
+                
+                if (needsToCompleteAllJobs)
+                {
+                    CompleteAllJobs();
+                    return;
+                }
+
+                if (readerTypesCount + writerTypesCount == 0)
+                {
+                    return;
+                }
+            }
+            
+            m_SingleSystemDependency.Complete();
+            m_SingleSystemDependency = default;
+#endif
+            
             var combinedJobHandle = GetDependency(readerTypes, readerTypesCount, writerTypes, writerTypesCount,
                 clearReadFencesAfterCombining:true);
             combinedJobHandle.Complete();
@@ -194,6 +277,20 @@ namespace Unity.Entities
 
         public bool HasReaderOrWriterDependency(TypeIndex typeIndex, JobHandle dependency)
         {
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            if (m_SingleSystemDependency.jobGroup != 0)
+            {
+                if (!typeIndex.AssumeReadOnlyType && JobHandle.CheckFenceIsDependencyOrDidSyncFence(dependency, m_SingleSystemDependency))
+                {
+                    return true;
+                }
+                else if (_UsesSingleSystemDependency != 0)
+                {
+                    return false;
+                }
+            }
+#endif
+            
             var typeArrayIndex = m_TypeArrayIndices[typeIndex.Index];
             if (typeArrayIndex == NullTypeIndex)
                 return false;
@@ -222,9 +319,33 @@ namespace Unity.Entities
         public JobHandle GetDependency(TypeIndex* readerTypes, int readerTypesCount, TypeIndex* writerTypes, int writerTypesCount,
             bool clearReadFencesAfterCombining)
         {
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            if (_UsesSingleSystemDependency != 0)
+            {
+                HandleAssumeReadOnlyDependencies(readerTypes, ref readerTypesCount, writerTypes, ref writerTypesCount, out bool isWritingToReadOnly);
+                
+                if (isWritingToReadOnly)
+                {
+                    return m_SingleSystemDependency;
+                }
+                
+                if (readerTypesCount + writerTypesCount == 0)
+                {
+                    return default;
+                }
+                return m_SingleSystemDependency;
+            }
+#endif
+            
             JobHandle *allHandles = stackalloc JobHandle[readerTypesCount * kMaxWriteJobHandles +
-                                                         writerTypesCount * (kMaxWriteJobHandles+kMaxReadJobHandles)];
+                                                         writerTypesCount * (kMaxWriteJobHandles+kMaxReadJobHandles) + 1];
             var allHandleCount = 0;
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            if (m_SingleSystemDependency.jobGroup != 0)
+            {
+                allHandles[allHandleCount++] = m_SingleSystemDependency;
+            }
+#endif
             for (var i = 0; i != readerTypesCount; i++)
             {
                 var typeArrayIndex = m_TypeArrayIndices[readerTypes[i].Index];
@@ -258,6 +379,28 @@ namespace Unity.Entities
         public JobHandle AddDependency(TypeIndex* readerTypes, int readerTypesCount, TypeIndex* writerTypes, int writerTypesCount,
             JobHandle dependency)
         {
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            if (_UsesSingleSystemDependency != 0)
+            {
+                HandleAssumeReadOnlyDependencies(readerTypes, ref readerTypesCount, writerTypes, ref writerTypesCount, out bool isWritingToReadOnly);
+                
+                if (isWritingToReadOnly)
+                {
+                    // In this case complete immediately, the rest of the systems need to know there is no race condition accessing this
+                    dependency.Complete();
+                    m_SingleSystemDependency = default;
+                    return default;
+                }
+
+                if (readerTypesCount + writerTypesCount == 0)
+                {
+                    return dependency;
+                }
+                m_SingleSystemDependency = dependency;
+                return dependency;
+            }
+#endif
+            
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             JobHandle* combinedDependencies = null;
             var combinedDependenciesCount = 0;
@@ -329,6 +472,19 @@ namespace Unity.Entities
 
         internal void CompleteWriteDependencyNoChecks(TypeIndex typeIndex)
         {
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            if (m_SingleSystemDependency.jobGroup != 0 && !typeIndex.AssumeReadOnlyType)
+            {
+                m_SingleSystemDependency.Complete();
+                m_SingleSystemDependency = default;
+            }
+
+            if (_UsesSingleSystemDependency != 0)
+            {
+                return;
+            }
+#endif
+            
             var arrayIndex = m_TypeArrayIndices[typeIndex.Index];
             if (arrayIndex != NullTypeIndex)
                 m_DependencyHandles[arrayIndex].WriteFence.Complete();
@@ -336,6 +492,19 @@ namespace Unity.Entities
 
         internal void CompleteReadAndWriteDependencyNoChecks(TypeIndex typeIndex)
         {
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            if (m_SingleSystemDependency.jobGroup != 0 && !typeIndex.AssumeReadOnlyType)
+            {
+                m_SingleSystemDependency.Complete();
+                m_SingleSystemDependency = default;
+            }
+                
+            if (_UsesSingleSystemDependency != 0)
+            {
+                return;
+            }
+#endif
+            
             var arrayIndex = m_TypeArrayIndices[typeIndex.Index];
             if (arrayIndex != NullTypeIndex)
             {
@@ -390,8 +559,21 @@ namespace Unity.Entities
 
         JobHandle GetCombinedDependencyForAllTypes()
         {
-            JobHandle* allHandles = stackalloc JobHandle[m_DependencyHandlesCount*(kMaxReadJobHandles + kMaxWriteJobHandles)];
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            if (_UsesSingleSystemDependency != 0)
+            {
+                return m_SingleSystemDependency;
+            }
+#endif
+            
+            JobHandle* allHandles = stackalloc JobHandle[m_DependencyHandlesCount*(kMaxReadJobHandles + kMaxWriteJobHandles + 1)];
             int allHandleCount = 0;
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+            if (m_SingleSystemDependency.jobGroup != 0)
+            {
+                allHandles[allHandleCount++] = m_SingleSystemDependency;
+            }
+#endif
             for (var i = 0; i != m_DependencyHandlesCount; i++)
             {
                 allHandles[allHandleCount++] = m_DependencyHandles[i].WriteFence;
@@ -555,6 +737,14 @@ namespace Unity.Entities
             get { return _IsInTransaction != 0; }
             set { _IsInTransaction = (byte) (value ? 1u : 0u); }
         }
+        
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+        internal bool IsInSingleSystemDependencyMode
+        {
+            get { return _UsesSingleSystemDependency != 0; }
+            set { _UsesSingleSystemDependency = (byte) (value ? 1u : 0u); }
+        }
+#endif
 
         public JobHandle ExclusiveTransactionDependency
         {
@@ -613,6 +803,26 @@ namespace Unity.Entities
             m_ExclusiveTransactionDependency = GetCombinedDependencyForAllTypes();
             ClearDependencies();
         }
+
+#if UNITY_ENTITIES_DYNAMIC_SIMPLE_DEPENDENCY
+        public void BeginSingleSystemDependencyMode()
+        {
+            if (_UsesSingleSystemDependency == 1)
+                return;
+
+            m_SingleSystemDependency = GetCombinedDependencyForAllTypes();
+            ClearDependencies();
+            _UsesSingleSystemDependency = 1;
+        }
+        
+        public void EndSingleSystemDependencyMode()
+        {
+            if (_UsesSingleSystemDependency == 0)
+                return;
+
+            _UsesSingleSystemDependency = 0;
+        }
+#endif
     }
 
 #if ENABLE_UNITY_COLLECTIONS_CHECKS || UNITY_DOTS_DEBUG

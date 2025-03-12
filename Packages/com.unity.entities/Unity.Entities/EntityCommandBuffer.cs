@@ -4189,7 +4189,10 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.DestroyEntity");
 #endif
                 Entity entity = SelectEntity(cmd->Entity, playbackState);
-                mgr->DestroyEntityInternalDuringStructuralChange(&entity, 1, in originSystem);
+                if (mgr->EntityComponentStore->Exists(entity))
+                {
+                    mgr->DestroyEntityInternalDuringStructuralChange(&entity, 1, in originSystem);
+                }
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4201,7 +4204,10 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.RemoveComponent");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                mgr->RemoveComponentDuringStructuralChange(entity, ComponentType.FromTypeIndex(cmd->ComponentTypeIndex), in originSystem);
+                if (mgr->EntityComponentStore->Exists(entity) && mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
+                {
+                    mgr->RemoveComponentDuringStructuralChange(entity, ComponentType.FromTypeIndex(cmd->ComponentTypeIndex), in originSystem);
+                }
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4257,7 +4263,10 @@ namespace Unity.Entities
                     AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
                     FixupTemporaryEntitiesInComponentValue(srcValue, cmd->ComponentTypeIndex, playbackState);
                 }
-                mgr->SetComponentDataRaw(entity, cmd->ComponentTypeIndex, srcValue, cmd->ComponentSize, originSystem);
+                if (mgr->EntityComponentStore->Exists(entity) && mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
+                {
+                    mgr->SetComponentDataRaw(entity, cmd->ComponentTypeIndex, srcValue, cmd->ComponentSize, originSystem);
+                }
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4270,10 +4279,13 @@ namespace Unity.Entities
 #endif
                 var componentType = ComponentType.FromTypeIndex(cmd->ComponentTypeIndex);
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                mgr->AddComponentDuringStructuralChange(entity, componentType, in originSystem);
-                if (cmd->ComponentSize != 0)
+                if (mgr->EntityComponentStore->Exists(entity) && !mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
                 {
-                    SetComponentFromEmbeddedValue(cmd, entity);
+                    mgr->AddComponentDuringStructuralChange(entity, componentType, in originSystem);
+                    if (cmd->ComponentSize != 0)
+                    {
+                        SetComponentFromEmbeddedValue(cmd, entity);
+                    }
                 }
             }
 
@@ -4299,7 +4311,10 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.SetComponent");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                SetComponentFromEmbeddedValue(cmd, entity);
+                if (mgr->EntityComponentStore->Exists(entity) && mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
+                {
+                    SetComponentFromEmbeddedValue(cmd, entity);
+                }
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4311,7 +4326,10 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.SetEnabled");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                mgr->SetEnabled(entity, cmd->IsEnabled != 0);
+                if (mgr->EntityComponentStore->Exists(entity))
+                {
+                    mgr->SetEnabled(entity, cmd->IsEnabled != 0);
+                }
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4323,7 +4341,10 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.SetComponentEnabled");
 #endif
                 var entity = SelectEntity(cmd->Header.Header.Entity, playbackState);
-                mgr->SetComponentEnabled(entity, cmd->ComponentTypeIndex, cmd->Header.IsEnabled != 0);
+                if (mgr->EntityComponentStore->Exists(entity) && mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
+                {
+                    mgr->SetComponentEnabled(entity, cmd->ComponentTypeIndex, cmd->Header.IsEnabled != 0);
+                }
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4335,7 +4356,10 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.SetName");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                mgr->SetName(entity, in cmd->Name);
+                if (mgr->EntityComponentStore->Exists(entity))
+                {
+                    mgr->SetName(entity, in cmd->Name);
+                }
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4347,27 +4371,30 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.AddBuffer");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                mgr->AddComponentDuringStructuralChange(entity, ComponentType.FromTypeIndex(cmd->ComponentTypeIndex), in originSystem);
-                if (playbackPolicy == PlaybackPolicy.SinglePlayback)
+                if (mgr->EntityComponentStore->Exists(entity) && !mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
                 {
-                    mgr->SetBufferRaw(entity, cmd->ComponentTypeIndex,
-                        &cmd->BufferNode.TempBuffer,
-                        cmd->ComponentSize, in originSystem);
-                    if (cmd->ValueRequiresEntityFixup != 0)
+                    mgr->AddComponentDuringStructuralChange(entity, ComponentType.FromTypeIndex(cmd->ComponentTypeIndex), in originSystem);
+                    if (playbackPolicy == PlaybackPolicy.SinglePlayback)
                     {
-                        AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
-                        AddToPostPlaybackFixup(cmd, ref playbackState);
+                        mgr->SetBufferRaw(entity, cmd->ComponentTypeIndex,
+                            &cmd->BufferNode.TempBuffer,
+                            cmd->ComponentSize, in originSystem);
+                        if (cmd->ValueRequiresEntityFixup != 0)
+                        {
+                            AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
+                            AddToPostPlaybackFixup(cmd, ref playbackState);
+                        }
                     }
-                }
-                else
-                {
-                    if (Hint.Unlikely(cmd->ValueRequiresEntityFixup != 0))
-                        AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
-                    // copy the buffer to ensure that no two entities point to the same buffer from the ECB
-                    // either in the same world or in different worlds
-                    var buffer = CloneBuffer(&cmd->BufferNode.TempBuffer, cmd->ComponentTypeIndex);
-                    mgr->SetBufferRaw(entity, cmd->ComponentTypeIndex, &buffer,
-                        cmd->ComponentSize, in originSystem);
+                    else
+                    {
+                        if (Hint.Unlikely(cmd->ValueRequiresEntityFixup != 0))
+                            AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
+                        // copy the buffer to ensure that no two entities point to the same buffer from the ECB
+                        // either in the same world or in different worlds
+                        var buffer = CloneBuffer(&cmd->BufferNode.TempBuffer, cmd->ComponentTypeIndex);
+                        mgr->SetBufferRaw(entity, cmd->ComponentTypeIndex, &buffer,
+                            cmd->ComponentSize, in originSystem);
+                    }
                 }
             }
 
@@ -4380,24 +4407,27 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.SetBuffer");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                if (playbackPolicy == PlaybackPolicy.SinglePlayback)
+                if (mgr->EntityComponentStore->Exists(entity) && mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
                 {
-                    mgr->SetBufferRaw(entity, cmd->ComponentTypeIndex, &cmd->BufferNode.TempBuffer,
-                        cmd->ComponentSize, in originSystem);
-                    if (cmd->ValueRequiresEntityFixup != 0)
+                    if (playbackPolicy == PlaybackPolicy.SinglePlayback)
                     {
-                        AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
-                        AddToPostPlaybackFixup(cmd, ref playbackState);
+                        mgr->SetBufferRaw(entity, cmd->ComponentTypeIndex, &cmd->BufferNode.TempBuffer,
+                            cmd->ComponentSize, in originSystem);
+                        if (cmd->ValueRequiresEntityFixup != 0)
+                        {
+                            AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
+                            AddToPostPlaybackFixup(cmd, ref playbackState);
+                        }
                     }
-                }
-                else
-                {
-                    if (Hint.Unlikely(cmd->ValueRequiresEntityFixup != 0))
-                        AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
-                    // copy the buffer to ensure that no two entities point to the same buffer from the ECB
-                    // either in the same world or in different worlds
-                    var buffer = CloneBuffer(&cmd->BufferNode.TempBuffer, cmd->ComponentTypeIndex);
-                    mgr->SetBufferRaw(entity, cmd->ComponentTypeIndex, &buffer, cmd->ComponentSize, in originSystem);
+                    else
+                    {
+                        if (Hint.Unlikely(cmd->ValueRequiresEntityFixup != 0))
+                            AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
+                        // copy the buffer to ensure that no two entities point to the same buffer from the ECB
+                        // either in the same world or in different worlds
+                        var buffer = CloneBuffer(&cmd->BufferNode.TempBuffer, cmd->ComponentTypeIndex);
+                        mgr->SetBufferRaw(entity, cmd->ComponentTypeIndex, &buffer, cmd->ComponentSize, in originSystem);
+                    }
                 }
             }
 
@@ -4410,23 +4440,26 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.AppendToBuffer");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                CheckBufferExistsOnEntity(mgr->EntityComponentStore, entity, cmd);
-                BufferHeader* bufferHeader =
-                    (BufferHeader*)mgr->GetComponentDataRW_AsBytePointer(entity, cmd->ComponentTypeIndex);
-
-                ref readonly var typeInfo = ref TypeManager.GetTypeInfo(cmd->ComponentTypeIndex);
-                var alignment = typeInfo.AlignmentInBytes;
-                var elementSize = typeInfo.ElementSize;
-
-                BufferHeader.EnsureCapacity(bufferHeader, bufferHeader->Length + 1, elementSize, alignment, BufferHeader.TrashMode.RetainOldData, false, 0);
-
-                var offset = bufferHeader->Length * elementSize;
-                UnsafeUtility.MemCpy(BufferHeader.GetElementPointer(bufferHeader) + offset, cmd + 1, (long)elementSize);
-                bufferHeader->Length += 1;
-                if (cmd->ValueRequiresEntityFixup != 0)
+                if (mgr->EntityComponentStore->Exists(entity) && mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
                 {
-                    AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
-                    FixupTemporaryEntitiesInComponentValue(BufferHeader.GetElementPointer(bufferHeader) + offset, typeInfo.TypeIndex, playbackState);
+                    CheckBufferExistsOnEntity(mgr->EntityComponentStore, entity, cmd);
+                    BufferHeader* bufferHeader =
+                        (BufferHeader*)mgr->GetComponentDataRW_AsBytePointer(entity, cmd->ComponentTypeIndex);
+
+                    ref readonly var typeInfo = ref TypeManager.GetTypeInfo(cmd->ComponentTypeIndex);
+                    var alignment = typeInfo.AlignmentInBytes;
+                    var elementSize = typeInfo.ElementSize;
+
+                    BufferHeader.EnsureCapacity(bufferHeader, bufferHeader->Length + 1, elementSize, alignment, BufferHeader.TrashMode.RetainOldData, false, 0);
+
+                    var offset = bufferHeader->Length * elementSize;
+                    UnsafeUtility.MemCpy(BufferHeader.GetElementPointer(bufferHeader) + offset, cmd + 1, (long)elementSize);
+                    bufferHeader->Length += 1;
+                    if (cmd->ValueRequiresEntityFixup != 0)
+                    {
+                        AssertNoFixupInMultiPlayback(isFirstPlayback != 0);
+                        FixupTemporaryEntitiesInComponentValue(BufferHeader.GetElementPointer(bufferHeader) + offset, typeInfo.TypeIndex, playbackState);
+                    }
                 }
             }
 
@@ -4698,17 +4731,20 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.AddManagedComponentData");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                var addedManaged = mgr->AddComponentDuringStructuralChange(entity, ComponentType.FromTypeIndex(cmd->ComponentTypeIndex), in originSystem);
-                if (addedManaged)
+                if (mgr->EntityComponentStore->Exists(entity) && !mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
                 {
-                    CommitStructuralChanges(mgr, ref archetypeChanges);
+                    var addedManaged = mgr->AddComponentDuringStructuralChange(entity, ComponentType.FromTypeIndex(cmd->ComponentTypeIndex), in originSystem);
+                    if (addedManaged)
+                    {
+                        CommitStructuralChanges(mgr, ref archetypeChanges);
+                    }
+
+                    var box = cmd->GetBoxedObject();
+                    if (box != null && TypeManager.HasEntityReferences(cmd->ComponentTypeIndex))
+                        FixupManagedComponent.FixUpComponent(box, playbackState);
+
+                    mgr->SetComponentObject(entity, ComponentType.FromTypeIndex(cmd->ComponentTypeIndex), box, in originSystem);
                 }
-
-                var box = cmd->GetBoxedObject();
-                if (box != null && TypeManager.HasEntityReferences(cmd->ComponentTypeIndex))
-                    FixupManagedComponent.FixUpComponent(box, playbackState);
-
-                mgr->SetComponentObject(entity, ComponentType.FromTypeIndex(cmd->ComponentTypeIndex), box, in originSystem);
             }
 
 
@@ -4741,12 +4777,15 @@ namespace Unity.Entities
                 }
                 var tmp = new NativeArray<Entity>(1, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
                 tmp[0] = entity;
-                mgr->AddSharedComponentDataAddrDefaultMustBeNullDuringStructuralChange(
-                    tmp,
-                    cmd->ComponentTypeIndex,
-                    cmd->HashCode,
-                    cmd->IsDefault == 0 ? (void*)srcValue : null);
-                CommitStructuralChanges(mgr, ref archetypeChanges);
+                if (mgr->EntityComponentStore->Exists(entity) && !mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
+                {
+                    mgr->AddSharedComponentDataAddrDefaultMustBeNullDuringStructuralChange(
+                        tmp,
+                        cmd->ComponentTypeIndex,
+                        cmd->HashCode,
+                        cmd->IsDefault == 0 ? (void*)srcValue : null);
+                    CommitStructuralChanges(mgr, ref archetypeChanges);
+                }
             }
 
             [BurstDiscard]
@@ -4759,15 +4798,18 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.AddSharedComponentData");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                var addedShared = mgr->AddSharedComponentDataBoxedDefaultMustBeNullDuringStructuralChange(
-                    entity,
-                    cmd->ComponentTypeIndex,
-                    cmd->HashCode,
-                    cmd->GetBoxedObject(),
-                    in originSystem);
-                if (addedShared)
+                if (mgr->EntityComponentStore->Exists(entity) && !mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
                 {
-                    CommitStructuralChanges(mgr, ref archetypeChanges);
+                    var addedShared = mgr->AddSharedComponentDataBoxedDefaultMustBeNullDuringStructuralChange(
+                        entity,
+                        cmd->ComponentTypeIndex,
+                        cmd->HashCode,
+                        cmd->GetBoxedObject(),
+                        in originSystem);
+                    if (addedShared)
+                    {
+                        CommitStructuralChanges(mgr, ref archetypeChanges);
+                    }
                 }
             }
 
@@ -4948,16 +4990,19 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.SetManagedComponentData");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                if (!mgr->EntityComponentStore->ManagedChangesTracker.Empty)
+                if (mgr->EntityComponentStore->Exists(entity) && mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
                 {
-                    CommitStructuralChanges(mgr, ref archetypeChanges);
+                    if (!mgr->EntityComponentStore->ManagedChangesTracker.Empty)
+                    {
+                        CommitStructuralChanges(mgr, ref archetypeChanges);
+                    }
+
+                    var box = cmd->GetBoxedObject();
+                    if (box != null && TypeManager.HasEntityReferences(cmd->ComponentTypeIndex))
+                        FixupManagedComponent.FixUpComponent(box, playbackState);
+
+                    mgr->SetComponentObject(entity, ComponentType.FromTypeIndex(cmd->ComponentTypeIndex), cmd->GetBoxedObject(), in originSystem);
                 }
-
-                var box = cmd->GetBoxedObject();
-                if (box != null && TypeManager.HasEntityReferences(cmd->ComponentTypeIndex))
-                    FixupManagedComponent.FixUpComponent(box, playbackState);
-
-                mgr->SetComponentObject(entity, ComponentType.FromTypeIndex(cmd->ComponentTypeIndex), cmd->GetBoxedObject(), in originSystem);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4973,11 +5018,14 @@ namespace Unity.Entities
                 }
                 var tmp = new NativeArray<Entity>(1, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
                 tmp[0] = entity;
-                mgr->SetSharedComponentDataAddrDefaultMustBeNullDuringStructuralChange(
-                    tmp,
-                    cmd->ComponentTypeIndex,
-                    cmd->HashCode,
-                    (cmd->IsDefault == 0) ? srcValue : null);
+                if (mgr->EntityComponentStore->Exists(entity) && mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
+                {
+                    mgr->SetSharedComponentDataAddrDefaultMustBeNullDuringStructuralChange(
+                        tmp,
+                        cmd->ComponentTypeIndex,
+                        cmd->HashCode,
+                        (cmd->IsDefault == 0) ? srcValue : null);
+                }
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -5109,8 +5157,11 @@ namespace Unity.Entities
                     throw new InvalidOperationException("Invalid Entity.Null passed. ECBCommand.SetSharedComponentData");
 #endif
                 var entity = SelectEntity(cmd->Header.Entity, playbackState);
-                mgr->SetSharedComponentDataBoxedDefaultMustBeNullDuringStructuralChange(entity, cmd->ComponentTypeIndex, cmd->HashCode,
-                    cmd->GetBoxedObject(), in originSystem);
+                if (mgr->EntityComponentStore->Exists(entity) && mgr->EntityComponentStore->HasComponent(entity, cmd->ComponentTypeIndex))
+                {
+                    mgr->SetSharedComponentDataBoxedDefaultMustBeNullDuringStructuralChange(entity, cmd->ComponentTypeIndex, cmd->HashCode,
+                        cmd->GetBoxedObject(), in originSystem);
+                }
             }
         }
 

@@ -14,7 +14,7 @@ namespace Unity.NetCode
     [UpdateInGroup(typeof(GhostSimulationSystemGroup))]
     [WorldSystemFilter(WorldSystemFilterFlags.Default | WorldSystemFilterFlags.ThinClientSimulation)]
     [CreateBefore(typeof(NetworkStreamReceiveSystem))]
-    [UpdateAfter(typeof(GhostCollectionSystem))]
+    // [UpdateAfter(typeof(GhostCollectionSystem))]
     public partial struct NetDebugSystem : ISystem
     {
         private ComponentLookup<GhostPrefabMetaData> m_GhostPrefabMetadata;

@@ -413,8 +413,8 @@ namespace Unity.NetCode.LowLevel.Unsafe
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static public ConnectionStateData Create(Entity connection)
         {
-            var hashMapData = AllocatorManager.Allocate<UnsafeHashMap<ArchetypeChunk, GhostChunkSerializationState>>(Allocator.Persistent);
-            *hashMapData = new UnsafeHashMap<ArchetypeChunk, GhostChunkSerializationState>(1024, Allocator.Persistent);
+            var hashMapData = AllocatorManager.Allocate<UnsafeHashMap<ulong, GhostChunkSerializationState>>(Allocator.Persistent);
+            *hashMapData = new UnsafeHashMap<ulong, GhostChunkSerializationState>(1024, Allocator.Persistent);
             return new ConnectionStateData
             {
                 Entity = connection,
@@ -430,7 +430,7 @@ namespace Unity.NetCode.LowLevel.Unsafe
         }
 
         public Entity Entity;
-        public UnsafeHashMap<ArchetypeChunk, GhostChunkSerializationState>* SerializationState;
+        public UnsafeHashMap<ulong, GhostChunkSerializationState>* SerializationState;
         public UnsafeParallelHashMap<int, NetworkTick> ClearHistory;
 #if NETCODE_DEBUG
         public PacketDumpLogger NetDebugPacket;

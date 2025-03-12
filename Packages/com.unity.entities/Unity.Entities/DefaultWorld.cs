@@ -541,6 +541,7 @@ namespace Unity.Entities
         /// Useful if you want to record entity commands now, but play them back at a later point in
         /// the frame, or early in the next frame.
         /// </remarks>
+        [AssumeReadOnly]
         public unsafe struct Singleton : IComponentData, IECBSingleton
         {
             internal UnsafeList<EntityCommandBuffer>* pendingBuffers;

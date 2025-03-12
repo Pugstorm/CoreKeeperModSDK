@@ -180,11 +180,12 @@ namespace Unity.NetCode
                         var snapshotDynamicDataBuffer = snapshotDynamicDataBufferList[i];
                         var headerSize = SnapshotDynamicBuffersHelper.GetHeaderSize();
                         snapshotDynamicDataBuffer.ResizeUninitialized((int)dynamicDataCapacity);
+						UnsafeUtility.MemClear(snapshotDynamicDataBuffer.GetUnsafePtr(), snapshotDynamicDataBuffer.Length);
 
-                        helper.snapshotDynamicPtr = (byte*)snapshotDynamicDataBuffer.GetUnsafePtr();
-                        helper.dynamicSnapshotDataOffset = (int)headerSize;
+                        helper.snapshotDynamicPtr = ((byte*)snapshotDynamicDataBuffer.GetUnsafePtr()) + headerSize;
+                        helper.dynamicSnapshotDataOffset = (int)0;
                         //add the header size so that the boundary check that into the consideration the header size
-                        helper.dynamicSnapshotCapacity = (int)(dynamicSnapshotSize + headerSize);
+                        helper.dynamicSnapshotCapacity = (int)(dynamicSnapshotSize);
                     }
                     helper.CopyEntityToSnapshot(chunk, i, typeData, GhostSerializeHelper.ClearOption.DontClear);
 
@@ -211,7 +212,9 @@ namespace Unity.NetCode
                 for (int i = 0; i < spawnList.Length; ++i)
                 {
                     var ghost = spawnList[i];
-                    if (interpolatedTick.IsValid && interpolatedTick.IsNewerThan(ghost.spawnTick))
+					var ghostSpawnCheck = ghost.spawnTick;
+					ghostSpawnCheck.Add(30);
+                    if (interpolatedTick.IsValid && interpolatedTick.IsNewerThan(ghostSpawnCheck))
                     {
                         // Destroy entity and remove from list
                         commandBuffer.DestroyEntity(ghost.entity);

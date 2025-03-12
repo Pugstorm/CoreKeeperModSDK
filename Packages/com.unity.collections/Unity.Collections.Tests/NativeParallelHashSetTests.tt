@@ -1,0 +1,227 @@
+<#/*THIS IS A T4 FILE - see t4_text_templating.md for what it is and how to run codegen*/#>
+<#@ template debug="True" #>
+<#@ output extension=".gen.cs" #>
+<#@ assembly name="System.Core" #>
+using System;
+using NUnit.Framework;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.Collections.Tests;
+
+internal class NativeParallelHashSetTestsGenerated : CollectionsTestFixture
+{
+<#
+{
+    foreach (var ContainerType in new[] {
+        ( "NativeParallelHashSet" ),
+        ( "UnsafeParallelHashSet" ),
+    }) {
+#>
+    static void ExpectedCount<T>(ref <#=ContainerType#><T> container, int expected)
+        where T : unmanaged, IEquatable<T>
+    {
+        Assert.AreEqual(expected == 0, container.IsEmpty);
+        Assert.AreEqual(expected, container.Count());
+    }
+
+<#
+    foreach (var OtherContainerType in new[] {
+        ( "NativeParallelHashSet" ),
+        ( "UnsafeParallelHashSet" ),
+        ( "NativeList" ),
+        ( "UnsafeList" ),
+    }) {
+#>
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_ExceptWith_Empty()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { };
+        var other = new <#=OtherContainerType#><int>(8, CommonRwdAllocator.Handle) { };
+        container.ExceptWith(other);
+
+        ExpectedCount(ref container, 0);
+
+        container.Dispose();
+        other.Dispose();
+    }
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_ExceptWith_AxB()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { 0, 1, 2, 3, 4, 5 };
+        var other = new <#=OtherContainerType#><int>(8, CommonRwdAllocator.Handle) { 3, 4, 5, 6, 7, 8 };
+        container.ExceptWith(other);
+
+        ExpectedCount(ref container, 3);
+        Assert.True(container.Contains(0));
+        Assert.True(container.Contains(1));
+        Assert.True(container.Contains(2));
+
+        container.Dispose();
+        other.Dispose();
+    }
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_IntersectWith_Empty()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { };
+        var other = new <#=OtherContainerType#><int>(8, CommonRwdAllocator.Handle) { };
+        container.IntersectWith(other);
+
+        ExpectedCount(ref container, 0);
+
+        container.Dispose();
+        other.Dispose();
+    }
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_IntersectWith()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { 0, 1, 2, 3, 4, 5 };
+        var other = new <#=OtherContainerType#><int>(8, CommonRwdAllocator.Handle) { 3, 4, 5, 6, 7, 8 };
+        container.IntersectWith(other);
+
+        ExpectedCount(ref container, 3);
+        Assert.True(container.Contains(3));
+        Assert.True(container.Contains(4));
+        Assert.True(container.Contains(5));
+
+        container.Dispose();
+        other.Dispose();
+    }
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_UnionWith_Empty()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { };
+        var other = new <#=OtherContainerType#><int>(8, CommonRwdAllocator.Handle) { };
+        container.UnionWith(other);
+
+        ExpectedCount(ref container, 0);
+
+        container.Dispose();
+        other.Dispose();
+    }
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_UnionWith()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { 0, 1, 2, 3, 4, 5 };
+        var other = new <#=OtherContainerType#><int>(8, CommonRwdAllocator.Handle) { 3, 4, 5, 6, 7, 8 };
+        container.UnionWith(other);
+
+        ExpectedCount(ref container, 9);
+        Assert.True(container.Contains(0));
+        Assert.True(container.Contains(1));
+        Assert.True(container.Contains(2));
+        Assert.True(container.Contains(3));
+        Assert.True(container.Contains(4));
+        Assert.True(container.Contains(5));
+        Assert.True(container.Contains(6));
+        Assert.True(container.Contains(7));
+        Assert.True(container.Contains(8));
+
+        container.Dispose();
+        other.Dispose();
+    }
+
+<#}#>
+
+<#
+    foreach (var OtherContainerType in new[] {
+        ( "FixedList32Bytes" ),
+        ( "FixedList64Bytes" ),
+        ( "FixedList128Bytes" ),
+        ( "FixedList512Bytes" ),
+        ( "FixedList4096Bytes" ),
+    }) {
+#>
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_ExceptWith_Empty()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { };
+        var other = new <#=OtherContainerType#><int>() { };
+        container.ExceptWith(other);
+
+        ExpectedCount(ref container, 0);
+
+        container.Dispose();
+    }
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_ExceptWith_AxB()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { 0, 1, 2, 3, 4, 5 };
+        var other = new <#=OtherContainerType#><int>() { 3, 4, 5, 6, 7, 8 };
+        container.ExceptWith(other);
+
+        ExpectedCount(ref container, 3);
+        Assert.True(container.Contains(0));
+        Assert.True(container.Contains(1));
+        Assert.True(container.Contains(2));
+
+        container.Dispose();
+    }
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_IntersectWith_Empty()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { };
+        var other = new <#=OtherContainerType#><int>() { };
+        container.IntersectWith(other);
+
+        ExpectedCount(ref container, 0);
+
+        container.Dispose();
+    }
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_IntersectWith()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { 0, 1, 2, 3, 4, 5 };
+        var other = new <#=OtherContainerType#><int>() { 3, 4, 5, 6, 7, 8 };
+        container.IntersectWith(other);
+
+        ExpectedCount(ref container, 3);
+        Assert.True(container.Contains(3));
+        Assert.True(container.Contains(4));
+        Assert.True(container.Contains(5));
+
+        container.Dispose();
+    }
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_UnionWith_Empty()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { };
+        var other = new <#=OtherContainerType#><int>() { };
+        container.UnionWith(other);
+
+        ExpectedCount(ref container, 0);
+
+        container.Dispose();
+    }
+
+    [Test]
+    public void <#=ContainerType#>_<#=OtherContainerType#>_EIU_UnionWith()
+    {
+        var container = new <#=ContainerType#><int>(8, CommonRwdAllocator.Handle) { 0, 1, 2, 3, 4, 5 };
+        var other = new <#=OtherContainerType#><int>() { 3, 4, 5, 6, 7, 8 };
+        container.UnionWith(other);
+
+        ExpectedCount(ref container, 9);
+        Assert.True(container.Contains(0));
+        Assert.True(container.Contains(1));
+        Assert.True(container.Contains(2));
+        Assert.True(container.Contains(3));
+        Assert.True(container.Contains(4));
+        Assert.True(container.Contains(5));
+        Assert.True(container.Contains(6));
+        Assert.True(container.Contains(7));
+        Assert.True(container.Contains(8));
+
+        container.Dispose();
+    }
+<#}}}#>
+}

@@ -168,7 +168,7 @@ namespace Unity.NetCode
         BufferLookup<GhostCollectionPrefabSerializer> m_GhostCollectionPrefabSerializerFromEntity;
         BufferLookup<GhostCollectionComponentIndex> m_GhostCollectionComponentIndexFromEntity;
 
-        [BurstCompile]
+        //[BurstCompile]
         public void OnCreate(ref SystemState state)
         {
             var builder = new EntityQueryBuilder(Allocator.Temp).WithAll<PredictedGhost, GhostInstance>();
@@ -198,6 +198,8 @@ namespace Unity.NetCode
             FixedString64Bytes singletonName = "GhostPredictionSmoothing-Singleton";
             state.EntityManager.SetName(smoothingSingleton, singletonName);
             SystemAPI.SetSingleton(new GhostPredictionSmoothing(m_SmoothingActions, m_UserSpecifiedComponentData, enableQuery));
+			
+			state.World.GetExistingSystemManaged<PredictedSimulationSystemGroup>().AddSystemToPartialTickUpdate(ref state);
         }
         [BurstCompile]
         public void OnDestroy(ref SystemState state)
@@ -260,7 +262,7 @@ namespace Unity.NetCode
         {
             public DynamicTypeList DynamicTypeList;
             public DynamicTypeList UserList;
-            public NativeParallelHashMap<ArchetypeChunk, System.IntPtr>.ReadOnly predictionState;
+            public NativeParallelHashMap<ulong, System.IntPtr>.ReadOnly predictionState;
 
             [ReadOnly] public ComponentTypeHandle<GhostInstance> ghostType;
             [ReadOnly] public ComponentTypeHandle<PredictedGhost> predictedGhostType;
@@ -284,7 +286,7 @@ namespace Unity.NetCode
                 // This job is not written to support queries with enableable component types.
                 Assert.IsFalse(useEnabledMask);
 
-                if (!predictionState.TryGetValue(chunk, out var state) ||
+                if (!predictionState.TryGetValue(chunk.SequenceNumber, out var state) ||
                     (*(PredictionBackupState*)state).entityCapacity != chunk.Capacity)
                     return;
 
@@ -306,7 +308,8 @@ namespace Unity.NetCode
                     return; // serialization data has not been loaded yet. This can only happen for prespawn objects
 
                 var typeData = GhostTypeCollection[ghostTypeId];
-                Entity* backupEntities = PredictionBackupState.GetEntities(state);
+
+                Entity* backupEntities = PredictionBackupState.GetEntities(state, (int)(tick.TickIndexForValidTick % PredictionBackupState.PredictionHistorySize));
                 var entities = chunk.GetNativeArray(entityType);
 
                 var PredictedGhosts = chunk.GetNativeArray(ref predictedGhostType);
@@ -315,7 +318,8 @@ namespace Unity.NetCode
                 var actions = new NativeList<GhostPredictionSmoothing.SmoothingActionState>(Allocator.Temp);
                 var childActions = new NativeList<GhostPredictionSmoothing.SmoothingActionState>(Allocator.Temp);
 
-                byte* dataPtr = PredictionBackupState.GetData(state);
+				var predictionBackupIndex = (int)(tick.TickIndexForValidTick % PredictionBackupState.PredictionHistorySize);
+                byte* dataPtr = PredictionBackupState.GetData(state, predictionBackupIndex);
                 // todo: this loop could be cached on chunk.capacity, because now we are re-calculating it everytime.
                 for (int comp = 0; comp < typeData.NumComponents; ++comp)
                 {

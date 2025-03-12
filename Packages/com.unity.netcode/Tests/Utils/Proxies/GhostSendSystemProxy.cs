@@ -109,7 +109,7 @@ namespace Unity.NetCode.Tests
 
         protected override void OnUpdate()
         {
-            var numLoadedPrefabs = SystemAPI.GetSingleton<GhostCollection>().NumLoadedPrefabs;
+			var numPrefabs = GetSingletonBuffer<GhostCollectionPrefab>().Length;
 
             var markers = new[]
             {
@@ -152,7 +152,7 @@ namespace Unity.NetCode.Tests
                             uint totalCount = 0;
                             uint totalLength = 0;
 
-                            for (int i = 0; i < numLoadedPrefabs; ++i)
+                            for (int i = 0; i < numPrefabs; ++i)
                             {
                                 var count = netStats.Data[i * 3 + 4];
                                 var length = netStats.Data[i * 3 + 5];

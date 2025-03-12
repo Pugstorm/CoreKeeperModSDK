@@ -44,3 +44,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Unity.Entities.RuntimeTools4")]
 [assembly: InternalsVisibleTo("Unity.Entities.RuntimeTools5")]
 #endif
+[assembly: InternalsVisibleTo("Pug.ECS.Serialization.DOTS100")]

@@ -100,6 +100,8 @@ namespace Unity.NetCode
         /// </summary>
         [Tooltip("CPU optimization that forces this ghost to be quantized and copied to the snapshot format <b>once for all connections</b> (instead of once <b>per connection</b>). This can save CPU time in the `GhostSendSystem` assuming all of the following:\n\n - The ghost contains many serialized components, serialized components on child entities, or serialized buffers.\n\n - The ghost is almost always sent to at least one connection.\n\n<i>Example use-cases: Players, important gameplay items like footballs and crowns, global entities like map settings and dynamic weather conditions.</i>")]
         public bool UsePreSerialization;
+        [Tooltip("Forces the entity to never use the prediction backup system. This is useful for entities that have complex relationships with other entities where you need to ensure you rerun prediction in case other entities has changed.")]
+        public bool DontUsePredictionBackup;
         /// <summary>
         /// Validate the name of the GameObject prefab.
         /// </summary>

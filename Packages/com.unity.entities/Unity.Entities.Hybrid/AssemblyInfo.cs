@@ -29,3 +29,5 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Unity.Physics.EditModeTests")]
 [assembly: InternalsVisibleTo("Unity.Entities.Build.Editor")]
 [assembly: InternalsVisibleTo("Unity.NetCode.Authoring.Hybrid")]
+[assembly: InternalsVisibleTo("PugConversion")]
+[assembly: InternalsVisibleTo("PugWorldGen.Conversion")]

@@ -18,7 +18,9 @@
         "Unity.Properties",
         "Unity.Properties.UI.Editor",
         "Unity.Entities.Build",
-        "Unity.DedicatedServer.MultiplayerRoles.Editor"
+        "Unity.DedicatedServer.MultiplayerRoles.Editor",
+        "UnityEditor.TestRunner",
+        "UnityEngine.TestRunner"
     ],
     "includePlatforms": [
         "Editor"

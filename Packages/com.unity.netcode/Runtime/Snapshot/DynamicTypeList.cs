@@ -27,6 +27,8 @@ namespace Unity.NetCode
 #endif
             var listLength = ghostComponentCollection.Length;
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if (listLength == 0)
+                UnityEngine.Debug.LogError("DynamicTypeList length is 0, this is probably initialized before GhostCollectionSystem");
             if (listLength > MaxCapacity)
                 throw new System.Exception($"Invalid number of components used for ghost serialization: {listLength}, max is {MaxCapacity}. The maximum limit can be increased up to 256 by defining NETCODE_COMPONENTS_256.");
 #endif
@@ -84,6 +86,20 @@ namespace Unity.NetCode
                 return ptr;
             }
         }
+
+        public void Update(ref SystemState state)
+        {
+            dynamicType000.Update(ref state);
+            dynamicType032.Update(ref state);
+            dynamicType064.Update(ref state);
+            dynamicType096.Update(ref state);
+#if NETCODE_COMPONENTS_256
+            dynamicType128.Update(ref state);
+            dynamicType160.Update(ref state);
+            dynamicType192.Update(ref state);
+            dynamicType224.Update(ref state);
+#endif
+        }
     }
 
     /// <summary>
@@ -125,5 +141,41 @@ namespace Unity.NetCode
         public DynamicComponentTypeHandle dynamicType29;
         public DynamicComponentTypeHandle dynamicType30;
         public DynamicComponentTypeHandle dynamicType31;
+
+        public void Update(ref SystemState state)
+        {
+            dynamicType00.Update(ref state);
+            dynamicType01.Update(ref state);
+            dynamicType02.Update(ref state);
+            dynamicType03.Update(ref state);
+            dynamicType04.Update(ref state);
+            dynamicType05.Update(ref state);
+            dynamicType06.Update(ref state);
+            dynamicType07.Update(ref state);
+            dynamicType08.Update(ref state);
+            dynamicType09.Update(ref state);
+            dynamicType10.Update(ref state);
+            dynamicType11.Update(ref state);
+            dynamicType12.Update(ref state);
+            dynamicType13.Update(ref state);
+            dynamicType14.Update(ref state);
+            dynamicType15.Update(ref state);
+            dynamicType16.Update(ref state);
+            dynamicType17.Update(ref state);
+            dynamicType18.Update(ref state);
+            dynamicType19.Update(ref state);
+            dynamicType20.Update(ref state);
+            dynamicType21.Update(ref state);
+            dynamicType22.Update(ref state);
+            dynamicType23.Update(ref state);
+            dynamicType24.Update(ref state);
+            dynamicType25.Update(ref state);
+            dynamicType26.Update(ref state);
+            dynamicType27.Update(ref state);
+            dynamicType28.Update(ref state);
+            dynamicType29.Update(ref state);
+            dynamicType30.Update(ref state);
+            dynamicType31.Update(ref state);
+        }
     }
 }

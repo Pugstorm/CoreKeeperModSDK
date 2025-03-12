@@ -1,5 +1,6 @@
 {
     "name": "Unity.NetCode.Physics.EditorTests",
+    "rootNamespace": "",
     "references": [
         "Unity.Burst",
         "Unity.Collections",
@@ -33,7 +34,8 @@
     "autoReferenced": false,
     "defineConstraints": [
         "UNITY_INCLUDE_TESTS",
-        "ENABLE_UNITY_NETCODE_PHYSICS"
+        "ENABLE_UNITY_NETCODE_PHYSICS",
+        "DONT_INCLUDE_NETCODE_TESTS_BECAUSE_THEY_BREAK_MULTIPLAYER"
     ],
     "versionDefines": [
         {
