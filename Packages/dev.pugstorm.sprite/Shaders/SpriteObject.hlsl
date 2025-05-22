@@ -50,7 +50,7 @@ struct InstanceData
 	float maskParam;
 };
 
-#define MAX_MASK_CHANNELS 8
+#define MAX_MASK_CHANNELS 32
 float4x4 _SpriteObjectMaskArray[MAX_MASK_CHANNELS];
 
 float GetMaskAlpha(float3 positionWS, float maskParam)
@@ -63,7 +63,7 @@ float GetMaskAlpha(float3 positionWS, float maskParam)
 	float4x4 M = _SpriteObjectMaskArray[channel];
 	if (!M._44)
 	{
-		return 0.0;
+		return step(maskParam, 0);
 	}
 	float2 pos = abs(mul(M, float4(positionWS, 1)).xy * 2);
 	if (maskParam > 0)
@@ -242,6 +242,7 @@ float3 LinearToGamma(float3 x)
 float3 SampleGradients(float3 color, float3 indices)
 {
 	float3 key = (LinearToGamma(color) * (GRADIENT_MAP_WIDTH - 1.0) + 0.5) / GRADIENT_MAP_WIDTH;
+	float3 hasGradient = step(1e-5, color);
 	if (any(indices >= 0))
 	{
 		color = 0.0;
@@ -249,28 +250,28 @@ float3 SampleGradients(float3 color, float3 indices)
 #if INSTANCING_ENABLED && defined(UNITY_INSTANCING_ENABLED) || defined(SINGLE_RENDERER)
 	if (indices.x >= 0)
 	{
-		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMapAtlas, _gradient_point_clamp_sampler, float2(key.r, (indices.x + 0.5) * _GradientMapAtlas_TexelSize.y), 0).rgb;
+		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMapAtlas, _gradient_point_clamp_sampler, float2(key.r, (indices.x + 0.5) * _GradientMapAtlas_TexelSize.y), 0).rgb * hasGradient.x;
 	}
 	if (indices.y >= 0)
 	{
-		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMapAtlas, _gradient_point_clamp_sampler, float2(key.g, (indices.y + 0.5) * _GradientMapAtlas_TexelSize.y), 0).rgb;
+		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMapAtlas, _gradient_point_clamp_sampler, float2(key.g, (indices.y + 0.5) * _GradientMapAtlas_TexelSize.y), 0).rgb * hasGradient.y;
 	}
 	if (indices.z >= 0)
 	{
-		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMapAtlas, _gradient_point_clamp_sampler, float2(key.b, (indices.z + 0.5) * _GradientMapAtlas_TexelSize.y), 0).rgb;
+		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMapAtlas, _gradient_point_clamp_sampler, float2(key.b, (indices.z + 0.5) * _GradientMapAtlas_TexelSize.y), 0).rgb * hasGradient.z;
 	}
 #else
 	if (indices.x >= 0)
 	{
-		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMap1, _gradient_point_clamp_sampler, float2(key.r, 0), 0).rgb;
+		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMap1, _gradient_point_clamp_sampler, float2(key.r, 0), 0).rgb * hasGradient.x;
 	}
 	if (indices.y >= 0)
 	{
-		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMap2, _gradient_point_clamp_sampler, float2(key.g, 0), 0).rgb;
+		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMap2, _gradient_point_clamp_sampler, float2(key.g, 0), 0).rgb * hasGradient.y;
 	}
 	if (indices.z >= 0)
 	{
-		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMap3, _gradient_point_clamp_sampler, float2(key.b, 0), 0).rgb;
+		color += SO_SAMPLE_TEXTURE2D_LOD(_GradientMap3, _gradient_point_clamp_sampler, float2(key.b, 0), 0).rgb * hasGradient.z;
 	}
 #endif
 	return color;

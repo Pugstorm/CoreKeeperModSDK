@@ -29,6 +29,7 @@ Shader "Hidden/SpriteAssetUI"
 			{
 				float4 vertex : SV_POSITION;
 				float2 uv : TEXCOORD0;
+				float2 clipUV : TEXCOORD1;
 			};
 
 			Texture2D _MainTex;
@@ -42,8 +43,10 @@ Shader "Hidden/SpriteAssetUI"
 			float2 _Size;
 			float _Aspect;
 
-			Texture2D _GradientMap;
-			float _UseGradientMap;
+			Texture2D _GradientMap1;
+			Texture2D _GradientMap2;
+			Texture2D _GradientMap3;
+			float3 _UseGradientMap;
 
 			#define GRADIENT_MAP_WIDTH 256
 
@@ -54,10 +57,26 @@ Shader "Hidden/SpriteAssetUI"
 
 			float3 SampleGradients(float3 color)
 			{
+				float3 hasGradient = step(1e-5, color);
 				float3 key = (LinearToGamma(color) * (GRADIENT_MAP_WIDTH - 1.0) + 0.5) / GRADIENT_MAP_WIDTH;
-				color = _GradientMap.SampleLevel(point_clamp_sampler, float2(key.r, 0), 0, 0).rgb;
+				color = 0;
+				if (_UseGradientMap.x)
+				{
+					color += _GradientMap1.SampleLevel(point_clamp_sampler, float2(key.r, 0), 0, 0).rgb * hasGradient.x;
+				}
+				if (_UseGradientMap.y)
+				{
+					color += _GradientMap2.SampleLevel(point_clamp_sampler, float2(key.g, 0), 0, 0).rgb * hasGradient.y;
+				}
+				if (_UseGradientMap.z)
+				{
+					color += _GradientMap3.SampleLevel(point_clamp_sampler, float2(key.b, 0), 0, 0).rgb * hasGradient.z;
+				}
 				return color;
 			}
+
+			sampler2D _GUIClipTexture;
+    		float4x4 unity_GUIClipTextureMatrix;
 
 			v2f vert (appdata v)
 			{
@@ -67,11 +86,16 @@ Shader "Hidden/SpriteAssetUI"
 				o.uv = v.uv;
 				o.uv.x = (o.uv.x - 0.5) / _Aspect + 0.5;
 
+				float3 eyePos = UnityObjectToViewPos(v.vertex);
+				o.clipUV = mul(unity_GUIClipTextureMatrix, float4(eyePos.xy, 0, 1.0));
+
 				return o;
 			}
 
 			float4 frag(v2f i) : SV_Target
 			{
+				clip(tex2D(_GUIClipTexture, i.clipUV).a - 0.5);
+				
 				float2 spriteUV = i.uv;
 				spriteUV.x = (spriteUV.x + _Frame) / _FrameCount;
 
@@ -82,7 +106,7 @@ Shader "Hidden/SpriteAssetUI"
 
 				float4 sprite = _MainTex.SampleLevel(point_clamp_sampler, spriteUV, 0);
 
-				if (_UseGradientMap == 1.0)
+				if (any(_UseGradientMap >= 1e-5))
 				{
 					sprite.rgb = SampleGradients(sprite.rgb);
 				}
@@ -146,7 +170,11 @@ Shader "Hidden/SpriteAssetUI"
 			{
 				float4 vertex : SV_POSITION;
 				float2 uv : TEXCOORD0;
+				float2 clipUV : TEXCOORD1;
 			};
+
+			sampler2D _GUIClipTexture;
+    		float4x4 unity_GUIClipTextureMatrix;
 
 			v2f vert (appdata v)
 			{
@@ -154,6 +182,9 @@ Shader "Hidden/SpriteAssetUI"
 
 				o.vertex = mul(UNITY_MATRIX_MVP, v.vertex);
 				o.uv = v.uv;
+
+				float3 eyePos = UnityObjectToViewPos(v.vertex);
+				o.clipUV = mul(unity_GUIClipTextureMatrix, float4(eyePos.xy, 0, 1.0));
 
 				return o;
 			}
@@ -206,6 +237,8 @@ Shader "Hidden/SpriteAssetUI"
 
 			float4 frag(v2f i) : SV_Target
 			{
+				clip(tex2D(_GUIClipTexture, i.clipUV).a - 0.5);
+				
 				float3 ro = float3(0, 1.1, -2);
 				float3 rd = normalize(float3(i.uv.x - 0.5, i.uv.y - 0.8, 1.0));
 				float rayLength = 1e10;

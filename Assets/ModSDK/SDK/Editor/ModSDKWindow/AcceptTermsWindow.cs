@@ -119,12 +119,14 @@ namespace PugMod
 			contentLabel.text = TermsToAccept;
 		}
 
+#if UNITY_EDITOR_LINUX
 		private void MakePrefsDir()
 		{
 			string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
 			Directory.CreateDirectory($"{home}/.local/share/unity3d");
 		}
+#endif
 
 		private const string DEFAULT_TERMS = @"END USER LICENSE AGREEMENT (“EULA”)
 
