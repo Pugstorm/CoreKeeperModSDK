@@ -7,21 +7,20 @@
       "dependencies": {}
     },
     "com.unity.addressables": {
-      "version": "1.22.2",
+      "version": "file:com.unity.addressables",
       "depth": 0,
-      "source": "registry",
+      "source": "embedded",
       "dependencies": {
+        "com.unity.scriptablebuildpipeline": "1.21.25",
         "com.unity.modules.assetbundle": "1.0.0",
-        "com.unity.modules.jsonserialize": "1.0.0",
         "com.unity.modules.imageconversion": "1.0.0",
+        "com.unity.modules.jsonserialize": "1.0.0",
         "com.unity.modules.unitywebrequest": "1.0.0",
-        "com.unity.scriptablebuildpipeline": "1.21.24",
         "com.unity.modules.unitywebrequestassetbundle": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
+      }
     },
     "com.unity.ai.navigation": {
-      "version": "1.1.5",
+      "version": "1.1.6",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -30,7 +29,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.burst": {
-      "version": "1.8.18",
+      "version": "1.8.21",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -77,7 +76,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.ide.rider": {
-      "version": "3.0.31",
+      "version": "3.0.36",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -156,7 +155,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.render-pipelines.core": {
-      "version": "14.0.11",
+      "version": "14.0.12",
       "depth": 1,
       "source": "builtin",
       "dependencies": {
@@ -167,14 +166,14 @@
       }
     },
     "com.unity.render-pipelines.universal": {
-      "version": "14.0.11",
+      "version": "14.0.12",
       "depth": 0,
       "source": "builtin",
       "dependencies": {
         "com.unity.mathematics": "1.2.1",
         "com.unity.burst": "1.8.9",
-        "com.unity.render-pipelines.core": "14.0.11",
-        "com.unity.shadergraph": "14.0.11",
+        "com.unity.render-pipelines.core": "14.0.12",
+        "com.unity.shadergraph": "14.0.12",
         "com.unity.render-pipelines.universal-config": "14.0.9"
       }
     },
@@ -187,7 +186,7 @@
       }
     },
     "com.unity.scriptablebuildpipeline": {
-      "version": "1.21.24",
+      "version": "1.21.25",
       "depth": 1,
       "source": "registry",
       "dependencies": {},
@@ -211,11 +210,11 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.shadergraph": {
-      "version": "14.0.11",
+      "version": "14.0.12",
       "depth": 1,
       "source": "builtin",
       "dependencies": {
-        "com.unity.render-pipelines.core": "14.0.11",
+        "com.unity.render-pipelines.core": "14.0.12",
         "com.unity.searcher": "4.9.2"
       }
     },
@@ -292,17 +291,6 @@
       "dependencies": {
         "com.unity.modules.ui": "1.0.0",
         "com.unity.modules.imgui": "1.0.0"
-      }
-    },
-    "dev.pugstorm.sprite": {
-      "version": "file:dev.pugstorm.sprite",
-      "depth": 0,
-      "source": "embedded",
-      "dependencies": {
-        "com.unity.render-pipelines.universal": "12.1.8",
-        "com.unity.collections": "2.1.4",
-        "com.unity.burst": "1.8.4",
-        "com.unity.mathematics": "1.2.1"
       }
     },
     "com.unity.modules.ai": {
