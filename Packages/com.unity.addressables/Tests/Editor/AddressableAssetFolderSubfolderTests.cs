@@ -6,6 +6,7 @@ using NUnit.Framework;
 using UnityEditor.AddressableAssets.Build;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
+using UnityEditor.Build.Pipeline;
 using UnityEngine;
 using static UnityEditor.AddressableAssets.Settings.AddressablesFileEnumeration;
 

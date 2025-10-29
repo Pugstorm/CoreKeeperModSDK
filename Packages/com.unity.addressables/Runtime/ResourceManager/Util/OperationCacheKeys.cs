@@ -17,6 +17,12 @@ namespace UnityEngine.ResourceManagement.Util
         public string ID;
         public Type locationType;
 
+        public IdCacheKey(string id)
+        {
+            ID = id;
+            locationType = typeof(object);
+        }
+
         public IdCacheKey(Type locType, string id)
         {
             ID = id;
@@ -68,7 +74,9 @@ namespace UnityEngine.ResourceManagement.Util
         {
             if (ReferenceEquals(this, other)) return true;
             if (ReferenceEquals(other, null)) return false;
-            return LocationUtils.LocationEquals(m_Location, other.m_Location) && Equals(m_DesiredType, other.m_DesiredType);
+            if (!LocationUtils.LocationEquals(m_Location, other.m_Location) || !Equals(m_DesiredType, other.m_DesiredType))
+                return false;
+            return LocationUtils.DependenciesEqual(m_Location.Dependencies, other.m_Location.Dependencies);
         }
     }
 

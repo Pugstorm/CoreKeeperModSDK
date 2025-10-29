@@ -533,13 +533,7 @@ namespace UnityEditor.AddressableAssets.Build
 
             var settings = input.AddressableSettings;
             var dataSource = getRemoteCatalogDataSource(settings);
-            if (dataSource == null)
-            {
-                Addressables.LogError("Could not find remote catalog paths. Ensure your profile's remote catalog load path is configured for CCD and that the bucket exists.");
-                return false;
-            }
-
-            if (!this.isCCDGroup(dataSource))
+            if (dataSource == null || !this.isCCDGroup(dataSource))
             {
                 Addressables.LogError("Content state could not be downloaded as the remote catalog is not targeting CCD");
                 return false;
@@ -659,13 +653,7 @@ namespace UnityEditor.AddressableAssets.Build
 
             var settings = input.AddressableSettings;
             var dataSource = getRemoteCatalogDataSource(settings);
-            if (dataSource == null)
-            {
-                Addressables.LogError("Could not find remote catalog paths. Ensure your profile's remote catalog load path is configured for CCD and that the bucket exists.");
-                return false;
-            }
-
-            if (!this.isCCDGroup(dataSource))
+            if (dataSource == null || !this.isCCDGroup(dataSource))
             {
                 Addressables.LogError("Content state could not be uploaded as the remote catalog is not targeting CCD");
                 return false;
@@ -900,28 +888,17 @@ namespace UnityEditor.AddressableAssets.Build
 
         int StartProgress(string description)
         {
-#if UNITY_2020_1_OR_NEWER
             return Progress.Start("CCD", description, Progress.Options.Managed);
-#else
-            Addressables.Log(description);
-            return -1;
-#endif
         }
 
         void RemoveProgress(int progressId)
         {
-#if UNITY_2020_1_OR_NEWER
             Progress.Remove(progressId);
-#endif
         }
 
         void ReportProgress(int progressId, float progress, string message)
         {
-#if UNITY_2020_1_OR_NEWER
             Progress.Report(progressId, progress, message);
-#else
-            Addressables.Log($"[{progress}] {message}");
-#endif
         }
 
         async Task UploadAndRelease(ICcdManagementServiceSdk api, AddressableAssetSettings settings, string defaultEnvironmentId, CcdBuildDataFolder buildData)

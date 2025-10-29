@@ -28,6 +28,11 @@ namespace UnityEditor.AddressableAssets.Build.DataBuilders
     public class BuildScriptBase : ScriptableObject, IDataBuilder
     {
         /// <summary>
+        /// Static part of the builtin bundle filename.
+        /// </summary>
+        public const string BuiltInBundleBaseName = "_unitybuiltinassets";
+
+        /// <summary>
         /// The type of instance provider to create for the Addressables system.
         /// </summary>
         [FormerlySerializedAs("m_InstanceProviderType")]
@@ -159,12 +164,6 @@ namespace UnityEditor.AddressableAssets.Build.DataBuilders
                     if (assetGroup == null)
                         continue;
 
-                    if (assetGroup.Schemas.Find((x) => x.GetType() == typeof(PlayerDataGroupSchema)) &&
-                        assetGroup.Schemas.Find((x) => x.GetType() == typeof(BundledAssetGroupSchema)))
-                    {
-                        return $"Addressable group {assetGroup.Name} cannot have both a {typeof(PlayerDataGroupSchema).Name} and a {typeof(BundledAssetGroupSchema).Name}";
-                    }
-
                     var error = ErrorCheckBundleSettings(assetGroup, aaContext);
                     if (error != string.Empty)
                     {
@@ -187,7 +186,8 @@ namespace UnityEditor.AddressableAssets.Build.DataBuilders
             return string.Empty;
         }
 
-        internal string ErrorCheckBundleSettings(AddressableAssetGroup assetGroup, AddressableAssetsBuildContext aaContext)
+
+        internal static string ErrorCheckBundleSettings(AddressableAssetGroup assetGroup, AddressableAssetsBuildContext aaContext)
         {
             if (!assetGroup.HasSchema<BundledAssetGroupSchema>())
                 return string.Empty;
@@ -195,6 +195,12 @@ namespace UnityEditor.AddressableAssets.Build.DataBuilders
             var message = string.Empty;
             var settings = aaContext.Settings;
             var schema = assetGroup.GetSchema<BundledAssetGroupSchema>();
+
+            if(settings.UseUnityWebRequestForLocalBundles && schema.StripDownloadOptions)
+            {
+                message = "Strip Download Options is enabled, but Use UnityWebRequest for Local Bundles is also enabled. " +
+                          "These options are mutually exclusive and cannot be used together.";
+            }
 
             string buildPath = settings.profileSettings.GetValueById(settings.activeProfileId, schema.BuildPath.Id);
             string loadPath = settings.profileSettings.GetValueById(settings.activeProfileId, schema.LoadPath.Id);
@@ -246,36 +252,6 @@ namespace UnityEditor.AddressableAssets.Build.DataBuilders
         public virtual bool CanBuildData<T>() where T : IDataBuilderResult
         {
             return false;
-        }
-
-        /// <summary>
-        /// Utility method for creating locations from player data.
-        /// </summary>
-        /// <param name="playerDataSchema">The schema for the group.</param>
-        /// <param name="assetGroup">The group to extract the locations from.</param>
-        /// <param name="locations">The list of created locations to fill in.</param>
-        /// <param name="providerTypes">Any unknown provider types are added to this set in order to ensure they are not stripped.</param>
-        /// <returns>True if any legacy locations were created.  This is used by the build scripts to determine if a legacy provider is needed.</returns>
-        protected bool CreateLocationsForPlayerData(PlayerDataGroupSchema playerDataSchema, AddressableAssetGroup assetGroup, List<ContentCatalogDataEntry> locations, HashSet<Type> providerTypes)
-        {
-            bool needsLegacyProvider = false;
-            if (playerDataSchema != null && (playerDataSchema.IncludeBuildSettingsScenes || playerDataSchema.IncludeResourcesFolders))
-            {
-                var entries = new List<AddressableAssetEntry>();
-                assetGroup.GatherAllAssets(entries, true, true, false);
-                foreach (var a in entries.Where(e => e.IsInSceneList || e.IsInResources))
-                {
-                    if (!playerDataSchema.IncludeBuildSettingsScenes && a.IsInSceneList)
-                        continue;
-                    if (!playerDataSchema.IncludeResourcesFolders && a.IsInResources)
-                        continue;
-                    a.CreateCatalogEntries(locations, false, a.IsScene ? "" : typeof(LegacyResourcesProvider).FullName, null, null, providerTypes);
-                    if (!a.IsScene)
-                        needsLegacyProvider = true;
-                }
-            }
-
-            return needsLegacyProvider;
         }
 
         /// <summary>
@@ -364,7 +340,14 @@ namespace UnityEditor.AddressableAssets.Build.DataBuilders
         }
 
 
-
+        /// <summary>
+        /// Copies the content state binary file from the temp directory to its final location and registers it in the
+        /// file registry and build results.
+        /// </summary>
+        /// <param name="tempPath">Temporary location of the content state file.</param>
+        /// <param name="contentStatePath">Destination location of the content state file.</param>
+        /// <param name="builderInput">The builderInput object used in the build.</param>
+        /// <param name="addrResult">The build data result.</param>
         public virtual void CopyAndRegisterContentState(string tempPath, string contentStatePath, AddressablesDataBuilderInput builderInput, AddressablesPlayerBuildResult addrResult)
         {
             try
@@ -399,8 +382,8 @@ namespace UnityEditor.AddressableAssets.Build.DataBuilders
         /// </summary>
         protected virtual void NotifyUserAboutBuildReport()
         {
-#if UNITY_2022_2_OR_NEWER
-            bool buildReportSettingCheck = ProjectConfigData.UserHasBeenInformedAboutBuildReportSettingPreBuild;
+            // Disabled to prevent interrupting build process
+            bool buildReportSettingCheck = true;
             if (!buildReportSettingCheck && !Application.isBatchMode && !ProjectConfigData.GenerateBuildLayout)
             {
                 bool turnOnBuildLayout = EditorUtility.DisplayDialog("Addressables Build Report",
@@ -411,7 +394,6 @@ namespace UnityEditor.AddressableAssets.Build.DataBuilders
                     ProjectConfigData.GenerateBuildLayout = true;
                 ProjectConfigData.UserHasBeenInformedAboutBuildReportSettingPreBuild = true;
             }
-#endif
         }
 
         /// <summary>
@@ -419,12 +401,10 @@ namespace UnityEditor.AddressableAssets.Build.DataBuilders
         /// </summary>
         protected virtual void DisplayBuildReport()
         {
-#if UNITY_2022_2_OR_NEWER
             if (!Application.isBatchMode && ProjectConfigData.AutoOpenAddressablesReport && ProjectConfigData.GenerateBuildLayout)
             {
                 BuildReportWindow.ShowWindowAfterBuild();
             }
-#endif
         }
 
         /// <summary>
@@ -436,40 +416,5 @@ namespace UnityEditor.AddressableAssets.Build.DataBuilders
             foreach (var group in groups)
                 ContentUpdateScript.ClearContentUpdateNotifications(group);
         }
-
-        protected virtual string OutputLibraryPathForAsset(string a)
-        {
-            var guid = AssetDatabase.AssetPathToGUID(a);
-            var legacyPath = string.Format("Library/metadata/{0}{1}/{2}", guid[0], guid[1], guid);
-#if UNITY_2020_2_OR_NEWER
-            var artifactID = Experimental.AssetDatabaseExperimental.ProduceArtifact(new ArtifactKey(new GUID(guid)));
-            if (Experimental.AssetDatabaseExperimental.GetArtifactPaths(artifactID, out var paths))
-                return Path.GetFullPath(paths[0]);
-            else
-                legacyPath = String.Empty;
-#elif UNITY_2020_1_OR_NEWER
-            var hash = Experimental.AssetDatabaseExperimental.GetArtifactHash(guid);
-            if (Experimental.AssetDatabaseExperimental.GetArtifactPaths(hash, out var paths))
-                return Path.GetFullPath(paths[0]);
-            else
-                legacyPath = String.Empty; // legacy path is never valid in 2020.1+
-#else
-            if (IsAssetDatabaseV2Enabled()) // AssetDatabase V2 is optional in 2019.3 and 2019.4
-            {
-                var hash = Experimental.AssetDatabaseExperimental.GetArtifactHash(guid);
-                if (Experimental.AssetDatabaseExperimental.GetArtifactPaths(hash, out var paths))
-                    return Path.GetFullPath(paths[0]);
-            }
-#endif
-            return legacyPath;
-        }
-
-        private static bool IsAssetDatabaseV2Enabled()
-        {
-            // method is internal
-            var methodInfo = typeof(AssetDatabase).GetMethod("IsV2Enabled", BindingFlags.Static | BindingFlags.NonPublic);
-            return methodInfo != null && (bool)methodInfo.Invoke(null, null);
-        }
-
     }
 }

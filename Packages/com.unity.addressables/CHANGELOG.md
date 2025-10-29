@@ -3,45 +3,153 @@ All notable changes to this package will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+## [2.7.3] - 2025-09-15
+- Changed Label window to have consistent Rename UX with the rest of the Editor. You can now press Enter (macOS) or F2 to enter rename, as well as clicking after selecting an item in the list.
+- Added documentation to mention the fact that loading AssetBundles directly via LoadAssetAsync does not handle dependencies.
+- Added null checks for analytics events to fix console error.
+- Fixed loading incorrect data when using dynamic internal id naming.
+- Documentation: Content model update.
+- Fixed an issue where trying to build after setting a custom profile value would sometimes cause a NullRefException.
 
-## [1.22.3] - 2024-10-18
+## [2.7.2] - 2025-08-11
+- Fixed issue where builds were failing in Unity Cloud Build due to hash collisions in Addressables during dependency resolution.
+- Fixed an issue where remote binary catalogs would mistakenly be listed as having the .json file extension in the Build Report summary tab.
+
+## [2.7.0] - 2025-07-30
+- Fixed issue where strikethrough appears on labels when reordering addressables labels in the labels window.
+- Changed GetDownloadSizeAsync to actually use an AsyncOperation and run the calculation as part of a coroutine.
+- Fix for CCD Upload Issue with Packed Separately Bundles.
+- Fixed an issue where you weren't able to assign Sprites in a AssetReferenceAtlasedSprite if the Atlas was a variant.
+- Fixed an issue when "Use Defaults" was selected for a Group. When building for Android the local settings were used for remote groups. This effectively disabled caching.
+- Fixed an issue where Profiler runtime data was not stripped for non-development builds.
+- Improved memory usage when using binary catalogs.
+- Improved performance of the Addressable Groups editor window for large projects - this should be noticable when first launching the window, and when searching for assets.
+- Fixed an issue where the Addressables Profiler Module would not work properly when using a standalone Profiler process.
+- Fix an issue where Custom group settings were not correctly applied to built-in bundles.
+- Revert name change to prevent gameobject warning on group Rename
+- Added Preserve attribute to prevent stripping of RuntimePath property
+
+## [2.6.0] - 2025-06-03
+- Fixed issue where call to LoadAssetsAsync was treating single element keys into an array of characters.
+- Fixed binary catalog extraction & optimization tools.  InternalIds of locations were getting resolved with Editor data incorrectly.  They are now copied directly to the output files.
+
+## [2.5.0] - 2025-05-12
+- Added IP ping timeout to the Hosting Services window.
+- Fixed memory leak when loading Sprite objects from a SpriteAtlas asset.
+- Fixed sub-object loading from AssetReferences for types that are not Sprites in a SpriteAtlas.
+- Fixed Exception when using third build and load path variables option.
+- Fixed bug where identical locations were calculated multiple times in the download size
+- Fixed bug where we'd fetch the remote hash at start-up even though catalog updates were disabled
+
+## [2.5.0] - 2025-05-12
+- Added IP ping timeout to the Hosting Services window.
+- Fixed memory leak when loading Sprite objects from a SpriteAtlas asset.
+- Fixed sub-object loading from AssetReferences for types that are not Sprites in a SpriteAtlas.
+- Fixed Exception when using third build and load path variables option.
+- Fixed bug where identical locations were calculated multiple times in the download size
+- Fixed bug where we'd fetch the remote hash at start-up even though catalog updates were disabled
+
+## [2.4.6] - 2025-03-19
+- Fixed issue where custom asset providers set in Addressable Asset Settings UI aren't being used.
+- Fixed issue where duplicated assets savings in summary tab of the build report is incorrect.
+- Moved AddressableAssetEntryTreeViewState into the UnityEditor.AddressableAssets namespace to fix compile errors in user code.
+- Fixed Add Report... and Add Report From Folder... in the Addressables Report window so they now add reports properly.
+- Fixed an issue where when an Addressable scene was unloaded because a new scene was loaded using LoadSceneMode.Single it was not decremented in the number of scenes loaded in the profiler.
+
+## [2.3.16] - 2025-01-08
+- Fixed compile error due to using restricted namespaces
+- Moved AddressableAssetEntryTreeViewState into the UnityEditor.AddressableAssets namespace to fix compile errors in user code.
+
+## [2.3.7] - 2024-12-04
+- The group edit window saves sort order and enabled columns. Groups are not sorted but can be reordered by dragging and dropping and that state is saved. This ordering has been moved to the Addressables data folder into the file AddressableAssetGroupSortSettings. This file can be added to .gitignore for per user sorting, or can be checked into version control for team sorting.
+- Fix "IndexOutOfRangeException" console message when assigning an addressable SpriteAtlas to an AssetReferenceSprite.
+- Make SubObjectGUID an Editor only field. It would not work properly at Runtime due to the lack of AssetDatabase, but this makes it explicit at compile time.
+- Switch the Runtime key to never use the SubObjectGUID and always use SubObjectName for subobjects.
+- CheckCatalogUpdate now returns 1 when there is an update available.
+- CanBuildPlayer has been switched to using the Bee postprocessor and should return better error messages on failure.
+
+## [2.3.1] - 2024-09-24
+- Added back Analyze Rule toolset
 - Fixed issue where the content of the list with Addressable Assets Groups is improperly indented when displayed in Group Hierarchy with Dashes Group View.
 - Fixed issue where “Profile rename failed because default profile cannot be renamed“ error is thrown when renaming a new profile in Addressables Profiles.
+- Fixed a memory leak where asset bundles would not get unloaded when a scene was unloaded before completing load.
 - Fixed loading error when the loading from an assetbundle that is currently being preloaded.
 
-## [1.22.2] - 2024-05-13
-- Fixed memory leak when loading Sprite objects from a SpriteAtlas asset.
-- Added support for directly calling Release() on AsyncOperationHandles that didn't have the option to.
+## [2.2.2] - 2024-06-26
+- Fix KeyNotFoundException when clicking on local bundles in the profiler.
+- Fix bundles incorrectly marked as released in the Profiler when they are still active
+- Improved error message when trying to load a catalog in an unexpected file format.
 - Fixed issue where operation that uses WaitForCompletion can timeout much earlier than it should.
+- The build scripts were reworked so that you can extend them or copy them outside the package without having to fork the entire package.
+- A Version field was added to the Addressables object for getting the package version in the Editor.
+- Fixed an issue where tearing down the Addressables instance could happen before user tear down code was getting called.
 - Sort collections to make serialized editor files deterministic
-- Fixed an issue where tearing down the Addressables instance could happen before user teardown code was getting called.
 - Fixed issue where labels on an addressable sub-entry are incorrectly added to the former parent entry.
+- Added support for calling Release() on AsyncOperationHandles directly that couldn't before.
+- Fixed sub-object loading from AssetReferences for types that are not Sprites in a SpriteAtlas.
 
-## [1.21.21] - 2024-05-03
+
+## [2.1.0] - 2024-03-19
 - Fix "Unable to verify target bucket for Remote Catalog: Not Found. Object could not be found" error
 - Fixed caching to prevent unnecessary refreshing of bucket data.
+- Sort collections on serialization to prevent unnecessary merge conflicts
+- Add warnings and documentation to make it clear you need to release the handle from LoadDependenciesAsync
 
-## [1.21.20] - 2024-02-08
-- Fixed an issue where scene InternalId collisions were very likely when using dynamic internal asset naming
-- Fixed catalogs to use back slashes rather than forward slashes for android builds.
-- Fixed an issue where "Failed to remove scene from Addressables profiler" warning occurs when a scene is unloaded.
+## [2.0.8] - 2024-01-19
+- Documents the behavior of using WaitForCompletion while a bundle is being unloaded.
 - Prevent a KeyNotFoundException from being logged to the console.
-- Fix error message to report not found when loading non-Addressable asset by guid
 - Fixed issue where a NullReferenceException occurs when using WaitForCompletion and the max number of concurrent requests is set to 1.
+- Fix error message to report not found when loading non-Addressable asset by guid
 - Fixed issue where there is missing asset data in the Addressables Profiler for binary catalogs.
+- Fixed an issue the error "Cannot read BuildLayout header, BuildLayout has not open for a file" would occur after a build
 - Added note about the limitations of the Check for Content Update Restrictions tool.
-- Add migration upgrade prompt for legacy path pairs (ex. RemoteLoadPath)
-- Fixed an issue where a broken script on any Addressable Asset would make it impossible to select Addressable Assets in the AssetReference inspector
-- Add logging of catalog and asset bundle http operations.
-- Add UI to trigger CCD management API http call logging (requires newer CCD package)
-- CCD Automatic Profiles can now be one per-profile, rather than one per AddressableSettings instance
-- CCD Manager is built when using the Build to CCD and the standard Build content menu
-- Add support for CCD Management SDK 3.0
+- Fixed issue where an ArgumentException can occur when viewing multiple assets in the Addressables Profiler.
 
-## [1.21.19] - 2023-10-17
+Fixed an issue where a broken script on any Addressable Asset would make it impossible to select Addressable Assets in the AssetReference inspector
+Add migration upgrade prompt for legacy path pairs (ex. RemoteLoadPath)
+Add logging of catalog and asset bundle http operations.
+Add UI to trigger CCD management API http call logging (requires newer CCD package)
+CCD Automatic Profiles can now be one per-profile, rather than one per AddressableSettings instance
+CCD Manager is built when using the Build to CCD and the standard Build content menu
+
+## [2.0.7] - 2023-12-12
+- Updating ScriptableBuildPipeline reference.
+
+## [2.0.6] - 2023-10-30
+- Updating ScriptableBuildPipeline reference.
+
+## [2.0.3] - 2023-08-27
+- ProfileValueReference.GetValue is now the preferred method of getting bulid and load paths. A new method has been added that allows token evaluation to be toggled on and off. Using this method ensures that custom build and load paths are handled properly.
+- In the Editor when a sprite is no longer available it will be cleared when the property drawer is viewed.
+- Add a SubObjectGUID to sprite atlases and use GUIDs for the runtime loading key if is exists.
+- Catalog hashes get build with the local catalog now.  This prevents remote catalogs from getting downloaded if they match what was shipped with a player
+- Added overloads to LoadAssetsAsync to accept a single string as a key
+- Added bundle request retry override.
+- Added shared bundle settings to AddressableAssetSettings. Monoscript bundle is always enabled.
+- Added more BuildLayout public API
+- Fixed issue with misleading error message for loading through asset where the asset is not Addressable in editor.
+- Added in safeguard to prevent Compress Local Catalog option from being on alongside Binary Catalogs
+- Fixed an issue where ResourceLocation would return a useless value when using Binary Catalogs
+- Fixed an issue where there would sometimes be a minor memory leak when using Binary Catalogs
+- Fixed an issue where Binary Catalogs would not be cached properly
+- Fixed a bug where a GUI style was misspelled in the Editor and was recently fixed
+- Fixed an issue where FindAssetEntry returns incorrect values after Undo/Redo
+- Fixed a regression where remote provider failures were not retried.
+- Fixed an issue where a NullReferenceException occurs when inspecting Addressable Settings
+- Fixed an issue where the content update groups list being cutoff by buttons
+- Fixed an issue where an ArgumentException occurs when sorting labels and creating a new group.
+- Fixed an issue where using binary catalogs causes a crash on Android with ARM7.
+- Fixed an issue where a NullReferenceException occurs in GenerateBuildLayout when a group is null.
+- Fixed a bug where Timeout and Redirect Limit were getting serialized to different values from what was allowed in the Group schema
+- DownloadDepedenciesAsync no longer loads asset bundles into memory
+- Fixed issue where ResourceLocations weren't getting compared correctly for properties like AllLocations
 - Fixed an issue where scene InternalId collisions were very likely when using dynamic internal asset naming
-- Fixed catalogs to use back slashes rather than forward slashes for android builds.
+- Fixed an issue where sprites with normal maps would not be built properly
 - Fixed an issue where "Failed to remove scene from Addressables profiler" warning occurs when a scene is unloaded.
+- Fixed an exception getting thrown in the Addressables Report when drilling into a bundle chain
+- Fixed string deduplication in binary catalogs.  Certain data sets were causing data to expand.
+- Removed the Analyze Rule API and corresponding tool
+- Removed the Event Viewer API and corresponding tool
 
 ## [1.21.18] - 2023-09-23
 - Fixed an issue where scene InternalId collisions were very likely when using dynamic internal asset naming
@@ -51,7 +159,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed issue where sprite is missing normal texture when using "Use Existing Build" build mode
 - Fixed a bug where a GUI style was misspelled in the Editor and was recently fixed
 - Fixed an issue where asset loading would occasionally stop working if domain reload was disabled
-- Fixed an issue where Android paths were being delimited with '\' rather than '/'
 
 ## [1.21.15] - 2023-08-03
 - Fixed an issue where using binary catalogs causes a crash on Android with ARM7.
@@ -78,7 +185,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.21.10] - 2023-04-10
 - Fixed Addressables profiler not correctly displaying loaded Asset subObjects where a Asset was loaded due to a direct reference to one of its subObjects.
 - Fixed an issue where bundles built with the Append Hash to FIlename bundle naming option had strange interactions with the Prevent Updates option
-- Improved performance of BuildLayoutGenerationTask 
+- Improved performance of BuildLayoutGenerationTask
 
 ## [1.21.9] - 2023-03-07
 - Removed code within WriteObjectToByteList that would never be reached
@@ -297,7 +404,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Improved performance of displaying Addressables Inspector in a very large Project.
 - Fixed issue where buildlayout.txt would contain incorrect bundle names if a group's bundle naming scheme was set to filename
 - Fixed an issue where some platforms were caching catalogs that don't support caching
-- Fixed an issue where the popup windows for creating new profiles path variables would appear in seemingly random places. 
+- Fixed an issue where the popup windows for creating new profiles path variables would appear in seemingly random places.
 - Fixed an issue where the popup window for creating a Build and Load path variable pair would not properly display its save button
 - Added note in Hosting Services docs about modifying firewall settings when testing on other devices.
 - Added handling of possible exceptions when caching catalog files.
@@ -321,25 +428,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Users can now supply a callback to receive the UnityWebRequest before being sent by web-based providers
 - Added new API to clear the bundle cache for nonreferenced remote asset bundles. UpdateCatalogs has a new optional parameter called autoCleanBundleCache that when enabled will clear the bundle cache for nonreferenced remote asset bundles.
 - New public APIs
-	- BundledAssetGroupSchema.AssetLoadMode
-	- AssetBundleProvider.AssetBundleRequestOptions.AssetLoadMode
-	- Addressables.WebRequestOverride
-	- ResourceManager.WebRequestOverride
-	- AddressableAssetSettings.DisableVisibleSubAssetRepresentations
-	- Exposed Auto release parameter added to InitializeAsync
-	- BundleRuleBase
-	- GenerateLocationListsTask.ProcessInput (formally RunInteral)
-	- BuildScriptPackedMode.PrepGroupBundlePacking
-	- UnloadSceneAsync APIs with exposed UnloadSceneOptions parameter
-	- Addressables.CleanBundleCache
-	- New parameter for Addressables.UpdateCatalogs to auto clean the bundle cache
+    - BundledAssetGroupSchema.AssetLoadMode
+    - AssetBundleProvider.AssetBundleRequestOptions.AssetLoadMode
+    - Addressables.WebRequestOverride
+    - ResourceManager.WebRequestOverride
+    - AddressableAssetSettings.DisableVisibleSubAssetRepresentations
+    - Exposed Auto release parameter added to InitializeAsync
+    - BundleRuleBase
+    - GenerateLocationListsTask.ProcessInput (formally RunInteral)
+    - BuildScriptPackedMode.PrepGroupBundlePacking
+    - UnloadSceneAsync APIs with exposed UnloadSceneOptions parameter
+    - Addressables.CleanBundleCache
+    - New parameter for Addressables.UpdateCatalogs to auto clean the bundle cache
        - ProfileGroupType introduces a new workflow of grouping profile variables in the Addressables Profiles window, otherwise known as path pairs.
 
 ## [1.18.15] - 2021-07-26
 - Improved Addressables inspector for Assets.
 - Fixed issue where the hosting window would use an exceptionally high (8-20%) amount of CPU while open with a hosting service created
 - Added update on profile change, changed to remove preceding slashes and change all to forward slash for hosting service
-- Added documentation explaining why we are unable to support WaitForCompletion (sync Addressables) on WebGL 
+- Added documentation explaining why we are unable to support WaitForCompletion (sync Addressables) on WebGL
 
 ## [1.18.13] - 2021-07-13
 - Fixed issue where Addressables would not use a custom Asset Bundle Provider if the default group was empty
@@ -350,7 +457,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed issue where NullReferenceException was logged when multi-selecting with Resource in Groups TreeView.
 - Fixed issue where Check for Content Update Restrictions excludes dependencies for folder entries.
 - Fixed issue where AddPostCatalogUpdatesInternal would attempt to remove the hash from strings that did not include a hash, occassionally leading to incorrect bundle names in catalog.json
-- Load AssetBundles Asynchronously from UnityWebRequest for supported Editor versions 
+- Load AssetBundles Asynchronously from UnityWebRequest for supported Editor versions
 - Fixed issue where hidden files were being flagged in GetDownloadSizeAsync when "Use Asset Database (fastest)" is enabled.
 - Added logic for auto releasing completion handle in InitializeAsync
 - Fixed issue where AssetBundleProvider would fail to retry on download dailed
@@ -419,7 +526,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Made AddressableAssetSettings.ContentStateBuildPath public api access.
 - Add option for building MonoScript bundle. This approach improves multi bundle dependencies to the same MonoScript.
 - Added documentation for AddressableAssetSettings options.
-- Improved error handling of failed unity web requests and some other operations. 
+- Improved error handling of failed unity web requests and some other operations.
 - Users can now look into the InnerException property of an operation's exception for additional details"
 - Fixed issue where .json and .asmdef files in the root of a package folder cannot be marked as Addressable.
 - Fixed issue where unmodifiable assets cannot be marked as Addressable.
@@ -491,7 +598,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Change to use full path for name of cached catalog.
 
 ## [1.17.2-preview] - 2021-01-14
-- Add silent fail option to providers to get rid of error when cache not found as expected 
+- Add silent fail option to providers to get rid of error when cache not found as expected
 - Hierarchy now fully displayed in search results when 'show groups as hierarchy' and 'hierarchical search' options are enabled
 - OnValidate is now called when an AssetReference changes
 - Fixed bugs in Use Asset Database play mode related to multiple folders with matching addresses
@@ -566,7 +673,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Allow assets that are inside a com.unity* package to be marked as addressable
 
 ## [1.16.10] - 2020-11-04
-- Added internal naming option for the Bundled Asset Group Schema.  Instead of using the full path, there are options to use the asset guid or the hashcode of the guid.  These values are stable and wont change if the asset path changes, reducing the need to rebuild a bundle if paths change but contents do not.  The internal ids stored in the content catalog will generally be shorter than asset paths - 32 bytes for the full guid, 8 bytes for the guid hash. 
+- Added internal naming option for the Bundled Asset Group Schema.  Instead of using the full path, there are options to use the asset guid or the hashcode of the guid.  These values are stable and wont change if the asset path changes, reducing the need to rebuild a bundle if paths change but contents do not.  The internal ids stored in the content catalog will generally be shorter than asset paths - 32 bytes for the full guid, 8 bytes for the guid hash.
 - Added option to exclude sub catalog entries by file extension
 - Added options to exclude catalog entries for address, labels, and guids
 - Added option to optimize catalog size by extracting duplicated string in urls and file paths
@@ -620,7 +727,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Additional Fast Mode optimizations
 - Fixed issue where a released operation was not properly cleaned-up
 - Fixed issue where renaming an AssetGroup with a name that contained a period led to unusual renaming behavior.
-- Removed Analyze Rule "Check Sprite Atlas To...".  This check was not actually valid.  See "SpriteAtlas dependencies" section of "Memory Management" page in Addressables documentation for more information. 
+- Removed Analyze Rule "Check Sprite Atlas To...".  This check was not actually valid.  See "SpriteAtlas dependencies" section of "Memory Management" page in Addressables documentation for more information.
 - UnloadSceneAsync calls that attempt to unload a scene that is still currently loading are now chained with the load operation and will complete after the load is finished.
 - The MaxConcurrentWebRequests exposed on the AddressableAssetSettings object now gets set during runtime initialization
 - Fix performance issues drawing AssetReferences with subassets caused by earlier changes to AssetReferenceDrawer
@@ -637,10 +744,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix bug where lists of AssetReferenceSprites were not displayed or set right by AssetReferenceDrawer. Also fixed where multiple selected objects in project hierarchy couldn't set all lists of AssetReferences elements.
 - Added better error logging when unrecognized file in build.
 - Added error log when building asset bundles during player build.
-- Added "Hide Events" context menu option in Event Viewer 
+- Added "Hide Events" context menu option in Event Viewer
 - Fixed a bug where running the "Check Scene to Addressable Duplicate Dependencies" analyze rule multiple times would cause a duplicate key exception
 - The "Check Scene to Addressable Duplicate Dependencies" analyze rule now only considers scenes that are enabled in the build settings.
-- Fixed a bug where an error would be thrown when Unity 2019 opens and if the hosting window was previously left open 
+- Fixed a bug where an error would be thrown when Unity 2019 opens and if the hosting window was previously left open
 - Fixed a bug where changes to a service where not applied in the hosting window
 - Fixed a bug where profile selection in the inspector was incorrectly reverted to the default one on domain reload
 - Added documentation for LoadResourceLocationsAsync
@@ -663,15 +770,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - AsyncOperationHandle<bool> ClearDependencyCacheAsync has been added.  The new API takes an autoReleaseHandle parameter and returns the AsyncOperationHandle.
 - Made the AsyncOperationHandle in AssetReference public.
 - Fixed loading of items from Resources and the built in ScenesList.
-- Improved the performance of loading local content on Android by using LoadFromFileAsync instead of UnityWebRequest. Please note that the bundle compression mode for all local content (on any platform) should be LZ4 or uncompressed to have optimal load performance. 
+- Improved the performance of loading local content on Android by using LoadFromFileAsync instead of UnityWebRequest. Please note that the bundle compression mode for all local content (on any platform) should be LZ4 or uncompressed to have optimal load performance.
 - Fixed issue where some Addressables settings were not being saved if they were only serialized properties or textfields like 'Build Remote Catalog'
 - Fixed a bug where DiagnosticEvents would be created even if 'Send Profiler Events' was set to false.
 - Refactored the DebugNames of many of the most common implementations of AsyncOperationHandle to improve readability in the event viewer.
-- Events in the Event viewer should now display more accurately in the case of Repeated loads and unloads of the same object. 
+- Events in the Event viewer should now display more accurately in the case of Repeated loads and unloads of the same object.
 - AddressableAssetEntry now overrides ToString() to return the address of the entry
 - Added support for setting multiple assets and subasset references at a time for field in GameObject script in the AssetReference Inspector
 - Improved performance of the GenerateLocationLists task
-- Refactored DiagnosticEventCollector.RegisterEventHandler so that events are always handled in frame order. 
+- Refactored DiagnosticEventCollector.RegisterEventHandler so that events are always handled in frame order.
 - Fixed bug where the Event Viewer would not work when connected to a standalone player.
 - Added docs describing the process of connecting the Event Viewer to a standalone player.
 - Fixed exception that was getting thrown on Editor restart regarding accessing EditorSettings.enterPlayModeOptionsEnabled during serialization.

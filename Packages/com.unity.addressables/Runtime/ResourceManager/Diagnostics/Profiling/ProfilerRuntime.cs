@@ -1,5 +1,4 @@
-#if ENABLE_ADDRESSABLE_PROFILER
-
+#if ENABLE_PROFILER
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -63,7 +62,7 @@ namespace UnityEngine.ResourceManagement.Profiling
             CatalogLoadCounter.Value++;
         }
 
-        public static void AddBundleOperation(ProvideHandle handle, AssetBundleRequestOptions requestOptions, ContentStatus status, BundleSource source)
+        public static void AddBundleOperation(ProvideHandle handle, [NotNull] AssetBundleRequestOptions requestOptions, ContentStatus status, BundleSource source)
         {
             IAsyncOperation op = handle.InternalOp as IAsyncOperation;
             if (op == null)
@@ -130,7 +129,7 @@ namespace UnityEngine.ResourceManagement.Profiling
             string containingBundleName = GetContainingBundleNameForLocation(handle.Location);
 
             string assetId;
-            if (handle.Location.InternalId.EndsWith("]"))
+            if (handle.Location.InternalId.EndsWith(']'))
             {
                 int start = handle.Location.InternalId.IndexOf('[');
                 assetId = handle.Location.InternalId.Remove(start);
@@ -163,15 +162,10 @@ namespace UnityEngine.ResourceManagement.Profiling
                 // AssetDatabase mode has no dependencies
                 return "";
             }
+            if (location.Dependencies[0].Data is AssetBundleRequestOptions options)
+                return options.BundleName;
 
-            AssetBundleRequestOptions options = location.Dependencies[0].Data as AssetBundleRequestOptions;
-            if (options == null)
-            {
-                Debug.LogError($"Dependency bundle location does not have AssetBundleRequestOptions");
-                return "";
-            }
-
-            return options.BundleName;
+            return "";
         }
 
         public static void AddSceneOperation(AsyncOperationHandle<SceneInstance> handle, IResourceLocation location, ContentStatus status)
@@ -207,6 +201,12 @@ namespace UnityEngine.ResourceManagement.Profiling
                 else
                     Debug.LogWarning($"Failed to remove scene from Addressables profiler for " + handle.DebugName);
             }
+        }
+
+        // used for testing
+        internal static int GetSceneLoadCounterValue()
+        {
+            return SceneLoadCounter.Value;
         }
 
         internal static void PushToProfilerStream()
@@ -295,5 +295,4 @@ namespace UnityEngine.ResourceManagement.Profiling
         }
     }
 }
-
 #endif

@@ -4,6 +4,7 @@ using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.AddressableAssets.ResourceProviders;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceLocations;
+using UnityEngine.ResourceManagement.ResourceProviders;
 
 namespace UnityEngine.AddressableAssets
 {
@@ -87,7 +88,7 @@ namespace UnityEngine.AddressableAssets
                 if (locator == null)
                 {
                     var catData = m_DepOp.Result[i].Result as ContentCatalogData;
-                    locator = catData.CreateCustomLocator(catData.location.PrimaryKey);
+                    locator = catData.CreateCustomLocator(catData.location.PrimaryKey, null);
                     localHash = catData.LocalHash;
                     remoteLocation = catData.location;
                 }

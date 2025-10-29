@@ -110,7 +110,7 @@ namespace UnityEditor.AddressableAssets.Settings
         /// </summary>
         /// <param name="path">Desired path to put settings</param>
         /// <param name="settingName">Desired name for settings</param>
-        /// <returns></returns>
+        /// <returns>ProfileDataSourceSettings object</returns>
         public static ProfileDataSourceSettings Create(string path = null, string settingName = null)
         {
             ProfileDataSourceSettings aa;
@@ -138,9 +138,9 @@ namespace UnityEditor.AddressableAssets.Settings
         /// <summary>
         /// Gets the profile data source settings for the project
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="settingName"></param>
-        /// <returns></returns>
+        /// <param name="path">The path of the settings file</param>
+        /// <param name="settingName">The name of the settings</param>
+        /// <returns>The ProfileDataSourceSettings object</returns>
         public static ProfileDataSourceSettings GetSettings(string path = null, string settingName = null)
         {
             ProfileDataSourceSettings aa;
@@ -164,7 +164,6 @@ namespace UnityEditor.AddressableAssets.Settings
         public static List<ProfileGroupType> CreateDefaultGroupTypes() => new List<ProfileGroupType>
         {
             CreateBuiltInGroupType(),
-            CreateEditorHostedGroupType(),
 #if ENABLE_CCD
             CreateCcdManagerGroupType()
 #endif
@@ -176,14 +175,6 @@ namespace UnityEditor.AddressableAssets.Settings
             defaultBuiltIn.AddVariable(new ProfileGroupType.GroupTypeVariable(AddressableAssetSettings.kBuildPath, AddressableAssetSettings.kLocalBuildPathValue));
             defaultBuiltIn.AddVariable(new ProfileGroupType.GroupTypeVariable(AddressableAssetSettings.kLoadPath, AddressableAssetSettings.kLocalLoadPathValue));
             return defaultBuiltIn;
-        }
-
-        static ProfileGroupType CreateEditorHostedGroupType()
-        {
-            ProfileGroupType defaultRemote = new ProfileGroupType(AddressableAssetSettings.EditorHostedGroupTypePrefix);
-            defaultRemote.AddVariable(new ProfileGroupType.GroupTypeVariable(AddressableAssetSettings.kBuildPath, AddressableAssetSettings.kRemoteBuildPathValue));
-            defaultRemote.AddVariable(new ProfileGroupType.GroupTypeVariable(AddressableAssetSettings.kLoadPath, AddressableAssetSettings.RemoteLoadPathValue));
-            return defaultRemote;
         }
 
 #if ENABLE_CCD
@@ -203,7 +194,7 @@ namespace UnityEditor.AddressableAssets.Settings
         /// <summary>
         /// Given a valid profileGroupType, searches the settings and returns, if exists, the profile group type
         /// </summary>
-        /// <param name="groupType"></param>
+        /// <param name="groupType">The profile group type to search for</param>
         /// <returns>ProfileGroupType if found, null otherwise</returns>
         public ProfileGroupType FindGroupType(ProfileGroupType groupType)
         {
@@ -402,7 +393,7 @@ namespace UnityEditor.AddressableAssets.Settings
             return badges;
         }
 
-		internal static async Task<List<Environment>> GetEnvironments()
+        internal static async Task<List<Environment>> GetEnvironments()
         {
 
             var projectId = CloudProjectSettings.projectId;
@@ -506,18 +497,6 @@ namespace UnityEditor.AddressableAssets.Settings
                     AddressableAssetSettings.kLocalBuildPathValue));
                 types[0].AddOrUpdateVariable(new ProfileGroupType.GroupTypeVariable(AddressableAssetSettings.kLoadPath,
                     AddressableAssetSettings.kLocalLoadPathValue));
-            }
-
-            // Editor Hosted
-            types = GetGroupTypesByPrefix(AddressableAssetSettings.EditorHostedGroupTypePrefix);
-            if (types.Count == 0)
-                profileGroupTypes.Add(CreateEditorHostedGroupType());
-            else
-            {
-                types[0].AddOrUpdateVariable(new ProfileGroupType.GroupTypeVariable(AddressableAssetSettings.kBuildPath,
-                    AddressableAssetSettings.kRemoteBuildPathValue));
-                types[0].AddOrUpdateVariable(new ProfileGroupType.GroupTypeVariable(AddressableAssetSettings.kLoadPath,
-                    AddressableAssetSettings.RemoteLoadPathValue));
             }
         }
 

@@ -1,11 +1,10 @@
-#if UNITY_2022_2_OR_NEWER
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace UnityEditor.AddressableAssets.BuildReportVisualizer
 {
+    /// <summary>
+    /// UI tool to toggle expansion in the Build Layout Report
+    /// </summary>
     public class ToggleTextExpansionButton
     {
         internal Button ToggleButton { get; set; }
@@ -28,4 +27,3 @@ namespace UnityEditor.AddressableAssets.BuildReportVisualizer
         }
     }
 }
-#endif

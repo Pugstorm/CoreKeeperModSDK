@@ -1,4 +1,3 @@
-#if ENABLE_ADDRESSABLE_PROFILER && UNITY_2022_2_OR_NEWER
 using System;
 using System.Linq;
 using UnityEditor.AddressableAssets.Build.Layout;
@@ -113,4 +112,3 @@ namespace UnityEditor.AddressableAssets.Tests.Diagnostics.Profiler
     }
 
 }
-#endif

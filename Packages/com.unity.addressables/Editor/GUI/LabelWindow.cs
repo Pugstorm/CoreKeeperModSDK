@@ -18,6 +18,7 @@ namespace UnityEditor.AddressableAssets.GUI
         //Edit menu
         int m_ActiveIndex = -1;
         bool m_IsEditing = false;
+        uint m_ClicksOnCurrent;
         string m_CurrentEdit;
         string m_OldName;
 
@@ -33,13 +34,21 @@ namespace UnityEditor.AddressableAssets.GUI
             titleContent = new GUIContent("Addressables Labels");
             m_Settings = settings;
 
-            var labels = m_Settings.labelTable.labelNames;
+            var labels = m_Settings.labelTable;
             m_LabelNamesRl = new ReorderableList(labels, typeof(string), true, false, true, true);
             m_LabelNamesRl.drawElementCallback = DrawLabelNamesCallback;
             m_LabelNamesRl.onAddDropdownCallback = OnAddLabel;
             m_LabelNamesRl.onRemoveCallback = OnRemoveLabel;
             m_LabelNamesRl.onSelectCallback = list =>
             {
+                if (m_ActiveIndex == list.index)
+                {
+                    m_ClicksOnCurrent += 1;
+                }
+                else
+                {
+                    m_ClicksOnCurrent = 0;
+                }
                 m_ActiveIndex = list.index;
                 EndEditMenu();
             };
@@ -47,6 +56,11 @@ namespace UnityEditor.AddressableAssets.GUI
 
             m_ActiveIndex = -1;
             m_IsEditing = false;
+            // prevent renames being activated while dragging
+            m_LabelNamesRl.onMouseDragCallback += _ =>
+            {
+                m_ClicksOnCurrent = 0;
+            };
         }
 
         void OnGUI()
@@ -64,12 +78,18 @@ namespace UnityEditor.AddressableAssets.GUI
                 }
             }
 
+            // layout list will consume mouse up event, keep track prior for rename UX
+            bool wasMouseDownPrior = Event.current.type == EventType.MouseUp;
+
             GUILayout.BeginVertical(EditorStyles.label);
             GUILayout.Space(m_BorderSpacing);
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
             if (GUILayout.Button(m_RemoveUnusedLabelsMenuContent))
             {
+                if (m_IsEditing)
+                    EndEditMenu();
+                m_ActiveIndex = -1;
                 m_Settings.RemoveUnusedLabels();
             }
             GUILayout.EndHorizontal();
@@ -79,33 +99,60 @@ namespace UnityEditor.AddressableAssets.GUI
             GUILayout.EndScrollView();
             GUILayout.EndVertical();
 
-            HandleEvent(Event.current);
+            HandleEvent(Event.current, wasMouseDownPrior);
         }
 
-        void HandleEvent(Event current)
+        private static KeyCode RenameKey
         {
-            if (m_ActiveIndex < 0 || m_Settings.labelTable.labelNames.Count == 0)
+            get
+            {
+#if UNITY_EDITOR_OSX
+                return KeyCode.Return;
+#else
+                return KeyCode.F2;
+#endif
+            }
+        }
+
+        void HandleEvent(Event current, bool wasMouseDownPrior)
+        {
+            if (m_ActiveIndex < 0 || m_Settings.labelTable.Count == 0)
                 return;
 
             if (current.type == EventType.ContextClick)
             {
                 GenericMenu contextMenu = new GenericMenu();
-                contextMenu.AddItem(new GUIContent("Edit"), false, () =>
-                {
-                    m_IsEditing = true;
-                    m_CurrentEdit = m_Settings.labelTable.labelNames[m_ActiveIndex];
-                    Repaint();
-                });
+                contextMenu.AddItem(new GUIContent("Edit"), false, BeginEditMenu);
                 contextMenu.ShowAsContext();
                 Repaint();
             }
-            else if (m_IsEditing && (current.keyCode == KeyCode.Return || current.keyCode == KeyCode.KeypadEnter))
+            else if (m_IsEditing)
             {
-                m_Settings.RenameLabel(m_OldName, m_CurrentEdit);
-                EndEditMenu();
+                if (current.type == EventType.KeyUp && (current.keyCode == KeyCode.Return || current.keyCode == KeyCode.KeypadEnter))
+                {
+                    m_Settings.RenameLabel(m_OldName, m_CurrentEdit);
+                    EndEditMenu();
+                    m_LabelNamesRl.GrabKeyboardFocus();
+                }
+                if (current.type == EventType.MouseDown)
+                    EndEditMenu();
             }
-            else if (current.type == EventType.MouseDown && m_IsEditing)
-                EndEditMenu();
+            else if (current.type == EventType.KeyUp && current.keyCode == RenameKey)
+            {
+                BeginEditMenu();
+            }
+            else if (wasMouseDownPrior && m_ClicksOnCurrent >= 1)
+            {
+                m_ClicksOnCurrent = 0;
+                BeginEditMenu();
+            }
+        }
+
+        void BeginEditMenu()
+        {
+            m_IsEditing = true;
+            m_CurrentEdit = m_Settings.labelTable[m_ActiveIndex];
+            Repaint();
         }
 
         void EndEditMenu()
@@ -118,7 +165,7 @@ namespace UnityEditor.AddressableAssets.GUI
 
         void DrawLabelNamesCallback(Rect rect, int index, bool isActive, bool isFocused)
         {
-            var oldName = m_Settings.labelTable.labelNames[index];
+            var oldName = m_Settings.labelTable[index];
 
             if (m_IsEditing && index == m_ActiveIndex)
             {
@@ -133,7 +180,7 @@ namespace UnityEditor.AddressableAssets.GUI
 
         void OnRemoveLabel(ReorderableList list)
         {
-            string labelName = m_Settings.labelTable.labelNames[list.index];
+            string labelName = m_Settings.labelTable[list.index];
             m_Settings.RemoveLabel(labelName);
             AddressableAssetUtility.OpenAssetIfUsingVCIntegration(m_Settings);
 
@@ -159,6 +206,7 @@ namespace UnityEditor.AddressableAssets.GUI
         {
             buttonRect.x = 6;
             buttonRect.y -= 13;
+            m_ActiveIndex = -1;
             PopupWindow.Show(buttonRect, new LabelNamePopup(position.width, m_LabelNamesRl.elementHeight, m_Settings));
         }
 

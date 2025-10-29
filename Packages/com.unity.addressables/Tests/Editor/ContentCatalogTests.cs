@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -6,11 +7,13 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.AddressableAssets.Initialization;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.AddressableAssets.Utility;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.ResourceManagement.Util;
+using UnityEngine.TestTools;
 
 namespace UnityEditor.AddressableAssets.Tests
 {
@@ -59,7 +62,7 @@ namespace UnityEditor.AddressableAssets.Tests
                 }
                 else if (r < 80)
                 {
-                    m_Keys.Add(new SerializableKey {index = i, path = GUID.Generate().ToString()});
+                    m_Keys.Add(new SerializableKey { index = i, path = GUID.Generate().ToString() });
                 }
                 else
                 {
@@ -71,10 +74,12 @@ namespace UnityEditor.AddressableAssets.Tests
             m_Providers.Add(typeof(BundledAssetProvider));
             m_Providers.Add(typeof(AssetBundleProvider));
             m_Providers.Add(typeof(AssetDatabaseProvider));
-            m_Providers.Add(typeof(LegacyResourcesProvider));
             m_Providers.Add(typeof(JsonAssetProvider));
             m_Providers.Add(typeof(TextDataProvider));
             m_Providers.Add(typeof(TextDataProvider));
+#if !ENABLE_JSON_CATALOG
+            m_Providers.Add(typeof(BinaryAssetProvider<ContentCatalogData.Serializer>));
+#endif
         }
 
         List<T> GetRandomSubset<T>(List<T> keys, int count)
@@ -86,7 +91,6 @@ namespace UnityEditor.AddressableAssets.Tests
                 entryKeys.Add(keys[Random.Range(0, keys.Count)]);
             return entryKeys.ToList();
         }
-
         [Serializable]
         public class EvenData
         {
@@ -99,6 +103,154 @@ namespace UnityEditor.AddressableAssets.Tests
         {
             public int index;
             public string path;
+        }
+
+#if !ENABLE_JSON_CATALOG
+
+        [UnityTest]
+        public IEnumerator RunStressContinuously([Values(100)] int locateCallCount, [Values(1000)] int locCount, [Values(128, 256, 512)] int bufferCacheSize)
+        {
+            var locType = typeof(UnityEngine.Object);
+            var catalog = new ContentCatalogData();
+            var entries = new List<ContentCatalogDataEntry>();
+            var allKeys = new List<object>();
+
+            var deps = new List<List<object>>();
+            for (int j = 0; j < 10; j++)
+            {
+                var depKeys = new List<object>();
+                for (int i = 0; i < 5; i++)
+                {
+                    var d = new ContentCatalogDataEntry(
+                        typeof(AssetBundle),
+                        $"https://mysuperlongwebservername.com/internalId/path/blah/subdir with a very long name that should get cached and reused/urlstuffetc/assetbundle2345324d2354f3425g345g345g345g{i}.bundle",
+                        "AssetBundleProvider",
+                        new object[] { $"AssetBundleName_23d234d34f32gf243f23f235g2543g25g123d24{i}.bundle" },
+                        null,
+                        new AssetBundleRequestOptions { BundleName = "derwrgwergwetrhewrtherth" });
+                    entries.Add(d);
+                    depKeys.Add(d.Keys[0]);
+                }
+                deps.Add(depKeys);
+            }
+
+            for (int i = 0; i < locCount; i++)
+            {
+                var entryKeys = new object[] { $"CommonPartOfKey{i%100}/WithALongPath{i%10}/UniquePathOfKey-{i}", $"LabelNameA.{i / 10}", $"LabelNameB.{i / 100}", "CommonLabelA", "CommonLabelB" };
+                entries.Add(new ContentCatalogDataEntry(
+                    locType,
+                    $"InternalAsset/PathInside/AssetBundle/filename{i}.fileExtension",
+                    "BundledAssetProvider",
+                    entryKeys,
+                    deps[Random.Range(0, deps.Count)]));
+                allKeys.Add(entryKeys[0]);
+            }
+            catalog.SetData(entries);
+            var data = catalog.SerializeToByteArray();
+            var loadedCatalog = new ContentCatalogData(new BinaryStorageBuffer.Reader(data, bufferCacheSize, 0, new ContentCatalogData.Serializer()));
+            var locator = loadedCatalog.CreateCustomLocator("", null) as ContentCatalogData.ResourceLocator;
+            yield return null;
+            int frameCount = 1000;
+            for (int x = 0; x < frameCount; x++)
+            {
+                for (int i = 0; i < locateCallCount; i++)
+                {
+                    locator.Locate(allKeys[Random.Range(0, allKeys.Count)], locType, out var locs);
+                    foreach(var l in locs)
+                    {
+                        var id = l.InternalId;
+                        var pk = l.PrimaryKey;
+                        var t = l.ResourceType;
+                        var p = l.ProviderId;
+                        var h = l.DependencyHashCode;
+                        if (l.HasDependencies)
+                        {
+                            foreach (var d in l.Dependencies)
+                            {
+                                id = d.InternalId;
+                                pk = d.PrimaryKey;
+                                t = d.ResourceType;
+                                p = d.ProviderId;
+                                h = d.DependencyHashCode;
+                                var o = d.Data as AssetBundleRequestOptions;
+                            }
+                        }
+                    }
+                }
+                yield return null;
+            }
+        }
+
+        [Test]
+        public void BinaryCatalogSerializerWithInternalIdResolvingDisabled_DoesNotModifyInternalIds()
+        {
+            var internalId = "{UnityEngine.AddressableAssets.Addressables.RuntimePath}/file.path";
+            var locType = typeof(UnityEngine.Object);
+            var catalog = new ContentCatalogData();
+            var entries = new List<ContentCatalogDataEntry>();
+            entries.Add(new ContentCatalogDataEntry(locType, internalId, "", new string[] { "a" }));
+            catalog.SetData(entries);
+            var data = catalog.SerializeToByteArray();
+            {
+                var resolvedCatalog = new ContentCatalogData(new BinaryStorageBuffer.Reader(data, 128, 0, new ContentCatalogData.Serializer()));
+                var resolvedLocator = resolvedCatalog.CreateCustomLocator("", null) as ContentCatalogData.ResourceLocator;
+                resolvedLocator.Locate("a", locType, out var locs);
+                Assert.AreEqual($"{UnityEngine.AddressableAssets.Addressables.RuntimePath}/file.path", locs[0].InternalId);
+            }
+
+            {
+                var nonresolvedCatalog = new ContentCatalogData(new BinaryStorageBuffer.Reader(data, 128, 0, new ContentCatalogData.Serializer().WithInternalIdResolvingDisabled()));
+                var nonresolvedLocator = nonresolvedCatalog.CreateCustomLocator("", null) as ContentCatalogData.ResourceLocator;
+                nonresolvedLocator.Locate("a", locType, out var locs);
+                Assert.AreEqual(internalId, locs[0].InternalId);
+            }
+
+        }
+
+        [Test]
+        public void BinaryCatalogCacheStress([Values(1000)] int locateCallCount, [Values(1000)] int locCount, [Values(64, 256, 1024, 4096)] int bufferCacheSize)
+        {
+            var locType = typeof(UnityEngine.Object);
+            var catalog = new ContentCatalogData();
+            var entries = new List<ContentCatalogDataEntry>();
+            var allKeys = new List<object>();
+            Func<int, string> internalIdFunc = i => $"https://mysuperlongwebservername.com/internalId/path/blah/subdir/urlstuffetc/{i}.fileextension";
+            Func<int, object[]> keysFunc = i => new object[] { $"LongKeyName.{i}", $"LabelNameA.{i / 10}", $"LabelNameB.{i / 100}", "CommonLabelA", "CommonLabelB" };
+            var providerId = "provider Id goes here";
+            for (int i = 0; i < locCount; i++)
+            {
+                var entryKeys = keysFunc(i);
+                entries.Add(new ContentCatalogDataEntry(
+                    locType,
+                    internalIdFunc(i),
+                    providerId,
+                    entryKeys,
+                    null));
+                allKeys.AddRange(entryKeys);
+            }
+            catalog.SetData(entries);
+            var data = catalog.SerializeToByteArray();
+            var loadedCatalog = new ContentCatalogData(new BinaryStorageBuffer.Reader(data, bufferCacheSize, 0, new ContentCatalogData.Serializer()));
+            var locator = loadedCatalog.CreateCustomLocator("", null) as ContentCatalogData.ResourceLocator;
+            var sw = new Stopwatch();
+            sw.Start();
+            for (int i = 0; i < locateCallCount; i++)
+            {
+                var index = Random.Range(0, allKeys.Count);
+
+                Assert.IsTrue(locator.Locate(allKeys[index], locType, out var locs));
+                for (int j = 0; j < 10; j++)
+                {
+                    var l = locs[Random.Range(0, locs.Count)];
+                    var locIndex = int.Parse(l.PrimaryKey.Substring(l.PrimaryKey.LastIndexOf('.')+1));
+                    Assert.AreEqual(internalIdFunc(locIndex), l.InternalId);
+                    Assert.AreEqual(keysFunc(locIndex)[0], l.PrimaryKey);
+                    Assert.AreEqual(locType, l.ResourceType);
+                    Assert.AreEqual(providerId, l.ProviderId);
+                    Assert.AreEqual(-1, l.DependencyHashCode);
+                }
+            }
+            sw.Stop();
         }
 
         [Test]
@@ -119,6 +271,8 @@ namespace UnityEditor.AddressableAssets.Tests
             entries.Add(dataEntry);
             var ccData = new ContentCatalogData("TestCatalog");
             ccData.SetData(entries);
+            var data = ccData.SerializeToByteArray();
+            ccData = new ContentCatalogData(new BinaryStorageBuffer.Reader(data, 1024, 0, new ContentCatalogData.Serializer()));
             var locator = ccData.CreateCustomLocator("");
             IList<IResourceLocation> locations;
             if (!locator.Locate(1, typeof(object), out locations))
@@ -134,8 +288,9 @@ namespace UnityEditor.AddressableAssets.Tests
             Assert.AreEqual(locOptions.Timeout, options.Timeout);
             Assert.AreEqual(locOptions.AssetLoadMode, options.AssetLoadMode);
         }
+#endif
 
-#if !ENABLE_BINARY_CATALOG
+#if ENABLE_JSON_CATALOG
 
         [Test]
         public void VerifySerialization()
@@ -214,7 +369,7 @@ namespace UnityEditor.AddressableAssets.Tests
                 "startup-shared_assets_assets/fx_data/materials.bundle",
                 "shared_assets_assets/textures/ui/valleyoftreasures.bundle",
                 "startup-shared_assets_assets/fx_data/meshes.bundle",
-                "startup_UnityBuiltInShaders.bundle"
+                "startup_UnityBuiltInAssets.bundle"
             };
 
             dummyValues[0] = "maps_assets_ref/valley1.bundle";
@@ -236,7 +391,7 @@ namespace UnityEditor.AddressableAssets.Tests
                 "startup-shared_assets_assets/fx_data/materials.bundle",
                 "shared_assets_assets/textures/ui/valleyoftreasures.bundle",
                 "startup-shared_assets_assets/fx_data/meshes.bundle",
-                "startup_UnityBuiltInShaders.bundle"
+                "startup_UnityBuiltInAssets.bundle"
             };
 
             var hashSum1DifferentList = catalog.CalculateCollectedHash(dummyValues2, hashSources);
@@ -268,7 +423,7 @@ namespace UnityEditor.AddressableAssets.Tests
                 "startup-shared_assets_assets/fx_data/materials.bundle",
                 "shared_assets_assets/textures/ui/valleyoftreasures.bundle",
                 "startup-shared_assets_assets/fx_data/meshes.bundle",
-                "startup_UnityBuiltInShaders.bundle"
+                "startup_UnityBuiltInAssets.bundle"
             };
 
             var dummyValues2 = new List<object>()
@@ -286,7 +441,7 @@ namespace UnityEditor.AddressableAssets.Tests
                 "startup-shared_assets_assets/fx_data/materials.bundle",
                 "shared_assets_assets/textures/ui/valleyoftreasures.bundle",
                 "startup-shared_assets_assets/fx_data/meshes.bundle",
-                "startup_UnityBuiltInShaders.bundle"
+                "startup_UnityBuiltInAssets.bundle"
             };
 
             var hash1 = ContentCatalogData.GetHashCodeForEnumerable(dummyValues);
@@ -298,11 +453,10 @@ namespace UnityEditor.AddressableAssets.Tests
             Assert.AreNotEqual(hash1, hash3);
         }
 
-
         [TestCase("0#b", "ab", new string[] {"a"})]
         [TestCase("1#b", "bb", new string[] {"a", "b"})]
         [TestCase("b", "b", new string[] {"a"})]
-        [TestCase("b", "b", new string[] { })]
+        [TestCase("b", "b", new string[] {})]
         [TestCase("b", "b", null)]
         [TestCase("x#b", "x#b", new string[] {"a"})]
         [Test]
@@ -325,7 +479,7 @@ namespace UnityEditor.AddressableAssets.Tests
         }
 
         string testData =
-            @"{""m_LocatorId"":""AddressablesMainContentCatalog"",""m_InstanceProviderData"":{""m_Id"":""UnityEngine.ResourceManagement.ResourceProviders.InstanceProvider"",""m_ObjectType"":{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.InstanceProvider""},""m_Data"":""""},""m_SceneProviderData"":{""m_Id"":""UnityEngine.ResourceManagement.ResourceProviders.SceneProvider"",""m_ObjectType"":{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.SceneProvider""},""m_Data"":""""},""m_ResourceProviderData"":[{""m_Id"":""UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider"",""m_ObjectType"":{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider""},""m_Data"":""""},{""m_Id"":""UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider"",""m_ObjectType"":{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider""},""m_Data"":""""},{""m_Id"":""UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider"",""m_ObjectType"":{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider""},""m_Data"":""""}],""m_ProviderIds"":[""UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider"",""UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider""],""m_InternalIds"":[""{UnityEngine.AddressableAssets.Addressables.RuntimePath}/StandaloneWindows64/defaultlocalgroup_assets_all_d4ed3973c342e6f06795a0f8daaebaad.bundle"",""{UnityEngine.AddressableAssets.Addressables.RuntimePath}/StandaloneWindows64/defaultlocalgroup_unitybuiltinshaders_8f144cd21867dc83f60ecd3c93095b52.bundle"",""{UnityEngine.AddressableAssets.Addressables.RuntimePath}/StandaloneWindows64/defaultlocalgroup_scenes_all_e91ebe7804da861b4deb67a340282541.bundle"",""Assets/New Material.mat"",""Assets/swef.unity""],""m_KeyDataString"":""CQAAAABEAAAAZGVmYXVsdGxvY2FsZ3JvdXBfYXNzZXRzX2FsbF9kNGVkMzk3M2MzNDJlNmYwNjc5NWEwZjhkYWFlYmFhZC5idW5kbGUATQAAAGRlZmF1bHRsb2NhbGdyb3VwX3VuaXR5YnVpbHRpbnNoYWRlcnNfOGYxNDRjZDIxODY3ZGM4M2Y2MGVjZDNjOTMwOTViNTIuYnVuZGxlAEQAAABkZWZhdWx0bG9jYWxncm91cF9zY2VuZXNfYWxsX2U5MWViZTc4MDRkYTg2MWI0ZGViNjdhMzQwMjgyNTQxLmJ1bmRsZQAXAAAAQXNzZXRzL05ldyBNYXRlcmlhbC5tYXQAIAAAADNlN2JmNTA3OTRhNzEyMjQ2YWU0ZGNiZTdhODQyOGM4ABEAAABBc3NldHMvc3dlZi51bml0eQAgAAAAYjY4MDdmODNlMWU0ODc2NGM4MjMyM2ZkNTExZTY0NjgEKToMuAQiVa/u"",""m_BucketDataString"":""CQAAAAQAAAABAAAAAAAAAE0AAAABAAAAAQAAAJ8AAAABAAAAAgAAAOgAAAABAAAAAwAAAAQBAAABAAAAAwAAACkBAAABAAAABAAAAD8BAAABAAAABAAAAGQBAAACAAAAAAAAAAEAAABpAQAAAgAAAAIAAAABAAAA"",""m_EntryDataString"":""BQAAAAAAAAAAAAAA/////wAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAP////8AAAAAhQIAAAEAAAAAAAAAAgAAAAAAAAD/////AAAAADQFAAACAAAAAAAAAAMAAAABAAAABwAAACk6DLj/////AwAAAAEAAAAEAAAAAQAAAAgAAAAiVa/u/////wUAAAACAAAA"",""m_ExtraDataString"":""B0xVbml0eS5SZXNvdXJjZU1hbmFnZXIsIFZlcnNpb249MC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1udWxsSlVuaXR5RW5naW5lLlJlc291cmNlTWFuYWdlbWVudC5SZXNvdXJjZVByb3ZpZGVycy5Bc3NldEJ1bmRsZVJlcXVlc3RPcHRpb25z6AEAAHsAIgBtAF8ASABhAHMAaAAiADoAIgBkADQAZQBkADMAOQA3ADMAYwAzADQAMgBlADYAZgAwADYANwA5ADUAYQAwAGYAOABkAGEAYQBlAGIAYQBhAGQAIgAsACIAbQBfAEMAcgBjACIAOgAyADAAMgAxADcANAA3ADAAOQA5ACwAIgBtAF8AVABpAG0AZQBvAHUAdAAiADoAMAAsACIAbQBfAEMAaAB1AG4AawBlAGQAVAByAGEAbgBzAGYAZQByACIAOgBmAGEAbABzAGUALAAiAG0AXwBSAGUAZABpAHIAZQBjAHQATABpAG0AaQB0ACIAOgAtADEALAAiAG0AXwBSAGUAdAByAHkAQwBvAHUAbgB0ACIAOgAwACwAIgBtAF8AQgB1AG4AZABsAGUATgBhAG0AZQAiADoAIgA5ADIAZAAwAGYAOABiAGMAOQBkAGYAZABjADAAMwBlADEAMABkAGYAMgBmADMAYgAzAGIANABjADgAMgA3AGUAIgAsACIAbQBfAEIAdQBuAGQAbABlAFMAaQB6AGUAIgA6ADIANQAyADgALAAiAG0AXwBVAHMAZQBDAHIAYwBGAG8AcgBDAGEAYwBoAGUAZABCAHUAbgBkAGwAZQBzACIAOgB0AHIAdQBlAH0AB0xVbml0eS5SZXNvdXJjZU1hbmFnZXIsIFZlcnNpb249MC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1udWxsSlVuaXR5RW5naW5lLlJlc291cmNlTWFuYWdlbWVudC5SZXNvdXJjZVByb3ZpZGVycy5Bc3NldEJ1bmRsZVJlcXVlc3RPcHRpb25zEgIAAHsAIgBtAF8ASABhAHMAaAAiADoAIgA4AGYAMQA0ADQAYwBkADIAMQA4ADYANwBkAGMAOAAzAGYANgAwAGUAYwBkADMAYwA5ADMAMAA5ADUAYgA1ADIAIgAsACIAbQBfAEMAcgBjACIAOgAzADgAMQAzADcAMgA0ADgANQA5ACwAIgBtAF8AVABpAG0AZQBvAHUAdAAiADoAMAAsACIAbQBfAEMAaAB1AG4AawBlAGQAVAByAGEAbgBzAGYAZQByACIAOgBmAGEAbABzAGUALAAiAG0AXwBSAGUAZABpAHIAZQBjAHQATABpAG0AaQB0ACIAOgAtADEALAAiAG0AXwBSAGUAdAByAHkAQwBvAHUAbgB0ACIAOgAwACwAIgBtAF8AQgB1AG4AZABsAGUATgBhAG0AZQAiADoAIgBmAGMAOAAyAGEAMAAxAGUAYgAwAGEAMgA0AGIAOQBiAGQAOQBjADAAZQBjADEAZAAzAGEAOQBiADIANgA1ADUAXwB1AG4AaQB0AHkAYgB1AGkAbAB0AGkAbgBzAGgAYQBkAGUAcgBzACIALAAiAG0AXwBCAHUAbgBkAGwAZQBTAGkAegBlACIAOgA0ADQANAA1ADQALAAiAG0AXwBVAHMAZQBDAHIAYwBGAG8AcgBDAGEAYwBoAGUAZABCAHUAbgBkAGwAZQBzACIAOgB0AHIAdQBlAH0AB0xVbml0eS5SZXNvdXJjZU1hbmFnZXIsIFZlcnNpb249MC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1udWxsSlVuaXR5RW5naW5lLlJlc291cmNlTWFuYWdlbWVudC5SZXNvdXJjZVByb3ZpZGVycy5Bc3NldEJ1bmRsZVJlcXVlc3RPcHRpb25z6AEAAHsAIgBtAF8ASABhAHMAaAAiADoAIgBlADkAMQBlAGIAZQA3ADgAMAA0AGQAYQA4ADYAMQBiADQAZABlAGIANgA3AGEAMwA0ADAAMgA4ADIANQA0ADEAIgAsACIAbQBfAEMAcgBjACIAOgAzADQAMAA1ADQAMwA2ADQANQAxACwAIgBtAF8AVABpAG0AZQBvAHUAdAAiADoAMAAsACIAbQBfAEMAaAB1AG4AawBlAGQAVAByAGEAbgBzAGYAZQByACIAOgBmAGEAbABzAGUALAAiAG0AXwBSAGUAZABpAHIAZQBjAHQATABpAG0AaQB0ACIAOgAtADEALAAiAG0AXwBSAGUAdAByAHkAQwBvAHUAbgB0ACIAOgAwACwAIgBtAF8AQgB1AG4AZABsAGUATgBhAG0AZQAiADoAIgA5ADEANwBlADUANQAzAGQAZQBiAGQAOAAyADMAOABkAGMAMgBjADIAZAA2ADIANQBkADAAZgA4ADUAOQA0AGMAIgAsACIAbQBfAEIAdQBuAGQAbABlAFMAaQB6AGUAIgA6ADgANwA4ADIALAAiAG0AXwBVAHMAZQBDAHIAYwBGAG8AcgBDAGEAYwBoAGUAZABCAHUAbgBkAGwAZQBzACIAOgB0AHIAdQBlAH0A"",""m_Keys"":[""defaultlocalgroup_assets_all_d4ed3973c342e6f06795a0f8daaebaad.bundle"",""defaultlocalgroup_unitybuiltinshaders_8f144cd21867dc83f60ecd3c93095b52.bundle"",""defaultlocalgroup_scenes_all_e91ebe7804da861b4deb67a340282541.bundle"",""Assets/New Material.mat"",""3e7bf50794a712246ae4dcbe7a8428c8"",""Assets/swef.unity"",""b6807f83e1e48764c82323fd511e6468"",""-1207158231"",""-290499294""],""m_resourceTypes"":[{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.IAssetBundleResource""},{""m_AssemblyName"":""UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.Material""},{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.SceneInstance""}]}";
+            @"{""m_LocatorId"":""AddressablesMainContentCatalog"",""m_InstanceProviderData"":{""m_Id"":""UnityEngine.ResourceManagement.ResourceProviders.InstanceProvider"",""m_ObjectType"":{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.InstanceProvider""},""m_Data"":""""},""m_SceneProviderData"":{""m_Id"":""UnityEngine.ResourceManagement.ResourceProviders.SceneProvider"",""m_ObjectType"":{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.SceneProvider""},""m_Data"":""""},""m_ResourceProviderData"":[{""m_Id"":""UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider"",""m_ObjectType"":{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider""},""m_Data"":""""},{""m_Id"":""UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider"",""m_ObjectType"":{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider""},""m_Data"":""""},{""m_Id"":""UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider"",""m_ObjectType"":{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider""},""m_Data"":""""}],""m_ProviderIds"":[""UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider"",""UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider""],""m_InternalIds"":[""{UnityEngine.AddressableAssets.Addressables.RuntimePath}/StandaloneWindows64/defaultlocalgroup_assets_all_d4ed3973c342e6f06795a0f8daaebaad.bundle"",""{UnityEngine.AddressableAssets.Addressables.RuntimePath}/StandaloneWindows64/defaultlocalgroup_unitybuiltinassets_8f144cd21867dc83f60ecd3c93095b52.bundle"",""{UnityEngine.AddressableAssets.Addressables.RuntimePath}/StandaloneWindows64/defaultlocalgroup_scenes_all_e91ebe7804da861b4deb67a340282541.bundle"",""Assets/New Material.mat"",""Assets/swef.unity""],""m_KeyDataString"":""CQAAAABEAAAAZGVmYXVsdGxvY2FsZ3JvdXBfYXNzZXRzX2FsbF9kNGVkMzk3M2MzNDJlNmYwNjc5NWEwZjhkYWFlYmFhZC5idW5kbGUATQAAAGRlZmF1bHRsb2NhbGdyb3VwX3VuaXR5YnVpbHRpbnNoYWRlcnNfOGYxNDRjZDIxODY3ZGM4M2Y2MGVjZDNjOTMwOTViNTIuYnVuZGxlAEQAAABkZWZhdWx0bG9jYWxncm91cF9zY2VuZXNfYWxsX2U5MWViZTc4MDRkYTg2MWI0ZGViNjdhMzQwMjgyNTQxLmJ1bmRsZQAXAAAAQXNzZXRzL05ldyBNYXRlcmlhbC5tYXQAIAAAADNlN2JmNTA3OTRhNzEyMjQ2YWU0ZGNiZTdhODQyOGM4ABEAAABBc3NldHMvc3dlZi51bml0eQAgAAAAYjY4MDdmODNlMWU0ODc2NGM4MjMyM2ZkNTExZTY0NjgEKToMuAQiVa/u"",""m_BucketDataString"":""CQAAAAQAAAABAAAAAAAAAE0AAAABAAAAAQAAAJ8AAAABAAAAAgAAAOgAAAABAAAAAwAAAAQBAAABAAAAAwAAACkBAAABAAAABAAAAD8BAAABAAAABAAAAGQBAAACAAAAAAAAAAEAAABpAQAAAgAAAAIAAAABAAAA"",""m_EntryDataString"":""BQAAAAAAAAAAAAAA/////wAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAP////8AAAAAhQIAAAEAAAAAAAAAAgAAAAAAAAD/////AAAAADQFAAACAAAAAAAAAAMAAAABAAAABwAAACk6DLj/////AwAAAAEAAAAEAAAAAQAAAAgAAAAiVa/u/////wUAAAACAAAA"",""m_ExtraDataString"":""B0xVbml0eS5SZXNvdXJjZU1hbmFnZXIsIFZlcnNpb249MC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1udWxsSlVuaXR5RW5naW5lLlJlc291cmNlTWFuYWdlbWVudC5SZXNvdXJjZVByb3ZpZGVycy5Bc3NldEJ1bmRsZVJlcXVlc3RPcHRpb25z6AEAAHsAIgBtAF8ASABhAHMAaAAiADoAIgBkADQAZQBkADMAOQA3ADMAYwAzADQAMgBlADYAZgAwADYANwA5ADUAYQAwAGYAOABkAGEAYQBlAGIAYQBhAGQAIgAsACIAbQBfAEMAcgBjACIAOgAyADAAMgAxADcANAA3ADAAOQA5ACwAIgBtAF8AVABpAG0AZQBvAHUAdAAiADoAMAAsACIAbQBfAEMAaAB1AG4AawBlAGQAVAByAGEAbgBzAGYAZQByACIAOgBmAGEAbABzAGUALAAiAG0AXwBSAGUAZABpAHIAZQBjAHQATABpAG0AaQB0ACIAOgAtADEALAAiAG0AXwBSAGUAdAByAHkAQwBvAHUAbgB0ACIAOgAwACwAIgBtAF8AQgB1AG4AZABsAGUATgBhAG0AZQAiADoAIgA5ADIAZAAwAGYAOABiAGMAOQBkAGYAZABjADAAMwBlADEAMABkAGYAMgBmADMAYgAzAGIANABjADgAMgA3AGUAIgAsACIAbQBfAEIAdQBuAGQAbABlAFMAaQB6AGUAIgA6ADIANQAyADgALAAiAG0AXwBVAHMAZQBDAHIAYwBGAG8AcgBDAGEAYwBoAGUAZABCAHUAbgBkAGwAZQBzACIAOgB0AHIAdQBlAH0AB0xVbml0eS5SZXNvdXJjZU1hbmFnZXIsIFZlcnNpb249MC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1udWxsSlVuaXR5RW5naW5lLlJlc291cmNlTWFuYWdlbWVudC5SZXNvdXJjZVByb3ZpZGVycy5Bc3NldEJ1bmRsZVJlcXVlc3RPcHRpb25zEgIAAHsAIgBtAF8ASABhAHMAaAAiADoAIgA4AGYAMQA0ADQAYwBkADIAMQA4ADYANwBkAGMAOAAzAGYANgAwAGUAYwBkADMAYwA5ADMAMAA5ADUAYgA1ADIAIgAsACIAbQBfAEMAcgBjACIAOgAzADgAMQAzADcAMgA0ADgANQA5ACwAIgBtAF8AVABpAG0AZQBvAHUAdAAiADoAMAAsACIAbQBfAEMAaAB1AG4AawBlAGQAVAByAGEAbgBzAGYAZQByACIAOgBmAGEAbABzAGUALAAiAG0AXwBSAGUAZABpAHIAZQBjAHQATABpAG0AaQB0ACIAOgAtADEALAAiAG0AXwBSAGUAdAByAHkAQwBvAHUAbgB0ACIAOgAwACwAIgBtAF8AQgB1AG4AZABsAGUATgBhAG0AZQAiADoAIgBmAGMAOAAyAGEAMAAxAGUAYgAwAGEAMgA0AGIAOQBiAGQAOQBjADAAZQBjADEAZAAzAGEAOQBiADIANgA1ADUAXwB1AG4AaQB0AHkAYgB1AGkAbAB0AGkAbgBzAGgAYQBkAGUAcgBzACIALAAiAG0AXwBCAHUAbgBkAGwAZQBTAGkAegBlACIAOgA0ADQANAA1ADQALAAiAG0AXwBVAHMAZQBDAHIAYwBGAG8AcgBDAGEAYwBoAGUAZABCAHUAbgBkAGwAZQBzACIAOgB0AHIAdQBlAH0AB0xVbml0eS5SZXNvdXJjZU1hbmFnZXIsIFZlcnNpb249MC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1udWxsSlVuaXR5RW5naW5lLlJlc291cmNlTWFuYWdlbWVudC5SZXNvdXJjZVByb3ZpZGVycy5Bc3NldEJ1bmRsZVJlcXVlc3RPcHRpb25z6AEAAHsAIgBtAF8ASABhAHMAaAAiADoAIgBlADkAMQBlAGIAZQA3ADgAMAA0AGQAYQA4ADYAMQBiADQAZABlAGIANgA3AGEAMwA0ADAAMgA4ADIANQA0ADEAIgAsACIAbQBfAEMAcgBjACIAOgAzADQAMAA1ADQAMwA2ADQANQAxACwAIgBtAF8AVABpAG0AZQBvAHUAdAAiADoAMAAsACIAbQBfAEMAaAB1AG4AawBlAGQAVAByAGEAbgBzAGYAZQByACIAOgBmAGEAbABzAGUALAAiAG0AXwBSAGUAZABpAHIAZQBjAHQATABpAG0AaQB0ACIAOgAtADEALAAiAG0AXwBSAGUAdAByAHkAQwBvAHUAbgB0ACIAOgAwACwAIgBtAF8AQgB1AG4AZABsAGUATgBhAG0AZQAiADoAIgA5ADEANwBlADUANQAzAGQAZQBiAGQAOAAyADMAOABkAGMAMgBjADIAZAA2ADIANQBkADAAZgA4ADUAOQA0AGMAIgAsACIAbQBfAEIAdQBuAGQAbABlAFMAaQB6AGUAIgA6ADgANwA4ADIALAAiAG0AXwBVAHMAZQBDAHIAYwBGAG8AcgBDAGEAYwBoAGUAZABCAHUAbgBkAGwAZQBzACIAOgB0AHIAdQBlAH0A"",""m_Keys"":[""defaultlocalgroup_assets_all_d4ed3973c342e6f06795a0f8daaebaad.bundle"",""defaultlocalgroup_unitybuiltinassets_8f144cd21867dc83f60ecd3c93095b52.bundle"",""defaultlocalgroup_scenes_all_e91ebe7804da861b4deb67a340282541.bundle"",""Assets/New Material.mat"",""3e7bf50794a712246ae4dcbe7a8428c8"",""Assets/swef.unity"",""b6807f83e1e48764c82323fd511e6468"",""-1207158231"",""-290499294""],""m_resourceTypes"":[{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.IAssetBundleResource""},{""m_AssemblyName"":""UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.Material""},{""m_AssemblyName"":""Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"",""m_ClassName"":""UnityEngine.ResourceManagement.ResourceProviders.SceneInstance""}]}";
 
         [Test]
         public void CanLoad_OldCatalogFormat()
@@ -344,146 +498,6 @@ namespace UnityEditor.AddressableAssets.Tests
                 Assert.IsNotNull(res[0].ResourceType);
             }
         }
-#else
-//         [Test]
-//         public void ResourceLocatorPerfTest([Values(256, 512, 1024, 2048)]int binaryReaderCacheSize, [Values(256, 512, 1024, 2048)]int locatorCacheSize)
-//         {
-//             var reader = new BinaryStorageBuffer.Reader(File.ReadAllBytes($"{Path.GetDirectoryName(Application.dataPath)}/catalogs/testcatalog.bin"), binaryReaderCacheSize, new ContentCatalogData.Serializer());
-//             var locator = new ContentCatalogData(reader).CreateCustomLocator("", null, locatorCacheSize);
-//             int count = 0;
-//             var keys = locator.Keys.ToArray();
-//             var sw = new Stopwatch();
-//             sw.Start();
-//             var startBytes = GC.GetTotalMemory(true);
-//             foreach (var k in keys)
-//             {
-//                 if (count++ > 10000)
-//                     break;
-//                 if (locator.Locate(k.ToString(), null, out var locs))
-//                 {
-//                     foreach (var l in locs)
-//                     {
-//                         var deps = l.Dependencies;
-//                         var d = l.Data;
-//                         var id = l.InternalId;
-//                         var p = l.PrimaryKey;
-//                         var pr = l.ProviderId;
-//                         var t = l.ResourceType;
-//                         if (deps != null)
-//                         {
-//                             foreach (var dep in deps)
-//                             {
-//                                 var di = dep.InternalId;
-//                                 var dd = l.Data;
-//                                 var did = l.InternalId;
-//                                 var dp = l.PrimaryKey;
-//                                 var dpr = l.ProviderId;
-//                                 var dt = l.ResourceType;
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-//             var endBytes = GC.GetTotalMemory(true);
-//             Debug.Log($"BINARY: load time: {sw.ElapsedMilliseconds}, memory: {(float)(endBytes - startBytes) / (1024 * 1024)}mb");
-//         }
-
-/*
-        [Test]
-        public void ConvertAndCompactCatalogs([Values(true, false)] bool compressed, [Values(1024, 1024 * 1024)]int binaryReaderCacheSize, [Values(1024, 1024 * 1024)]int locatorCacheSize)
-        {
-            foreach (var f in Directory.GetFiles($"{Path.GetDirectoryName(Application.dataPath)}/catalogs", "*.json"))
-            {
-                var origText = File.ReadAllText(f);
-                var cd = JsonUtility.FromJson<ContentCatalogData>(origText);
-                var entries = cd.GetData();
-                var originalJSONSize = new FileInfo(f).Length;
-                var binFileName = f.Replace(".json", ".bin");
-                uint fileSize = ContentCatalogData.SaveToFile(binFileName, "", entries, compressed);
-                var finalFileSize = new FileInfo(binFileName).Length;
-                var sw = new Stopwatch();
-
-                sw.Start();
-                var startBytes = GC.GetTotalMemory(true);
-                var jsonLocator = JsonUtility.FromJson<ContentCatalogData>(File.ReadAllText(f)).CreateLocator();
-                var endBytes = GC.GetTotalMemory(true);
-                Debug.Log($"JSON: load time: {sw.ElapsedMilliseconds}, memory: {(float)(endBytes - startBytes) / (1024 * 1024)}mb, file size: {(float)(originalJSONSize) / (1024 * 1024)}mb ");
-
-                sw.Restart();
-                startBytes = GC.GetTotalMemory(true);
-                foreach (var k in jsonLocator.Keys)
-                {
-                    if (jsonLocator.Locate(k.ToString(), null, out var locs))
-                    {
-                        foreach (var l in locs)
-                        {
-                            var deps = l.Dependencies;
-                            var d = l.Data;
-                            var id = l.InternalId;
-                            var p = l.PrimaryKey;
-                            var pr = l.ProviderId;
-                            var t = l.ResourceType;
-                            if (deps != null)
-                            {
-                                foreach (var dep in deps)
-                                {
-                                    var di = dep.InternalId;
-                                    var dd = l.Data;
-                                    var did = l.InternalId;
-                                    var dp = l.PrimaryKey;
-                                    var dpr = l.ProviderId;
-                                    var dt = l.ResourceType;
-                                }
-                            }
-                        }
-                    }
-                }
-                endBytes = GC.GetTotalMemory(true);
-                Debug.Log($"JSON: Locate all in {sw.ElapsedMilliseconds}ms, memory still allocated: {(float)(endBytes - startBytes) / (1024 * 1024)}");
-
-
-
-                sw.Restart();
-                startBytes = GC.GetTotalMemory(true);
-                var binLocator = ContentCatalogData.LoadFromFile(binFileName, fileSize, binaryReaderCacheSize, compressed).CreateCustomLocator("", null, locatorCacheSize);
-                endBytes = GC.GetTotalMemory(true);
-                Debug.Log($"BINARY: load time: {sw.ElapsedMilliseconds}, memory: {(float)(endBytes - startBytes) / (1024 * 1024)}mb, file data size  {(float)(fileSize) / (1024 * 1024)}, final size: {(float)(finalFileSize) / (1024 * 1024)}mb");
-
-
-                sw.Restart();
-                startBytes = GC.GetTotalMemory(true);
-                foreach (var k in jsonLocator.Keys)
-                {
-                    if (binLocator.Locate(k.ToString(), null, out var locs))
-                    {
-                        foreach (var l in locs)
-                        {
-                            var deps = l.Dependencies;
-                            var d = l.Data;
-                            var id = l.InternalId;
-                            var p = l.PrimaryKey;
-                            var pr = l.ProviderId;
-                            var t = l.ResourceType;
-                            if (deps != null)
-                            {
-                                foreach (var dep in deps)
-                                {
-                                    var di = dep.InternalId;
-                                    var dd = l.Data;
-                                    var did = l.InternalId;
-                                    var dp = l.PrimaryKey;
-                                    var dpr = l.ProviderId;
-                                    var dt = l.ResourceType;
-                                }
-                            }
-                        }
-                    }
-                }
-                endBytes = GC.GetTotalMemory(true);
-                Debug.Log($"BINARY: locate all in {sw.ElapsedMilliseconds}ms, memory still allocated: {(float)(endBytes - startBytes) / (1024 * 1024)}");
-            }
-        }*/
 #endif
     }
 }
-

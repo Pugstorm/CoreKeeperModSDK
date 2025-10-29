@@ -1,4 +1,3 @@
-#if ENABLE_ADDRESSABLE_PROFILER && UNITY_2022_2_OR_NEWER
 using System;
 
 namespace UnityEngine.ResourceManagement.Profiling
@@ -11,4 +10,3 @@ namespace UnityEngine.ResourceManagement.Profiling
         public void InitialiseCallbacks(Action<float> onLateUpdateDelegate);
     }
 }
-#endif

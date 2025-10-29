@@ -72,11 +72,11 @@ namespace UnityEditor.AddressableAssets.GUI
 
         [FormerlySerializedAs("treeState")]
         [SerializeField]
-        TreeViewState m_TreeState;
+        internal AddressableAssetEntryTreeViewState m_TreeState;
 
         [FormerlySerializedAs("mchs")]
         [SerializeField]
-        MultiColumnHeaderState m_Mchs;
+        internal MultiColumnHeaderState m_Mchs;
 
         internal AddressableAssetEntryTreeView m_EntryTree;
 
@@ -206,7 +206,7 @@ namespace UnityEditor.AddressableAssets.GUI
             }
         }
 
-        void OnSettingsModification(AddressableAssetSettings s, AddressableAssetSettings.ModificationEvent e, object o)
+        internal void OnSettingsModification(AddressableAssetSettings s, AddressableAssetSettings.ModificationEvent e, object o)
         {
             if (m_EntryTree == null)
                 return;
@@ -219,9 +219,14 @@ namespace UnityEditor.AddressableAssets.GUI
                 case AddressableAssetSettings.ModificationEvent.EntryMoved:
                 case AddressableAssetSettings.ModificationEvent.EntryRemoved:
                 case AddressableAssetSettings.ModificationEvent.GroupRenamed:
+                case AddressableAssetSettings.ModificationEvent.GroupMoved:
                 case AddressableAssetSettings.ModificationEvent.EntryModified:
                 case AddressableAssetSettings.ModificationEvent.BatchModification:
-                    m_EntryTree.Reload();
+                    // the reload does a new sort
+                    m_EntryTree?.Reload();
+
+                    // we save it here since moves won't trigger a re-sort, but need to be saved
+                    m_EntryTree?.SerializeState(AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(s)));
                     if (window != null)
                         window.Repaint();
                     break;
@@ -324,14 +329,10 @@ namespace UnityEditor.AddressableAssets.GUI
 
                         menu.AddItem(new GUIContent("Window/Profiles"), false, () => EditorWindow.GetWindow<ProfileWindow>().Show(true));
                         menu.AddItem(new GUIContent("Window/Labels"), false, () => EditorWindow.GetWindow<LabelWindow>(true).Intialize(settings));
+
                         menu.AddItem(new GUIContent("Window/Analyze"), false, AnalyzeWindow.ShowWindow);
-                        menu.AddItem(new GUIContent("Window/Hosting Services"), false, () => EditorWindow.GetWindow<HostingServicesWindow>().Show(settings));
-                        menu.AddItem(new GUIContent("Window/Event Viewer"), false, ResourceProfilerWindow.ShowWindow);
 
-#if UNITY_2022_2_OR_NEWER
                         menu.AddItem(new GUIContent("Window/Addressables Report"), false, BuildReportVisualizer.BuildReportWindow.ShowWindow);
-#endif
-
                         menu.AddItem(new GUIContent("Groups View/Show Sprite and Subobject Addresses"), ProjectConfigData.ShowSubObjectsInGroupView, () =>
                         {
                             ProjectConfigData.ShowSubObjectsInGroupView = !ProjectConfigData.ShowSubObjectsInGroupView;
@@ -368,7 +369,7 @@ namespace UnityEditor.AddressableAssets.GUI
                         for (int i = 0; i < settings.DataBuilders.Count; i++)
                         {
                             var m = settings.GetDataBuilder(i);
-                            if (m.CanBuildData<AddressablesPlayModeBuildResult>())
+                            if (m != null && m.CanBuildData<AddressablesPlayModeBuildResult>())
                             {
                                 string text = m is Build.DataBuilders.BuildScriptPackedPlayMode
                                     ? $"Use Existing Build ({PlatformMappingService.GetAddressablesPlatformPathInternal(EditorUserBuildSettings.activeBuildTarget)})"
@@ -396,7 +397,7 @@ namespace UnityEditor.AddressableAssets.GUI
                             for (int i = 0; i < settings.DataBuilders.Count; i++)
                             {
                                 var dataBuilder = settings.GetDataBuilder(i);
-                                if (dataBuilder.CanBuildData<AddressablesPlayerBuildResult>())
+                                if (dataBuilder != null && dataBuilder.CanBuildData<AddressablesPlayerBuildResult>())
                                 {
                                     addressablesPlayerBuildResultBuilderExists = true;
                                     BuildMenuContext context = new BuildMenuContext()
@@ -427,7 +428,8 @@ namespace UnityEditor.AddressableAssets.GUI
                     for (int i = 0; i < settings.DataBuilders.Count; i++)
                     {
                         var m = settings.GetDataBuilder(i);
-                        genericDropdownMenu.AddItem(new GUIContent("Clear Build Cache/Content Builders/" + m.Name), false, OnCleanAddressables, m);
+                        if (m != null)
+                            genericDropdownMenu.AddItem(new GUIContent("Clear Build Cache/Content Builders/" + m.Name), false, OnCleanAddressables, m);
                     }
 
                     genericDropdownMenu.AddItem(new GUIContent("Clear Build Cache/Build Pipeline Cache"), false, OnCleanSBP, true);
@@ -450,7 +452,7 @@ namespace UnityEditor.AddressableAssets.GUI
                             for (int i = 0; i < settings.DataBuilders.Count; i++)
                             {
                                 var dataBuilder = settings.GetDataBuilder(i);
-                                if (dataBuilder.CanBuildData<AddressablesPlayerBuildResult>())
+                                if (dataBuilder != null && dataBuilder.CanBuildData<AddressablesPlayerBuildResult>())
                                 {
                                     addressablesPlayerBuildResultBuilderExists = true;
                                     BuildMenuContext context = new BuildMenuContext()
@@ -551,23 +553,41 @@ namespace UnityEditor.AddressableAssets.GUI
 
         internal static void OnBuildAddressables(BuildMenuContext context)
         {
-            if (context.BuildMenu == null)
+            BuildAddressablesWithResult(context);
+        }
+
+        internal static AddressablesPlayerBuildResult BuildAddressablesWithResult(BuildMenuContext context)
+        {
+            AddressablesPlayerBuildResult result = default;
+
+            try
             {
-                Addressables.LogError("Addressable content build failure : null build menu context");
-                return;
+                if (context.BuildMenu == null)
+                {
+                    Addressables.LogError("Addressable content build failure : null build menu context");
+                    return null;
+                }
+
+                if (context.buildScriptIndex >= 0)
+                    context.Settings.ActivePlayerDataBuilderIndex = context.buildScriptIndex;
+
+                var builderInput = new AddressablesDataBuilderInput(context.Settings);
+
+                if (!HandlePreBuild(context, builderInput))
+                    return null;
+
+                AddressableAssetSettings.BuildPlayerContent(out result, builderInput);
+
+                HandlePostBuild(context, builderInput, result);
+            }
+            catch (Exception e)
+            {
+                // since this is called from a menu option, the exception tends to get logged in a less than ideal handler.
+                // using Debug.LogException so we get the full stack trace as this might be in user code
+                Debug.LogException(e);
             }
 
-            if (context.buildScriptIndex >= 0)
-                context.Settings.ActivePlayerDataBuilderIndex = context.buildScriptIndex;
-
-            var builderInput = new AddressablesDataBuilderInput(context.Settings);
-
-            if (!HandlePreBuild(context, builderInput))
-                return;
-
-            AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult rst, builderInput);
-
-            HandlePostBuild(context, builderInput, rst);
+            return result;
         }
 
 #if (ENABLE_CCD && UNITY_2019_4_OR_NEWER)
@@ -597,6 +617,11 @@ namespace UnityEditor.AddressableAssets.GUI
                 RegisterBuildMenuEvents(context, isUpdate, out preEvent, out postEvent);
 
                 await AddressableAssetSettings.BuildAndReleasePlayerContent(isUpdate);
+            } catch (Exception e)
+            {
+                // since this is called from a menu option, the exception tends to get logged in a less than ideal handler.
+                // using Debug.LogException so we get the full stack trace as this might be in user code
+                Debug.LogException(e);
             } finally {
                 UnregisterBuildMenuEvents(isUpdate, preEvent, postEvent);
                 EditorUtility.ClearProgressBar();
@@ -811,6 +836,7 @@ namespace UnityEditor.AddressableAssets.GUI
 
         public void OnDisable()
         {
+            m_EntryTree?.Cleanup();
             if (AddressableAssetSettingsDefaultObject.Settings == null)
                 return;
             if (m_ModificationRegistered)
@@ -848,7 +874,7 @@ namespace UnityEditor.AddressableAssets.GUI
         internal AddressableAssetEntryTreeView InitialiseEntryTree()
         {
             if (m_TreeState == null)
-                m_TreeState = new TreeViewState();
+                m_TreeState = new AddressableAssetEntryTreeViewState();
 
             var headerState = AddressableAssetEntryTreeView.CreateDefaultMultiColumnHeaderState();
             if (MultiColumnHeaderState.CanOverwriteSerializedFields(m_Mchs, headerState))
@@ -857,8 +883,23 @@ namespace UnityEditor.AddressableAssets.GUI
 
             m_SearchField = new SearchField();
             m_EntryTree = new AddressableAssetEntryTreeView(m_TreeState, m_Mchs, this);
+
+            m_EntryTree.DeserializeState(AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(m_Settings)));
+            UpdateSavedColumnWidths(m_TreeState, m_Mchs);
+
             m_EntryTree.Reload();
             return m_EntryTree;
+        }
+
+        internal void UpdateSavedColumnWidths(AddressableAssetEntryTreeViewState treeState, MultiColumnHeaderState mchs)
+        {
+            if (treeState.columnWidths?.Length == mchs.columns.Length)
+            {
+                for (var i = 0; i < mchs.columns.Length; i++)
+                {
+                    mchs.columns[i].width = treeState.columnWidths[i];
+                }
+            }
         }
 
         public void Reload()

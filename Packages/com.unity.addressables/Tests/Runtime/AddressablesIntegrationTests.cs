@@ -13,6 +13,10 @@ using UnityEngine.ResourceManagement.Util;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
+#if UNITY_EDITOR
+using UnityEditor.TestTools;
+#endif
+
 namespace AddressableAssetsIntegrationTests
 {
     internal abstract partial class AddressablesIntegrationTests : IPrebuildSetup
@@ -23,7 +27,7 @@ namespace AddressableAssetsIntegrationTests
 
         Action<AsyncOperationHandle, Exception> m_PrevHandler;
         protected const string kCatalogExt =
-#if ENABLE_BINARY_CATALOG
+#if !ENABLE_JSON_CATALOG
             ".bin";
 #else
             ".json";
@@ -31,6 +35,9 @@ namespace AddressableAssetsIntegrationTests
         protected const string k_TestConfigName = "AddressableAssetSettings.Tests";
         protected const string k_TestConfigFolder = "Assets/AddressableAssetsData_AddressableAssetSettingsIntegrationTests";
 
+        /// <summary>
+        /// The type of DataBuilder the test fixture should use for setup (BuildScriptPackedMode, BuildScriptPackedPlayMode, BuildScriptFastMode, etc.)
+        /// </summary>
         protected abstract string TypeName { get; }
 
         protected virtual string PathFormat
@@ -77,6 +84,8 @@ namespace AddressableAssetsIntegrationTests
             AssetBundleProvider.WaitForAllUnloadingBundlesToComplete();
             if (m_Addressables != null)
             {
+                m_Addressables.ResourceManager.Update(0f);
+
                 Assert.AreEqual(0, m_Addressables.ResourceManager.DeferredCompleteCallbacksCount);
                 Assert.AreEqual(0, m_Addressables.ResourceManager.DeferredCallbackCount);
 
@@ -120,7 +129,7 @@ namespace AddressableAssetsIntegrationTests
             if (!initializationComplete || TypeName != currentInitType)
             {
                 if (m_Addressables == null)
-                    m_Addressables = new AddressablesImpl(new LRUCacheAllocationStrategy(1000, 1000, 100, 10));
+                    m_Addressables = new AddressablesImpl(new DefaultAllocationStrategy());
 
                 if (TypeName != currentInitType)
                 {
@@ -159,7 +168,6 @@ namespace AddressableAssetsIntegrationTests
                 }
             }
 
-            m_Addressables.ResourceManager.ClearDiagnosticCallbacks();
             m_StartingOpCount = m_Addressables.ResourceManager.OperationCacheCount;
             m_StartingTrackedHandleCount = m_Addressables.TrackedHandleCount;
             m_StartingInstanceCount = m_Addressables.ResourceManager.InstanceOperationCount;
@@ -170,7 +178,7 @@ namespace AddressableAssetsIntegrationTests
             if (!initializationComplete || TypeName != currentInitType)
             {
                 if (m_Addressables == null)
-                    m_Addressables = new AddressablesImpl(new LRUCacheAllocationStrategy(1000, 1000, 100, 10));
+                    m_Addressables = new AddressablesImpl(new DefaultAllocationStrategy());
 
                 currentInitType = TypeName;
 
@@ -188,7 +196,6 @@ namespace AddressableAssetsIntegrationTests
                 ResourceManager.ExceptionHandler = null;
             }
 
-            m_Addressables.ResourceManager.ClearDiagnosticCallbacks();
             m_StartingOpCount = m_Addressables.ResourceManager.OperationCacheCount;
             m_StartingTrackedHandleCount = m_Addressables.TrackedHandleCount;
             m_StartingInstanceCount = m_Addressables.ResourceManager.InstanceOperationCount;
@@ -232,32 +239,7 @@ namespace AddressableAssetsIntegrationTests
         }
     }
 
-    class AddressablesIntegrationTestsVirtualMode : AddressablesIntegrationTests
-    {
-        protected override string TypeName
-        {
-            get { return "BuildScriptVirtualMode"; }
-        }
-
-        protected override string GetRuntimePath(string testType, string suffix)
-        {
-            return string.Format("{0}" + Addressables.LibraryPath + "settings_TEST_{1}.json", "file://{UnityEngine.Application.dataPath}/../", suffix);
-        }
-
-        protected override ILocationSizeData CreateLocationSizeData(string name, long size, uint crc, string hash)
-        {
-            return new UnityEngine.ResourceManagement.ResourceProviders.Simulation.VirtualAssetBundleRequestOptions()
-            {
-                BundleName = name,
-                BundleSize = size,
-                Crc = crc,
-                Hash = hash
-            };
-        }
-    }
-
-
-    class AddressablesIntegrationTestsPackedPlayMode : AddressablesIntegrationTests
+    abstract class AddressablesIntegrationTestsPackedPlayMode : AddressablesIntegrationTests
     {
         protected override string TypeName
         {
@@ -301,36 +283,75 @@ namespace AddressableAssetsIntegrationTests
             return GetDownloadSize_WithList_CalculatesCorrectSize_WhenAssetsReferenceSameBundleInternal();
         }
     }
+#endif
 
-    class AddressablesIntegrationTestsPlayerUseUwr : AddressablesIntegrationPlayer
+#if UNITY_EDITOR
+    [RequirePlatformSupport(UnityEditor.BuildTarget.StandaloneWindows64)]
+#endif
+    class AddressablesIntegrationTestsPlayerWindowsUseUwr : AddressablesIntegrationPlayer
     {
-        protected override string TypeName
-        {
-            get { return "BuildScriptPackedPlayerModeUwr"; }
-        }
+        // using UWR should just download and not load the asset bundles
 
+        protected override bool UseUnityWebRequestForLocalBundles { get { return true; } }
+    }
+#if UNITY_EDITOR
+    [RequirePlatformSupport(UnityEditor.BuildTarget.StandaloneOSX)]
+#endif
+
+    class AddressablesIntegrationTestsPlayerOSXUseUwr : AddressablesIntegrationPlayer
+    {
+        // using UWR should just download and not load the asset bundles
+
+        protected override bool UseUnityWebRequestForLocalBundles { get { return true; } }
+    }
+#if UNITY_EDITOR
+    [RequirePlatformSupport(UnityEditor.BuildTarget.StandaloneLinux64)]
+#endif
+
+    class AddressablesIntegrationTestsPlayerLinuxUseUwr : AddressablesIntegrationPlayer
+    {
         // using UWR should just download and not load the asset bundles
 
         protected override bool UseUnityWebRequestForLocalBundles { get { return true; } }
     }
 
-    class AddressablesIntegrationTestsPackedPlayModeUseUwr : AddressablesIntegrationTestsPackedPlayMode
+#if UNITY_EDITOR
+    [RequirePlatformSupport(UnityEditor.BuildTarget.StandaloneWindows64)]
+    class AddressablesIntegrationTestsPackedPlayModeWindowsUseUwr : AddressablesIntegrationTestsPackedPlayMode
     {
-        protected override string TypeName
-        {
-            get { return "BuildScriptPackedModeUwr"; }
-        }
+        protected override bool UseUnityWebRequestForLocalBundles { get { return true; } }
+    }
 
+    [RequirePlatformSupport(UnityEditor.BuildTarget.StandaloneOSX)]
+    class AddressablesIntegrationTestsPackedPlayModeOSXUseUwr : AddressablesIntegrationTestsPackedPlayMode
+    {
+        protected override bool UseUnityWebRequestForLocalBundles { get { return true; } }
+    }
+
+    [RequirePlatformSupport(UnityEditor.BuildTarget.StandaloneLinux64)]
+    class AddressablesIntegrationTestsPackedPlayModeLinuxUseUwr : AddressablesIntegrationTestsPackedPlayMode
+    {
         protected override bool UseUnityWebRequestForLocalBundles { get { return true; } }
     }
 #endif
 
-
-    class AddressablesIntegrationPlayer : AddressablesIntegrationTests
+    abstract class AddressablesIntegrationPlayer : AddressablesIntegrationTests
     {
         protected override string TypeName
         {
-            get { return "BuildScriptPackedPlayerMode"; }
+            get { return "BuildScriptPackedPlayMode"; }
+        }
+
+        public override void Setup()
+        {
+            AddressablesTestUtility.Setup("BuildScriptPackedMode", PathFormat, "BASE", UseUnityWebRequestForLocalBundles);
+            AddressablesTestUtility.Setup(TypeName, PathFormat, "BASE", UseUnityWebRequestForLocalBundles);
+        }
+
+        public override void DeleteTempFiles()
+        {
+            AddressablesTestUtility.TearDown("BuildScriptPackedMode", PathFormat, "BASE");
+            AddressablesTestUtility.TearDown(TypeName, PathFormat, "BASE");
         }
 
         protected override string GetRuntimePath(string testType, string suffix)

@@ -22,6 +22,7 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
             SceneInstance m_Inst;
             IResourceLocation m_Location;
             LoadSceneParameters m_LoadSceneParameters;
+            SceneReleaseMode m_ReleaseMode;
             int m_Priority;
             private AsyncOperationHandle<IList<AsyncOperationHandle>> m_DepOp;
             ResourceManager m_ResourceManager;
@@ -40,15 +41,16 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
 
             public void Init(IResourceLocation location, LoadSceneMode loadSceneMode, bool activateOnLoad, int priority, AsyncOperationHandle<IList<AsyncOperationHandle>> depOp)
             {
-                Init(location, new LoadSceneParameters(loadSceneMode), activateOnLoad, priority, depOp);
+                Init(location, new LoadSceneParameters(loadSceneMode), SceneReleaseMode.ReleaseSceneWhenSceneUnloaded, activateOnLoad, priority, depOp);
             }
 
-            public void Init(IResourceLocation location, LoadSceneParameters loadSceneParameters, bool activateOnLoad, int priority, AsyncOperationHandle<IList<AsyncOperationHandle>> depOp)
+            public void Init(IResourceLocation location, LoadSceneParameters loadSceneParameters, SceneReleaseMode releaseMode, bool activateOnLoad, int priority, AsyncOperationHandle<IList<AsyncOperationHandle>> depOp)
             {
                 m_DepOp = depOp.IsValid() ? depOp.Acquire() : depOp;
 
                 m_Location = location;
                 m_LoadSceneParameters = loadSceneParameters;
+                m_ReleaseMode = releaseMode;
                 m_ActivateOnLoad = activateOnLoad;
                 m_Priority = priority;
             }
@@ -128,20 +130,21 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
                 var op = InternalLoad(internalId, loadingFromBundle, loadSceneParameters);
                 op.allowSceneActivation = activateOnLoad;
                 op.priority = priority;
-                return new SceneInstance() { m_Operation = op, Scene = SceneManager.GetSceneAt(SceneManager.sceneCount - 1) };
+                var si = new SceneInstance() { m_Operation = op, Scene = SceneManager.GetSceneAt(SceneManager.sceneCount - 1), ReleaseSceneOnSceneUnloaded = m_ReleaseMode == SceneReleaseMode.ReleaseSceneWhenSceneUnloaded};
+                return si;
             }
 
             AsyncOperation InternalLoad(string path, bool loadingFromBundle, LoadSceneParameters loadSceneParameters)
             {
 #if !UNITY_EDITOR
-#if ENABLE_ADDRESSABLE_PROFILER
-                Profiling.ProfilerRuntime.AddSceneOperation(Handle, m_Location, Profiling.ContentStatus.Loading);
+#if ENABLE_PROFILER
+               Profiling.ProfilerRuntime.AddSceneOperation(Handle, m_Location, Profiling.ContentStatus.Loading);
 #endif
                 return SceneManager.LoadSceneAsync(path, loadSceneParameters);
 #else
                 if (loadingFromBundle)
                 {
-#if ENABLE_ADDRESSABLE_PROFILER
+#if ENABLE_PROFILER
                     Profiling.ProfilerRuntime.AddSceneOperation(Handle, m_Location, Profiling.ContentStatus.Loading);
 #endif
                     return SceneManager.LoadSceneAsync(path, loadSceneParameters);
@@ -199,7 +202,7 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
                     if (m_Inst.m_Operation.isDone || (!m_Inst.m_Operation.allowSceneActivation && Mathf.Approximately(m_Inst.m_Operation.progress, .9f)))
                     {
                         m_ResourceManager.RemoveUpdateReciever(this);
-#if ENABLE_ADDRESSABLE_PROFILER
+#if ENABLE_PROFILER
                         Profiling.ProfilerRuntime.AddSceneOperation(Handle, m_Location, Profiling.ContentStatus.Active);
 #endif
                         Complete(m_Inst, true, null);
@@ -229,9 +232,10 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
             {
                 if (m_sceneLoadHandle.IsValid() && m_Instance.Scene.isLoaded)
                 {
-#if ENABLE_ADDRESSABLE_PROFILER && UNITY_2021_2_OR_NEWER
-                    Profiling.ProfilerRuntime.SceneReleased(m_sceneLoadHandle);
-#endif
+                    // This code is triggered when a scene is unloaded explicitly. A scene can also be unloaded
+                    // by loading a new scene in Single mode. In that case scenes will be unloaded via
+                    // AddressablesImpl::OnSceneUnloaded. The scene load handle will be valid, but isLoaded will
+                    // be set to false as the engine has already started unloading the scene.
                     var unloadOp = SceneManager.UnloadSceneAsync(m_Instance.Scene, m_UnloadOptions);
                     if (unloadOp == null)
                         UnloadSceneCompleted(null);
@@ -239,8 +243,9 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
                         unloadOp.completed += UnloadSceneCompleted;
                 }
                 else
+                {
                     UnloadSceneCompleted(null);
-
+                }
                 HasExecuted = true;
             }
 
@@ -262,6 +267,11 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
                 if (m_sceneLoadHandle.IsValid()
                     && m_sceneLoadHandle.ReferenceCount > 0)
                 {
+#if ENABLE_PROFILER
+                    // this has to happen before the final release to be able to decrement the handle
+                    if (m_sceneLoadHandle.ReferenceCount == 1)
+                        Profiling.ProfilerRuntime.SceneReleased(m_sceneLoadHandle);
+#endif
                     m_sceneLoadHandle.Release();
                 }
             }
@@ -281,12 +291,18 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
         /// <inheritdoc/>
         public AsyncOperationHandle<SceneInstance> ProvideScene(ResourceManager resourceManager, IResourceLocation location, LoadSceneParameters loadSceneParameters, bool activateOnLoad, int priority)
         {
+            return ProvideScene(resourceManager, location, loadSceneParameters, SceneReleaseMode.ReleaseSceneWhenSceneUnloaded, activateOnLoad, priority);
+        }
+
+        /// <inheritdoc/>
+        public AsyncOperationHandle<SceneInstance> ProvideScene(ResourceManager resourceManager, IResourceLocation location, LoadSceneParameters loadSceneParameters, SceneReleaseMode releaseMode, bool activateOnLoad, int priority)
+        {
             AsyncOperationHandle<IList<AsyncOperationHandle>> depOp = default(AsyncOperationHandle<IList<AsyncOperationHandle>>);
             if (location.HasDependencies)
                 depOp = resourceManager.ProvideResourceGroupCached(location.Dependencies, location.DependencyHashCode, typeof(IAssetBundleResource), null);
 
             SceneOp op = new SceneOp(resourceManager, this);
-            op.Init(location, loadSceneParameters, activateOnLoad, priority, depOp);
+            op.Init(location, loadSceneParameters, releaseMode, activateOnLoad, priority, depOp);
 
             var handle = resourceManager.StartOperation<SceneInstance>(op, depOp);
 

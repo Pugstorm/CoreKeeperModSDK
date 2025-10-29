@@ -30,11 +30,6 @@
             "define": "ENABLE_CCD"
         },
         {
-            "name": "com.unity.profiling.core",
-            "expression": "[1.0.2,3.0.0)",
-            "define": "ENABLE_ADDRESSABLE_PROFILER"
-        },
-        {
             "name": "com.unity.services.ccd.management",
             "expression": "[3.0.0,4.0.0)",
             "define": "CCD_REQUEST_LOGGING"

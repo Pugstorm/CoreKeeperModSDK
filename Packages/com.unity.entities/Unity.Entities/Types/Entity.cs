@@ -25,6 +25,7 @@ namespace Unity.Entities
     /// </remarks>
     [DebuggerTypeProxy(typeof(EntityDebugProxy))]
     [DebuggerDisplay("{EntityDebugProxy.GetDebugName(Index, Version)}")]
+	[TypeManager.OverrideTypeHash(9040447470553368825)]	// Changed in Entities 1.3.9
     public struct Entity : IEquatable<Entity>, IComparable<Entity>
     {
         /// <summary>

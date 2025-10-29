@@ -221,7 +221,9 @@ namespace AddressableTests.SyncAddressables
             var nonExistingPath = "https://127.0.0.1/non-existing-bundle";
             var loc = new ResourceLocationBase(nonExistingPath, nonExistingPath, typeof(AssetBundleProvider).FullName, typeof(AssetBundleResource));
             var d = new AssetBundleRequestOptions();
+            d.BundleName = "non-existing-bundle";
             d.RetryCount = 3;
+            d.BundleName = "fakebundlename";
             loc.Data = d;
 
             LogAssert.Expect(LogType.Log, new Regex(@"^(Web request failed, retrying \(0/3)"));
@@ -284,11 +286,11 @@ namespace AddressableTests.SyncAddressables
             var webRequest = abr.CreateWebRequest(inputUrl);
             Assert.AreEqual(webRequest.url, expectedUrl);
         }
+
 #if !UNITY_PS5
         [UnityTest]
         public IEnumerator LoadBundleAsync_WithUnfinishedUnload_WaitsForUnloadAndCompletes()
         {
-
             var h = m_Addressables.LoadAssetAsync<GameObject>("testprefab");
             yield return h;
             Assert.IsNotNull(h.Result);
@@ -298,7 +300,6 @@ namespace AddressableTests.SyncAddressables
             Assert.IsNotNull(h.Result);
             h.Release();
         }
-#endif
 
         [UnityTest]
         public IEnumerator LoadBundleSync_WithUnfinishedUnload_WaitsForUnloadAndCompletes()
@@ -312,6 +313,7 @@ namespace AddressableTests.SyncAddressables
             Assert.IsNotNull(h.Result);
             h.Release();
         }
+#endif
 
         [Test]
         // Only testing against important errors instead of full list

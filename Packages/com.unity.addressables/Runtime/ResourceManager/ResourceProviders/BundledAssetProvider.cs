@@ -44,6 +44,19 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
                 return bundle as T;
             }
 
+            internal static bool IsDownloadOnly(IList<object> results)
+            {
+                foreach (var dep in results)
+                {
+                    if (dep is AssetBundleResource { m_DownloadOnly: true })
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
             public void Start(ProvideHandle provideHandle)
             {
                 provideHandle.SetProgressCallback(ProgressCallback);
@@ -63,7 +76,14 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
                     m_AssetBundle = bundleResource.GetAssetBundle();
                     if (m_AssetBundle == null)
                     {
-                        m_ProvideHandle.Complete<AssetBundle>(null, false, new Exception("Unable to load dependent bundle from location " + m_ProvideHandle.Location));
+#if UNITY_EDITOR
+                        // This more detailed error is only displayed in the Editor to help with debugging. It's not
+                        // an Editor only issue.
+                        if (IsDownloadOnly(deps))
+                            m_ProvideHandle.Complete<AssetBundle>(null, false, new Exception("Unable to load dependent bundle from location " + m_ProvideHandle.Location + ".\nRelease the handle returned by DownloadDependenciesAsync or call it with autoReleaseHandle set to true."));
+                        else
+#endif
+                            m_ProvideHandle.Complete<AssetBundle>(null, false, new Exception("Unable to load dependent bundle from location " + m_ProvideHandle.Location));
                         return;
                     }
 
@@ -145,10 +165,11 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
                             ActionComplete(m_RequestOperation);
                         else
                         {
-#if ENABLE_ADDRESSABLE_PROFILER
+#if ENABLE_PROFILER
                             if (UnityEngine.Profiling.Profiler.enabled && m_ProvideHandle.IsValid)
                                 Profiling.ProfilerRuntime.AddAssetOperation(m_ProvideHandle, Profiling.ContentStatus.Loading);
 #endif
+
                             m_RequestOperation.completed += ActionComplete;
                         }
                     }
@@ -217,11 +238,10 @@ namespace UnityEngine.ResourceManagement.ResourceProviders
 
             void CompleteOperation()
             {
-#if ENABLE_ADDRESSABLE_PROFILER
+#if ENABLE_PROFILER
                 if (UnityEngine.Profiling.Profiler.enabled && m_Result != null && m_ProvideHandle.IsValid)
                     Profiling.ProfilerRuntime.AddAssetOperation(m_ProvideHandle, Profiling.ContentStatus.Active);
 #endif
-
                 Exception e = m_Result == null
                     ? new Exception($"Unable to load asset of type {m_ProvideHandle.Type} from location {m_ProvideHandle.Location}.")
                     : null;

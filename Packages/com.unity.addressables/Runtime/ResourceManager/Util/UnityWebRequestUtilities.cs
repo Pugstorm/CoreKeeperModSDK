@@ -1,6 +1,8 @@
 using System;
+using System.Diagnostics;
 using System.Text;
 using UnityEngine.Networking;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace UnityEngine.ResourceManagement.Util
 {
@@ -9,11 +11,13 @@ namespace UnityEngine.ResourceManagement.Util
     /// </summary>
     public class UnityWebRequestUtilities
     {
+        const string k_AddressablesLogConditional = "ADDRESSABLES_LOG_ALL";
+
         /// <summary>
         /// Determines if a web request resulted in an error.
         /// </summary>
         /// <param name="webReq">The web request.</param>
-        /// <param name="result"></param>
+        /// <param name="result">Web request result</param>
         /// <returns>True if a web request resulted in an error.</returns>
         public static bool RequestHasErrors(UnityWebRequest webReq, out UnityWebRequestResult result)
         {
@@ -21,7 +25,6 @@ namespace UnityEngine.ResourceManagement.Util
             if (webReq == null || !webReq.isDone)
                 return false;
 
-#if UNITY_2020_1_OR_NEWER
             switch (webReq.result)
             {
                 case UnityWebRequest.Result.InProgress:
@@ -35,13 +38,6 @@ namespace UnityEngine.ResourceManagement.Util
                 default:
                     throw new NotImplementedException($"Cannot determine whether UnityWebRequest succeeded or not from result : {webReq.result}");
             }
-#else
-            var isError = webReq.isHttpError || webReq.isNetworkError;
-            if (isError)
-                result = new UnityWebRequestResult(webReq);
-
-            return isError;
-#endif
         }
 
         /// <summary>
@@ -58,6 +54,43 @@ namespace UnityEngine.ResourceManagement.Util
 #endif
             return op.isDone;
         }
+
+
+        internal static void LogOperationResult(AsyncOperation op)
+        {
+            var webRequestOperation = op as UnityWebRequestAsyncOperation;
+            if (webRequestOperation != null)
+            {
+                var webRequest = webRequestOperation.webRequest;
+                var result = new UnityWebRequestResult(webRequest);
+#if UNITY_2020_1_OR_NEWER
+                if (result.Result == UnityWebRequest.Result.Success)
+                {
+                    Log(result.ToString());
+                    return;
+                }
+#else
+            if (string.IsNullOrEmpty(result.Error)) {
+                Log(result.ToString());
+                return;
+            }
+#endif
+
+                LogError(result.ToString());
+            }
+        }
+
+        [Conditional(k_AddressablesLogConditional)]
+        internal static void Log(string msg)
+        {
+            Debug.Log(msg);
+        }
+
+        internal static void LogError(string msg)
+        {
+            Debug.LogError(msg);
+        }
+
     }
 
     /// <summary>
@@ -72,7 +105,7 @@ namespace UnityEngine.ResourceManagement.Util
         public UnityWebRequestResult(UnityWebRequest request)
         {
             string error = request.error;
-#if UNITY_2020_1_OR_NEWER
+
             if (request.result == UnityWebRequest.Result.DataProcessingError && request.downloadHandler != null)
             {
                 // https://docs.unity3d.com/ScriptReference/Networking.DownloadHandler-error.html
@@ -81,7 +114,6 @@ namespace UnityEngine.ResourceManagement.Util
             }
 
             Result = request.result;
-#endif
             Error = error;
             ResponseCode = request.responseCode;
             Method = request.method;
@@ -94,12 +126,7 @@ namespace UnityEngine.ResourceManagement.Util
         {
             var sb = new StringBuilder();
 
-#if UNITY_2020_1_OR_NEWER
             sb.AppendLine($"{Result} : {Error}");
-#else
-            if (!string.IsNullOrEmpty(Error))
-                sb.AppendLine(Error);
-#endif
             if (ResponseCode > 0)
                 sb.AppendLine($"ResponseCode : {ResponseCode}, Method : {Method}");
             sb.AppendLine($"url : {Url}");
@@ -118,12 +145,11 @@ namespace UnityEngine.ResourceManagement.Util
         /// </summary>
         public long ResponseCode { get; }
 
-#if UNITY_2020_1_OR_NEWER
         /// <summary>
         /// The outcome of the request.
         /// </summary>
         public UnityWebRequest.Result Result { get; }
-#endif
+
         /// <summary>
         /// The HTTP verb used by this UnityWebRequest, such as GET or POST.
         /// </summary>
@@ -135,7 +161,7 @@ namespace UnityEngine.ResourceManagement.Util
         public string Url { get; }
 
         /// <summary>
-        /// Determines if the web request can be sent again based on its error. 
+        /// Determines if the web request can be sent again based on its error.
         /// </summary>
         /// <returns>Returns true if the web request can be sent again.</returns>
         public bool ShouldRetryDownloadError()

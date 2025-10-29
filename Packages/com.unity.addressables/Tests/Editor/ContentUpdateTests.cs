@@ -9,15 +9,17 @@ using UnityEditor.AddressableAssets.Build.DataBuilders;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEditor.Build.Pipeline;
+using UnityEditor.TestTools;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.ResourceManagement.ResourceProviders;
+using UnityEngine.ResourceManagement.Util;
 using UnityEngine.TestTools;
 
 namespace UnityEditor.AddressableAssets.Tests
 {
-    public class ContentUpdateTests : AddressableAssetTestBase
+    public abstract class ContentUpdateTests : AddressableAssetTestBase
     {
         protected override bool PersistSettings
         {
@@ -90,15 +92,18 @@ namespace UnityEditor.AddressableAssets.Tests
             Settings.RemoveGroup(group2);
         }
 
+#if !ENABLE_JSON_CATALOG
         [Test]
         public void CreateCustomLocator_ReturnsLocatorWithUniqueId()
         {
             ContentCatalogData ccd = new ContentCatalogData();
             ccd.SetData(new List<ContentCatalogDataEntry>());
-            IResourceLocator map = ccd.CreateCustomLocator("test");
+            var data = ccd.SerializeToByteArray();
+            var newCCD = new ContentCatalogData(new BinaryStorageBuffer.Reader(data));
+            IResourceLocator map = newCCD.CreateCustomLocator("test");
             Assert.AreEqual("test", map.LocatorId);
         }
-
+#endif
         [Test]
         public void DownloadBinFileToTempLocation_DoesNotThrowError_WhenDownloadFails()
         {
@@ -427,12 +432,12 @@ namespace UnityEditor.AddressableAssets.Tests
             foreach (var p in paths)
             {
                 if(Path.GetFileNameWithoutExtension(p).EndsWith("catalog"))
-                    return ContentCatalogData.LoadFromFile(p).CreateCustomLocator();
+                    return ContentCatalogData.LoadFromFile(p, true).CreateCustomLocator();
             }
             return null;
         }
 
-#if !ENABLE_BINARY_CATALOG
+#if ENABLE_JSON_CATALOG
 
         [Test]
         public void WhenContentUpdated_NewCatalogRetains_OldCatalogBundleLoadData()
@@ -1367,6 +1372,19 @@ namespace UnityEditor.AddressableAssets.Tests
                 AssetDatabase.DeleteAsset(materialAssetPath);
             }
         }
+    }
+
+    namespace ContentUpdatePerPlatformTests
+    {
+
+        [RequirePlatformSupport(BuildTarget.StandaloneWindows, BuildTarget.StandaloneWindows64)]
+        public class ContentUpdateTestsWindows : ContentUpdateTests { }
+
+        [RequirePlatformSupport(BuildTarget.StandaloneOSX)]
+        public class ContentUpdateTestsOSX : ContentUpdateTests { }
+
+        [RequirePlatformSupport(BuildTarget.StandaloneLinux64)]
+        public class ContentUpdateTestsLinux : ContentUpdateTests { }
     }
 }
 

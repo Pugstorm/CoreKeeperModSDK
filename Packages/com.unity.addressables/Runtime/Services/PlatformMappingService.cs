@@ -1,9 +1,4 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -27,7 +22,7 @@ namespace UnityEngine.AddressableAssets
         Windows,
 
         /// <summary>
-        /// Use to indicate that the build platform is OSX.
+        /// Use to indicate that the build platform is macOS.
         /// </summary>
         OSX,
 
@@ -42,12 +37,12 @@ namespace UnityEngine.AddressableAssets
         PS4,
 
         /// <summary>
-        /// Use to indicate that the build platform is PS4.
+        /// Use to indicate that the build platform is Switch.
         /// </summary>
         Switch,
 
         /// <summary>
-        /// Use to indicate that the build platform is XboxOne.
+        /// Use to indicate that the build platform is Xbox One.
         /// </summary>
         XboxOne,
 
@@ -142,20 +137,6 @@ namespace UnityEngine.AddressableAssets
             if (s_RuntimeTargetMapping.ContainsKey(platform))
                 return s_RuntimeTargetMapping[platform].ToString();
             return platform.ToString();
-        }
-
-        /// <summary>
-        /// Retrieves the Addressables build platform that is being used.
-        /// </summary>
-        /// <returns>Returns the Addressables build platform that is being used.</returns>
-        [Obsolete("This API doesn't adapt to the addition of new platforms.  Use GetPlatformPathSubFolder instead.")]
-        public static AddressablesPlatform GetPlatform()
-        {
-#if UNITY_EDITOR
-            return GetAddressablesPlatformInternal(EditorUserBuildSettings.activeBuildTarget);
-#else
-            return GetAddressablesPlatformInternal(Application.platform);
-#endif
         }
 
         /// <summary>

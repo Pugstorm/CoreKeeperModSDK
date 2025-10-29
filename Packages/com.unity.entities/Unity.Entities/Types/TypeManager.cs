@@ -422,6 +422,16 @@ namespace Unity.Entities
             public ulong MemoryOrdering;
         }
 
+		public class OverrideTypeHashAttribute : Attribute
+		{
+			public OverrideTypeHashAttribute(ulong overrideTo)
+			{
+				OverrideTo = overrideTo;
+			}
+			
+			public ulong OverrideTo;
+		}
+
         /// <summary>
         /// [TypeOverrides] can be applied to a component that is known to never contain Entity and/or Blob references,
         /// in order to reduce time taken during serialization operations.

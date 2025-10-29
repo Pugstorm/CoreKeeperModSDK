@@ -1,12 +1,8 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using NUnit.Framework;
-using NUnit.Framework.Interfaces;
-using UnityEngine.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
 using UnityEditor.AddressableAssets.Build.DataBuilders;
 using UnityEditor.AddressableAssets.Settings;
@@ -14,19 +10,47 @@ using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEditor.Build.Pipeline;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AddressableAssets.Initialization;
 using UnityEngine.AddressableAssets.ResourceLocators;
-using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.ResourceManagement.ResourceProviders;
-using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
+using UnityEditor.TestTools;
+using UnityEditor;
+using System.Text.RegularExpressions;
 
 namespace UnityEditor.AddressableAssets.Tests
 {
-    public class BuildScriptPackedTests : AddressableAssetTestBase
+    public class BuildScriptPackedTestsNoPlatform : AddressableAssetTestBase
+    {
+        private static IEnumerable<List<AssetBundleBuild>> DuplicateBundleNamesCases()
+        {
+            var abb1 = new AssetBundleBuild() { assetBundleName = "name1.bundle" };
+            var abb2 = new AssetBundleBuild() { assetBundleName = "name2.bundle" };
+            yield return new List<AssetBundleBuild>();
+            yield return new List<AssetBundleBuild>() { abb1 };
+            yield return new List<AssetBundleBuild>() { abb1, abb1 };
+            yield return new List<AssetBundleBuild>() { abb1, abb2 };
+            yield return new List<AssetBundleBuild>() { abb1, abb1, abb1 };
+        }
+
+        [Test, TestCaseSource(nameof(DuplicateBundleNamesCases))]
+        public void HandleBundlesNaming_NamesShouldAlwaysBeUnique(List<AssetBundleBuild> bundleBuilds)
+        {
+            var group = Settings.CreateGroup("PackedTest", false, false, false, null, typeof(BundledAssetGroupSchema));
+            var bundleToAssetGroup = new Dictionary<string, string>();
+
+            List<string> uniqueNames = BuildScriptPackedMode.HandleBundleNames(bundleBuilds, bundleToAssetGroup, group.Guid);
+
+            var uniqueNamesInBundleBuilds = bundleBuilds.Select(b => b.assetBundleName).Distinct();
+            Assert.AreEqual(bundleBuilds.Count, uniqueNames.Count());
+            Assert.AreEqual(bundleBuilds.Count, uniqueNamesInBundleBuilds.Count());
+            Assert.AreEqual(bundleBuilds.Count, bundleToAssetGroup.Count);
+        }
+    }
+
+    public abstract class BuildScriptPackedTests : AddressableAssetTestBase
     {
         private AddressablesDataBuilderInput m_BuilderInput;
         private ResourceManagerRuntimeData m_RuntimeData;
@@ -64,43 +88,98 @@ namespace UnityEditor.AddressableAssets.Tests
         }
 
         [Test]
-        [TestCase(ShaderBundleNaming.ProjectName, "")]
-        [TestCase(ShaderBundleNaming.DefaultGroupGuid, "")]
-        [TestCase(ShaderBundleNaming.Custom, "custom name")]
-        public void ShaderBundleNaming_GeneratesCorrectShaderBundlePrefix(ShaderBundleNaming shaderBundleNaming, string customName)
+        [TestCase(SharedBundleSettings.DefaultGroup)]
+        [TestCase(SharedBundleSettings.CustomGroup)]
+        public void GetSharedBundleGroup_UsesDefaultGroup(SharedBundleSettings sharedBundleSettings)
         {
             //Setup
-            string savedCustomName = m_BuildContext.Settings.ShaderBundleCustomNaming;
-            ShaderBundleNaming savedBundleNaming = m_BuildContext.Settings.ShaderBundleNaming;
-            m_BuildContext.Settings.ShaderBundleCustomNaming = customName;
-            m_BuildContext.Settings.ShaderBundleNaming = shaderBundleNaming;
+            AddressableAssetGroup testGroup = m_BuildContext.Settings.CreateGroup("SharedBundleSettingsTest", false, false, false, null);
+
+            SharedBundleSettings savedBundleSettings = m_BuildContext.Settings.SharedBundleSettings;
+            int savedGroupIndex= m_BuildContext.Settings.SharedBundleSettingsCustomGroupIndex;
+            m_BuildContext.Settings.SharedBundleSettings = sharedBundleSettings;
+
+            //Test
+            m_BuildContext.Settings.SharedBundleSettingsCustomGroupIndex = -1;
+            AddressableAssetGroup actualGroup1 = m_BuildContext.Settings.GetSharedBundleGroup();
+
+            m_BuildContext.Settings.SharedBundleSettingsCustomGroupIndex = m_BuildContext.Settings.groups.Count;
+            AddressableAssetGroup actualGroup2 = m_BuildContext.Settings.GetSharedBundleGroup();
+
+            //Assert
+            Assert.AreEqual(m_BuildContext.Settings.DefaultGroup.Guid, actualGroup1.Guid);
+            Assert.AreEqual(m_BuildContext.Settings.DefaultGroup.Guid, actualGroup2.Guid);
+
+            //Cleanup
+            m_BuildContext.Settings.RemoveGroup(testGroup);
+            m_BuildContext.Settings.SharedBundleSettings = savedBundleSettings;
+            m_BuildContext.Settings.SharedBundleSettingsCustomGroupIndex = savedGroupIndex;
+        }
+
+        [Test]
+        public void GetSharedBundleGroup_UsesCustomGroup()
+        {
+            //Setup
+            AddressableAssetGroup testGroup = m_BuildContext.Settings.CreateGroup("SharedBundleSettingsTest", false, false, false, null);
+
+            SharedBundleSettings savedBundleSettings = m_BuildContext.Settings.SharedBundleSettings;
+            int savedGroupIndex = m_BuildContext.Settings.SharedBundleSettingsCustomGroupIndex;
+            m_BuildContext.Settings.SharedBundleSettings = SharedBundleSettings.CustomGroup;
+            for(int i = 0; i < m_BuildContext.Settings.groups.Count; i++)
+            {
+                if (m_BuildContext.Settings.groups[i].Guid == testGroup.Guid)
+                    m_BuildContext.Settings.SharedBundleSettingsCustomGroupIndex = i;
+            }
+
+            //Test
+            AddressableAssetGroup actualGroup = m_BuildContext.Settings.GetSharedBundleGroup();
+
+            //Assert
+            Assert.AreEqual(testGroup.Guid, actualGroup.Guid);
+
+            //Cleanup
+            m_BuildContext.Settings.RemoveGroup(testGroup);
+            m_BuildContext.Settings.SharedBundleSettings = savedBundleSettings;
+            m_BuildContext.Settings.SharedBundleSettingsCustomGroupIndex = savedGroupIndex;
+        }
+
+        [Test]
+        [TestCase(BuiltInBundleNaming.ProjectName, "")]
+        [TestCase(BuiltInBundleNaming.DefaultGroupGuid, "")]
+        [TestCase(BuiltInBundleNaming.Custom, "custom name")]
+        public void ShaderBundleNaming_GeneratesCorrectShaderBundlePrefix(BuiltInBundleNaming shaderBundleNaming, string customName)
+        {
+            //Setup
+            string savedCustomName = m_BuildContext.Settings.BuiltInBundleCustomNaming;
+            BuiltInBundleNaming savedBundleNaming = m_BuildContext.Settings.BuiltInBundleNaming;
+            m_BuildContext.Settings.BuiltInBundleCustomNaming = customName;
+            m_BuildContext.Settings.BuiltInBundleNaming = shaderBundleNaming;
             string expectedValue = "";
             switch (shaderBundleNaming)
             {
-                case ShaderBundleNaming.ProjectName:
+                case BuiltInBundleNaming.ProjectName:
                     expectedValue = Hash128.Compute(BuildScriptPackedMode.GetProjectName()).ToString();
                     break;
-                case ShaderBundleNaming.DefaultGroupGuid:
+                case BuiltInBundleNaming.DefaultGroupGuid:
                     expectedValue = m_BuildContext.Settings.DefaultGroup.Guid;
                     break;
-                case ShaderBundleNaming.Custom:
+                case BuiltInBundleNaming.Custom:
                     expectedValue = customName;
                     break;
             }
 
             //Test
-            string bundleName = BuildScriptPackedMode.GetBuiltInShaderBundleNamePrefix(m_BuildContext);
+            string bundleName = BuildScriptPackedMode.GetBuiltInBundleNamePrefix(m_BuildContext);
 
             //Assert
             Assert.AreEqual(expectedValue, bundleName);
 
             //Cleanup
-            m_BuildContext.Settings.ShaderBundleCustomNaming = savedCustomName;
-            m_BuildContext.Settings.ShaderBundleNaming = savedBundleNaming;
+            m_BuildContext.Settings.BuiltInBundleCustomNaming = savedCustomName;
+            m_BuildContext.Settings.BuiltInBundleNaming = savedBundleNaming;
         }
 
         [Test]
-        [TestCase(MonoScriptBundleNaming.Disabled, "")]
         [TestCase(MonoScriptBundleNaming.ProjectName, "")]
         [TestCase(MonoScriptBundleNaming.DefaultGroupGuid, "")]
         [TestCase(MonoScriptBundleNaming.Custom, "custom name")]
@@ -122,9 +201,6 @@ namespace UnityEditor.AddressableAssets.Tests
                     break;
                 case MonoScriptBundleNaming.Custom:
                     expectedValue = customName;
-                    break;
-                case MonoScriptBundleNaming.Disabled:
-                    expectedValue = null;
                     break;
             }
 
@@ -181,18 +257,17 @@ namespace UnityEditor.AddressableAssets.Tests
             buildScript.BuildData<AddressableAssetBuildResult>(input);
 
             LogAssert.Expect(LogType.Warning, $"{group.Name} does not have any associated AddressableAssetGroupSchemas. " +
-                                              $"Data from this group will not be included in the build. " +
-                                              $"If this is unexpected the AddressableGroup may have become corrupted.");
+                $"Data from this group will not be included in the build. " +
+                $"If this is unexpected the AddressableGroup may have become corrupted.");
 
             input.AddressableSettings.RemoveGroup(group);
         }
 
         [Test]
-        [TestCase(MonoScriptBundleNaming.Disabled, ShaderBundleNaming.ProjectName, "")]
-        [TestCase(MonoScriptBundleNaming.ProjectName, ShaderBundleNaming.ProjectName, "")]
-        [TestCase(MonoScriptBundleNaming.DefaultGroupGuid, ShaderBundleNaming.DefaultGroupGuid, "")]
-        [TestCase(MonoScriptBundleNaming.Custom, ShaderBundleNaming.Custom, "custom_name")]
-        public void GlobalSharedBundles_BuiltWithCorrectName(MonoScriptBundleNaming monoScriptBundleNaming, ShaderBundleNaming shaderNaming, string customName)
+        [TestCase(MonoScriptBundleNaming.ProjectName, BuiltInBundleNaming.ProjectName, "")]
+        [TestCase(MonoScriptBundleNaming.DefaultGroupGuid, BuiltInBundleNaming.DefaultGroupGuid, "")]
+        [TestCase(MonoScriptBundleNaming.Custom, BuiltInBundleNaming.Custom, "custom_name")]
+        public void GlobalSharedBundles_BuiltWithCorrectName(MonoScriptBundleNaming monoScriptBundleNaming, BuiltInBundleNaming shaderNaming, string customName)
         {
             m_PersistedSettings = AddressableAssetSettings.Create(ConfigFolder, k_TestConfigName, true, true);
             m_PersistedSettings.MonoScriptBundleNaming = monoScriptBundleNaming;
@@ -225,18 +300,12 @@ namespace UnityEditor.AddressableAssets.Tests
 
                 // test
                 string monoBundle = BuildScriptPackedMode.GetMonoScriptBundleNamePrefix(Settings);
-                if (monoScriptBundleNaming != MonoScriptBundleNaming.Disabled)
-                {
-                    Assert.IsFalse(string.IsNullOrEmpty(monoBundle), "MonoScript Bundle is enabled but no name recieved");
-                    monoBundle = Path.Combine(schema.BuildPath.GetValue(assetGroup.Settings), monoBundle + "_monoscripts.bundle");
-                    Assert.IsTrue(File.Exists(monoBundle), "MonoScript bundle not found at " + monoBundle);
-                }
-                else
-                    Assert.IsTrue(string.IsNullOrEmpty(monoBundle), "MonoScript Bundle is disabled but name recieved");
+                monoBundle = Path.Combine(schema.BuildPath.GetValue(assetGroup.Settings), monoBundle + "_monoscripts.bundle");
+                Assert.IsTrue(File.Exists(monoBundle), "MonoScript bundle not found at " + monoBundle);
 
-                string shaderBundle = BuildScriptPackedMode.GetBuiltInShaderBundleNamePrefix(assetGroup.Settings) + "_unitybuiltinshaders.bundle";
-                shaderBundle = Path.Combine(schema.BuildPath.GetValue(assetGroup.Settings), shaderBundle);
-                Assert.IsTrue(File.Exists(shaderBundle), "Built in Shaders bundle not found at " + shaderBundle);
+                string builtInBundle = BuildScriptPackedMode.GetBuiltInBundleNamePrefix(assetGroup.Settings) + "_unitybuiltinassets.bundle";
+                builtInBundle = Path.Combine(schema.BuildPath.GetValue(assetGroup.Settings), builtInBundle);
+                Assert.IsTrue(File.Exists(builtInBundle), "Built in Shaders bundle not found at " + builtInBundle);
             }
             finally
             {
@@ -285,7 +354,6 @@ namespace UnityEditor.AddressableAssets.Tests
             Settings.RemoveGroup(group1);
             Settings.RemoveGroup(group2);
 
-            Assert.AreEqual(catalogjson1, catalogjson2);
             Assert.AreEqual(h1, h2);
         }
 
@@ -452,7 +520,7 @@ namespace UnityEditor.AddressableAssets.Tests
             var group = Settings.CreateGroup("PackedTest", false, false, false, null, typeof(BundledAssetGroupSchema));
             var schema = group.GetSchema<BundledAssetGroupSchema>();
 
-            var errorStr = ScriptableObject.CreateInstance<BuildScriptPackedMode>().ErrorCheckBundleSettings(group, aaContext);
+            var errorStr = BuildScriptBase.ErrorCheckBundleSettings(group, aaContext);
             LogAssert.NoUnexpectedReceived();
             Assert.IsTrue(string.IsNullOrEmpty(errorStr));
         }
@@ -467,7 +535,7 @@ namespace UnityEditor.AddressableAssets.Tests
             var schema = group.GetSchema<BundledAssetGroupSchema>();
             schema.BuildPath.Id = "BadPath";
 
-            var errorStr = ScriptableObject.CreateInstance<BuildScriptPackedMode>().ErrorCheckBundleSettings(group, aaContext);
+            var errorStr = BuildScriptBase.ErrorCheckBundleSettings(group, aaContext);
             LogAssert.NoUnexpectedReceived();
             Assert.IsTrue(errorStr.Contains("is set to the dynamic-lookup version of StreamingAssets, but BuildPath is not."));
         }
@@ -482,7 +550,7 @@ namespace UnityEditor.AddressableAssets.Tests
             var schema = group.GetSchema<BundledAssetGroupSchema>();
             schema.LoadPath.Id = "BadPath";
 
-            var errorStr = ScriptableObject.CreateInstance<BuildScriptPackedMode>().ErrorCheckBundleSettings(group, aaContext);
+            var errorStr = BuildScriptBase.ErrorCheckBundleSettings(group, aaContext);
             LogAssert.NoUnexpectedReceived();
             Assert.IsTrue(errorStr.Contains("is set to the dynamic-lookup version of StreamingAssets, but LoadPath is not."));
         }
@@ -497,35 +565,11 @@ namespace UnityEditor.AddressableAssets.Tests
             var schema = group.GetSchema<BundledAssetGroupSchema>();
             schema.Compression = BundledAssetGroupSchema.BundleCompressionMode.LZMA;
 
-            var errorStr = ScriptableObject.CreateInstance<BuildScriptPackedMode>().ErrorCheckBundleSettings(group, aaContext);
+            var errorStr = BuildScriptBase.ErrorCheckBundleSettings(group, aaContext);
             LogAssert.Expect(LogType.Warning, $"Bundle compression is set to LZMA, but group {group.Name} uses local content.");
         }
 
-        private static IEnumerable<List<AssetBundleBuild>> DuplicateBundleNamesCases()
-        {
-            var abb1 = new AssetBundleBuild() {assetBundleName = "name1.bundle"};
-            var abb2 = new AssetBundleBuild() {assetBundleName = "name2.bundle"};
-            yield return new List<AssetBundleBuild>();
-            yield return new List<AssetBundleBuild>() {abb1};
-            yield return new List<AssetBundleBuild>() {abb1, abb1};
-            yield return new List<AssetBundleBuild>() {abb1, abb2};
-            yield return new List<AssetBundleBuild>() {abb1, abb1, abb1};
-        }
-
-        [Test, TestCaseSource(nameof(DuplicateBundleNamesCases))]
-        public void HandleBundlesNaming_NamesShouldAlwaysBeUnique(List<AssetBundleBuild> bundleBuilds)
-        {
-            var group = Settings.CreateGroup("PackedTest", false, false, false, null, typeof(BundledAssetGroupSchema));
-            var bundleToAssetGroup = new Dictionary<string, string>();
-
-            List<string> uniqueNames = BuildScriptPackedMode.HandleBundleNames(bundleBuilds, bundleToAssetGroup, group.Guid);
-
-            var uniqueNamesInBundleBuilds = bundleBuilds.Select(b => b.assetBundleName).Distinct();
-            Assert.AreEqual(bundleBuilds.Count, uniqueNames.Count());
-            Assert.AreEqual(bundleBuilds.Count, uniqueNamesInBundleBuilds.Count());
-            Assert.AreEqual(bundleBuilds.Count, bundleToAssetGroup.Count);
-        }
-#if ENABLE_BINARY_CATALOG
+#if !ENABLE_JSON_CATALOG
         //TODO: add binary versions of these tests....
 #else
         [Test]
@@ -623,7 +667,7 @@ namespace UnityEditor.AddressableAssets.Tests
             Settings.RemoteCatalogBuildPath = new ProfileValueReference();
             Settings.RemoteCatalogBuildPath.SetVariableByName(Settings, AddressableAssetSettings.kRemoteBuildPath);
             Settings.RemoteCatalogLoadPath = new ProfileValueReference();
-            Settings.RemoteCatalogLoadPath.SetVariableByName(Settings, AddressableAssetSettings.kRemoteLoadPath);
+            Settings.RemoteCatalogLoadPath.Id = "http://my/server/";
 
             var defaultFileName = m_BuilderInput.RuntimeCatalogFilename;
             var bundleFileName = defaultFileName.Replace(".json", ".bundle");
@@ -634,9 +678,9 @@ namespace UnityEditor.AddressableAssets.Tests
             Assert.IsTrue(result);
 
             // Assert locations
-            Assert.AreEqual(3, m_RuntimeData.CatalogLocations.Count);
+            Assert.AreEqual(4, m_RuntimeData.CatalogLocations.Count);
             Assert.AreEqual(1, m_RuntimeData.CatalogLocations.Count(l => l.InternalId.EndsWith(bundleFileName)));
-            Assert.AreEqual(2, m_RuntimeData.CatalogLocations.Count(l => l.InternalId.EndsWith(".hash")));
+            Assert.AreEqual(3, m_RuntimeData.CatalogLocations.Count(l => l.InternalId.EndsWith(".hash")));
 
             // Assert file paths
             var remoteBuildFolder = Settings.RemoteCatalogBuildPath.GetValue(Settings);
@@ -667,214 +711,8 @@ namespace UnityEditor.AddressableAssets.Tests
             File.Delete(registryRemoteCatalogPath);
             File.Delete(registryRemoteHashPath);
         }
+
 #endif
-    }
-
-    class ProcessPlayerDataSchemaTests : EditorAddressableAssetsTestFixture
-    {
-        AddressablesDataBuilderInput m_BuilderInput;
-        BuildScriptPackedMode m_BuildScript;
-        AddressableAssetsBuildContext m_BuildContext;
-        EditorBuildSettingsScene[] m_ScenesBkp;
-
-        const string k_SchemaTestFolderPath = TempPath + "/SchemaTests";
-
-        [SetUp]
-        protected void PlayerDataSchemaTestsSetup()
-        {
-            m_BuilderInput = new AddressablesDataBuilderInput(m_Settings);
-            m_BuildScript = ScriptableObject.CreateInstance<BuildScriptPackedMode>();
-            m_BuildScript.InitializeBuildContext(m_BuilderInput, out m_BuildContext);
-
-            m_ScenesBkp = EditorBuildSettings.scenes;
-            EditorBuildSettings.scenes = new EditorBuildSettingsScene[0];
-        }
-
-        [TearDown]
-        protected void PlayerDataSchemaTestsTearDown()
-        {
-            Object.DestroyImmediate(m_BuildScript);
-            EditorBuildSettings.scenes = m_ScenesBkp;
-        }
-
-        [Test]
-        public void ProcessPlayerDataSchema_WhenIncludeBuildSettingsScenesIsFalse_ShouldNotGenerateAnySceneLocations()
-        {
-            var scenePath = k_SchemaTestFolderPath + "/testScene.unity";
-            Directory.CreateDirectory(Path.GetDirectoryName(scenePath));
-            CreateScene(scenePath, Path.GetFileNameWithoutExtension(scenePath));
-
-            var scenes = EditorBuildSettings.scenes;
-            Assert.AreEqual(1, scenes.Length);
-
-            var group = m_Settings.FindGroup(AddressableAssetSettings.PlayerDataGroupName);
-            var schema = group.GetSchema(typeof(PlayerDataGroupSchema)) as PlayerDataGroupSchema;
-            bool includeBuildSettingsScenes = schema.IncludeBuildSettingsScenes;
-            schema.IncludeBuildSettingsScenes = false;
-
-            var errorStr = m_BuildScript.ProcessPlayerDataSchema(schema, group, m_BuildContext);
-            Assert.True(string.IsNullOrEmpty(errorStr));
-
-            var actualLocations = m_BuildContext.locations.Where(l => l.ResourceType == typeof(SceneInstance)).ToList();
-            Assert.AreEqual(0, actualLocations.Count);
-
-            // TODO : Assert for existence of SceneProvider (not exposed)
-
-            schema.IncludeBuildSettingsScenes = includeBuildSettingsScenes;
-        }
-
-        [Test]
-        public void ProcessPlayerDataSchema_WhenNoBuildSettingsScenesAreIncluded_ShouldNotGenerateAnySceneLocations()
-        {
-            var group = m_Settings.FindGroup(AddressableAssetSettings.PlayerDataGroupName);
-            var schema = group.GetSchema(typeof(PlayerDataGroupSchema)) as PlayerDataGroupSchema;
-            bool includeBuildSettingsScenes = schema.IncludeBuildSettingsScenes;
-            schema.IncludeBuildSettingsScenes = true;
-
-            var scenes = EditorBuildSettings.scenes;
-            Assert.AreEqual(0, scenes.Length);
-
-            var errorStr = m_BuildScript.ProcessPlayerDataSchema(schema, group, m_BuildContext);
-            Assert.True(string.IsNullOrEmpty(errorStr));
-
-            var actualLocations = m_BuildContext.locations.Where(l => l.ResourceType == typeof(SceneInstance)).ToList();
-            Assert.AreEqual(0, actualLocations.Count);
-
-            // TODO : Assert for existence of SceneProvider (not exposed)
-
-            schema.IncludeBuildSettingsScenes = includeBuildSettingsScenes;
-        }
-
-        [Test]
-        public void ProcessPlayerDataSchema_WhenMultipleBuildSettingsScenesAreIncluded_ShouldGenerateCorrectLocations()
-        {
-            var scenePaths = new[]
-            {
-                k_SchemaTestFolderPath + "/testScene.unity",
-                k_SchemaTestFolderPath + "/OtherFolder/testScene2.unity"
-            };
-            foreach (string scenePath in scenePaths)
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(scenePath));
-                CreateScene(scenePath, Path.GetFileNameWithoutExtension(scenePath));
-            }
-
-            var group = m_Settings.FindGroup(AddressableAssetSettings.PlayerDataGroupName);
-            var schema = group.GetSchema(typeof(PlayerDataGroupSchema)) as PlayerDataGroupSchema;
-            bool includeBuildSettingsScenes = schema.IncludeBuildSettingsScenes;
-            schema.IncludeBuildSettingsScenes = true;
-
-            var scenes = EditorBuildSettings.scenes;
-            Assert.AreEqual(2, scenes.Length);
-
-            var errorStr = m_BuildScript.ProcessPlayerDataSchema(schema, group, m_BuildContext);
-            Assert.True(string.IsNullOrEmpty(errorStr));
-
-            var actualLocations = m_BuildContext.locations.Where(l => l.ResourceType == typeof(SceneInstance)).ToList();
-
-            var expectedLocationIds = scenePaths.Select(s => s.Replace(".unity", "").Replace("Assets/", ""));
-            Assert.AreEqual(expectedLocationIds.Count(), actualLocations.Count);
-            Assert.AreEqual(expectedLocationIds, actualLocations.Select(l => l.InternalId));
-
-            // TODO : Assert for existence of SceneProvider (not exposed)
-
-            schema.IncludeBuildSettingsScenes = includeBuildSettingsScenes;
-        }
-
-        [Test]
-        public void ProcessPlayerDataSchema_WhenIncludeResourcesFoldersIsFalse_ShouldNotGenerateAnyResourceLocationsOrProviders()
-        {
-            var assetPath = k_SchemaTestFolderPath + "/Resources/testResource1.prefab";
-            Directory.CreateDirectory(Path.GetDirectoryName(assetPath));
-            CreateAsset(assetPath, Path.GetFileNameWithoutExtension(assetPath));
-            Assert.IsTrue(File.Exists(assetPath));
-
-            var group = m_Settings.FindGroup(AddressableAssetSettings.PlayerDataGroupName);
-            var schema = group.GetSchema(typeof(PlayerDataGroupSchema)) as PlayerDataGroupSchema;
-            schema.IncludeResourcesFolders = false;
-
-            var errorStr = m_BuildScript.ProcessPlayerDataSchema(schema, group, m_BuildContext);
-            Assert.True(string.IsNullOrEmpty(errorStr));
-
-            var actualLocations = m_BuildContext.locations.Where(
-                l => l.ResourceType == typeof(GameObject) && l.Provider == typeof(LegacyResourcesProvider).FullName).ToList();
-            Assert.AreEqual(0, actualLocations.Count);
-
-            var actualProviders = m_BuildScript.ResourceProviderData.Where(rpd => rpd.ObjectType.ClassName == typeof(LegacyResourcesProvider).FullName).ToList();
-            Assert.AreEqual(0, actualProviders.Count);
-        }
-
-        [Test]
-        public void ProcessPlayerDataSchema_WhenNoResourcesAreIncluded_ShouldNotGenerateAnyResourceLocationsOrProviders()
-        {
-            using (new HideResourceFoldersScope())
-            {
-                var resourceFolder = k_SchemaTestFolderPath + "/Resources";
-                int builtInPackagesResourceCount = ResourcesTestUtility.GetResourcesEntryCount(m_Settings, true);
-                Directory.CreateDirectory(resourceFolder);
-
-                var group = m_Settings.FindGroup(AddressableAssetSettings.PlayerDataGroupName);
-                var schema = group.GetSchema(typeof(PlayerDataGroupSchema)) as PlayerDataGroupSchema;
-                schema.IncludeResourcesFolders = true;
-
-                var errorStr = m_BuildScript.ProcessPlayerDataSchema(schema, group, m_BuildContext);
-                Assert.True(string.IsNullOrEmpty(errorStr));
-                BuiltinSceneCache.ClearState(true);
-
-                var actualLocations = m_BuildContext.locations.Where(
-                        l => l.ResourceType == typeof(GameObject) &&
-                             l.Provider == typeof(LegacyResourcesProvider).FullName)
-                    .ToList();
-                Assert.AreEqual(0, actualLocations.Count);
-
-                var actualProviders = m_BuildScript.ResourceProviderData
-                    .Where(rpd => rpd.ObjectType.ClassName == typeof(LegacyResourcesProvider).FullName).ToList();
-                Assert.AreEqual(builtInPackagesResourceCount > 0 ? 1 : 0, actualProviders.Count);
-            }
-        }
-
-        [Test]
-        public void ProcessPlayerDataSchema_WhenMultipleResourcesAreIncluded_ShouldGenerateCorrectResourceLocationsAndProviders()
-        {
-            using (new HideResourceFoldersScope())
-            {
-                var resourcesPaths = new[]
-                {
-                    k_SchemaTestFolderPath + "/OtherFolder/Resources/testResource2.prefab",
-                    k_SchemaTestFolderPath + "/Resources/testResource1.prefab"
-                };
-                foreach (string resourcePath in resourcesPaths)
-                {
-                    Directory.CreateDirectory(Path.GetDirectoryName(resourcePath));
-                    CreateAsset(resourcePath, Path.GetFileNameWithoutExtension(resourcePath));
-                    Assert.IsTrue(File.Exists(resourcePath));
-                }
-
-                var group = m_Settings.FindGroup(AddressableAssetSettings.PlayerDataGroupName);
-                var schema = group.GetSchema(typeof(PlayerDataGroupSchema)) as PlayerDataGroupSchema;
-                bool includeResourceFolders = schema.IncludeResourcesFolders;
-                schema.IncludeResourcesFolders = true;
-
-                var errorStr = m_BuildScript.ProcessPlayerDataSchema(schema, group, m_BuildContext);
-                Assert.True(string.IsNullOrEmpty(errorStr));
-                BuiltinSceneCache.ClearState(true);
-
-                var actualLocations = m_BuildContext.locations.Where(
-                        l => l.ResourceType == typeof(GameObject) &&
-                             l.Provider == typeof(LegacyResourcesProvider).FullName)
-                    .ToList();
-                var expectedLocationIds = resourcesPaths.Distinct()
-                    .Select(s => Path.GetFileName(s).Replace(".prefab", "")).ToList();
-                Assert.AreEqual(expectedLocationIds.Count, actualLocations.Count);
-                Assert.AreEqual(expectedLocationIds, actualLocations.Select(l => l.InternalId));
-
-                var actualProviders = m_BuildScript.ResourceProviderData
-                    .Where(rpd => rpd.ObjectType.ClassName == typeof(LegacyResourcesProvider).FullName).ToList();
-                Assert.AreEqual(1, actualProviders.Count);
-
-                schema.IncludeResourcesFolders = includeResourceFolders;
-            }
-        }
     }
 
     class PrepGroupBundlePackingTests : EditorAddressableAssetsTestFixture
@@ -1045,4 +883,16 @@ namespace UnityEditor.AddressableAssets.Tests
             Assert.AreNotEqual(buildInputDefs[0].assetBundleName, buildInputDefs2[0].assetBundleName);
         }
     }
+    namespace BuildScriptPackedPerPlatformTests
+    {
+        [RequirePlatformSupport(BuildTarget.StandaloneWindows, BuildTarget.StandaloneWindows64)]
+        public class BuildScriptPackedTestsWindows : BuildScriptPackedTests { }
+
+        [RequirePlatformSupport(BuildTarget.StandaloneOSX)]
+        public class BuildScriptPackedTestsOSX : BuildScriptPackedTests { }
+
+        [RequirePlatformSupport(BuildTarget.StandaloneLinux64)]
+        public class BuildScriptPackedTestsLinux : BuildScriptPackedTests { }
+    }
 }
+

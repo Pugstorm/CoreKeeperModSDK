@@ -24,10 +24,10 @@ public abstract class AddressablesTestFixture : IPrebuildSetup, IPostBuildCleanu
     internal string m_RuntimeSettingsPath;
     internal readonly string m_UniqueTestName;
     protected const string kCatalogExt =
-#if ENABLE_BINARY_CATALOG
-            ".bin";
-#else
+#if ENABLE_JSON_CATALOG
             ".json";
+#else
+        ".bin";
 #endif
     protected AddressablesTestFixture()
     {
@@ -37,7 +37,6 @@ public abstract class AddressablesTestFixture : IPrebuildSetup, IPostBuildCleanu
     protected enum TestBuildScriptMode
     {
         Fast,
-        Virtual,
         PackedPlaymode,
         Packed
     }
@@ -56,7 +55,7 @@ public abstract class AddressablesTestFixture : IPrebuildSetup, IPostBuildCleanu
         Caching.ClearCache();
 #endif
         Assert.IsNull(m_Addressables);
-        m_Addressables = new AddressablesImpl(new LRUCacheAllocationStrategy(1000, 1000, 100, 10));
+        m_Addressables = new AddressablesImpl(new DefaultAllocationStrategy());
         m_RuntimeSettingsPath = m_Addressables.ResolveInternalId(GetRuntimeAddressablesSettingsPath(m_UniqueTestName));
         yield return InitAddressables();
     }
@@ -91,6 +90,7 @@ public abstract class AddressablesTestFixture : IPrebuildSetup, IPostBuildCleanu
         var activeScenePath = EditorSceneManager.GetActiveScene().path;
 
         string rootFolder = GetGeneratedAssetsPath();
+        Directory.CreateDirectory(rootFolder);
         AddressableAssetSettings settings = CreateSettings("Settings", rootFolder);
 
         Setup(settings, rootFolder);
@@ -120,7 +120,7 @@ public abstract class AddressablesTestFixture : IPrebuildSetup, IPostBuildCleanu
     protected AddressableAssetSettings CreateSettings(string name, string rootFolder)
     {
         if (Directory.Exists(rootFolder))
-            Directory.Delete(rootFolder, true);
+            DirectoryUtility.DeleteDirectory(rootFolder, false);
         Directory.CreateDirectory(rootFolder);
         return AddressableAssetSettings.Create(Path.Combine(rootFolder, name), "AddressableAssetSettings.Tests", false, true);
     }
@@ -165,7 +165,6 @@ public abstract class AddressablesTestFixture : IPrebuildSetup, IPostBuildCleanu
         switch (mode)
         {
             case TestBuildScriptMode.Fast: return typeof(BuildScriptFastMode);
-            case TestBuildScriptMode.Virtual: return typeof(BuildScriptVirtualMode);
             case TestBuildScriptMode.Packed: return typeof(BuildScriptPackedMode);
             case TestBuildScriptMode.PackedPlaymode: return typeof(BuildScriptPackedPlayMode);
         }
@@ -197,7 +196,7 @@ public abstract class AddressablesTestFixture : IPrebuildSetup, IPostBuildCleanu
 #if UNITY_EDITOR
     internal static string CreateScene(string assetPath)
     {
-        var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Additive);
+        var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
         EditorSceneManager.SaveScene(scene, assetPath);
         return AssetDatabase.AssetPathToGUID(scene.path);
     }
@@ -267,11 +266,14 @@ public abstract class AddressablesTestFixture : IPrebuildSetup, IPostBuildCleanu
 
 #endif
 
-    internal static IEnumerator UnloadSceneFromHandler(AsyncOperationHandle<SceneInstance> op, AddressablesImpl addressables)
+    internal static IEnumerator UnloadSceneFromHandler(AsyncOperationHandle<SceneInstance> op, AddressablesImpl addressables, bool sceneExpectedToBeLoaded = true)
     {
         string sceneName = op.Result.Scene.name;
-        Assert.IsNotNull(sceneName);
-        Assert.IsTrue(SceneManager.GetSceneByName(sceneName).isLoaded);
+        if (sceneExpectedToBeLoaded)
+        {
+            Assert.IsNotNull(sceneName);
+            Assert.IsTrue(SceneManager.GetSceneByName(sceneName).isLoaded);
+        }
         var unloadOp = addressables.UnloadSceneAsync(op, UnloadSceneOptions.None, false);
         yield return unloadOp;
         Assert.IsTrue(unloadOp.IsValid());

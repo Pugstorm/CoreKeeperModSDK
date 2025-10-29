@@ -518,8 +518,6 @@ namespace UnityEditor.AddressableAssets.Tests.OptionalPackages.Ccd
         {
             m_Settings.BuildRemoteCatalog = true;
             m_Settings.activeProfileId = m_Settings.profileSettings.GetProfileId(k_ProfileDefault);
-            ;
-
             var result = await CcdBuildEvents.Instance.UploadContentState(m_Input, new AddressablesPlayerBuildResult());
             Assert.False(result);
             LogAssert.Expect(LogType.Error, "Content state could not be uploaded as the remote catalog is not targeting CCD");

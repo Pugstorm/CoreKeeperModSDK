@@ -1,14 +1,9 @@
-#if UNITY_2022_2_OR_NEWER
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using UnityEditor;
 using UnityEditor.AddressableAssets.Build.Layout;
 using UnityEditor.AddressableAssets.Settings;
-using UnityEditor.Build.Reporting;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -158,10 +153,14 @@ namespace UnityEditor.AddressableAssets.BuildReportVisualizer
         {
             if (m_BuildReportItems.Count > 0)
             {
-                if (m_BuildReportItems[0].Layout.ReadFull())
-                    m_Window.Consume(m_BuildReportItems[0].Layout);
-                else
-                    Debug.LogWarning($"Unable to load build report at {m_BuildReportItems[0].FilePath}.");
+                if (File.Exists(m_BuildReportItems[0].FilePath))
+                {
+                    BuildLayout layout = BuildLayout.Open(m_BuildReportItems[0].FilePath, readFullFile: true);
+                    if (layout != null)
+                        m_Window.Consume(layout);
+                    else
+                        Debug.LogWarning($"Unable to load build report at {m_BuildReportItems[0].FilePath}.");
+                }
             }
         }
 
@@ -188,8 +187,12 @@ namespace UnityEditor.AddressableAssets.BuildReportVisualizer
 
         bool BuildLayoutIsValid(BuildLayout layout)
         {
-            int startOfVersionIndex = layout.PackageVersion.IndexOf(":", StringComparison.Ordinal);
-            string versionString = layout.PackageVersion.Substring(startOfVersionIndex + 1);
+            return BuildLayoutIsValid(layout.PackageVersion);
+        }
+        internal bool BuildLayoutIsValid(string packageVersion)
+        {
+            int startOfVersionIndex = packageVersion.IndexOf(":", StringComparison.Ordinal);
+            string versionString = packageVersion.Substring(startOfVersionIndex + 1);
             var versionNumbers = versionString.Split(".");
 
             int versionNumber = 0;
@@ -202,7 +205,15 @@ namespace UnityEditor.AddressableAssets.BuildReportVisualizer
 
             if (digitParsingSuccessful)
             {
-                return (versionNumber >= 1 && majorVersionNumber > 21) || (versionNumber == 1 && majorVersionNumber == 21 && minorVersionNumber >= 3);
+                // 2.x.x
+                var isNewerThanVersionOne = versionNumber > 1;
+                // 1.22.x
+                var isNewerThanOneDotTwentyOne = versionNumber == 1 && majorVersionNumber > 21;
+                // 1.21.4
+                var isNewerThanOneDotTwentyOneDotTwo =
+                    versionNumber == 1 && majorVersionNumber == 21 && minorVersionNumber >= 3;
+
+                return isNewerThanVersionOne || isNewerThanOneDotTwentyOne || isNewerThanOneDotTwentyOneDotTwo;
             }
 
             return false;
@@ -267,6 +278,4 @@ namespace UnityEditor.AddressableAssets.BuildReportVisualizer
             m_ListView.Rebuild();
         }
     }
-
 }
-#endif

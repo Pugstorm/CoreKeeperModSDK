@@ -485,7 +485,7 @@ namespace UnityEditor.AddressableAssets.Settings
                 CreateValue(AddressableAssetSettings.kLocalBuildPath, AddressableAssetSettings.kLocalBuildPathValue);
                 CreateValue(AddressableAssetSettings.kLocalLoadPath, AddressableAssetSettings.kLocalLoadPathValue);
                 CreateValue(AddressableAssetSettings.kRemoteBuildPath, AddressableAssetSettings.kRemoteBuildPathValue);
-                CreateValue(AddressableAssetSettings.kRemoteLoadPath, AddressableAssetSettings.RemoteLoadPathValue);
+                CreateValue(AddressableAssetSettings.kRemoteLoadPath, AddressableAssetSettings.kRemoteLoadPathValue);
             }
 
             return GetDefaultProfileId();
@@ -795,9 +795,17 @@ namespace UnityEditor.AddressableAssets.Settings
         /// <summary>
         /// Set the value of a variable for a specified profile.
         /// </summary>
-        /// <param name="profileId">The profile id.</param>
-        /// <param name="variableName">The property name.</param>
-        /// <param name="val">The value to set the property.</param>
+        /// <remarks>
+        /// The variable must exist in order to have its value set. Use [CreateValue](xref:UnityEditor.AddressableAssets.Settings.AddressableAssetProfileSettings.CreateValue*) to create the variable if needed.
+        /// </remarks>
+        /// <param name="profileId">The identifier of the specified profile.</param>
+        /// <param name="variableName">The name to set the profile property to.</param>
+        /// <param name="val">The value to set the profile property to.</param>
+        /// <example>
+        /// <para>
+        /// The example below uses SetValue to change the value of the remote load path variable.</para>
+        /// <code source="../../Tests/Editor/DocExampleCode/ScriptReference/UsingProfileSetValue.cs" region="SAMPLE"/>
+        /// </example>
         public void SetValue(string profileId, string variableName, string val)
         {
             var profile = GetProfile(profileId);
@@ -879,7 +887,7 @@ namespace UnityEditor.AddressableAssets.Settings
         /// </summary>
         /// <param name="profileId">The profile id.</param>
         /// <param name="varId">The property id.</param>
-        /// <returns></returns>
+        /// <returns>The value of the variable for a given profile.</returns>
         public string GetValueById(string profileId, string varId)
         {
             BuildProfile profile = GetProfile(profileId);
@@ -891,7 +899,7 @@ namespace UnityEditor.AddressableAssets.Settings
         /// </summary>
         /// <param name="profileId">The profile id.</param>
         /// <param name="varName">The variable name.</param>
-        /// <returns></returns>
+        /// <returns>The value of the variable for a given profile.</returns>
         public string GetValueByName(string profileId, string varName)
         {
             return GetValueById(profileId, GetVariableId(varName));

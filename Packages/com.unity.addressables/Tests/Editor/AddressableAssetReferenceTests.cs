@@ -266,7 +266,7 @@ namespace UnityEditor.AddressableAssets.Tests
             Assert.AreEqual(expected, val, "Type restricted is expected in display string shown");
         }
 
-#if UNITY_EDITOR
+        #if UNITY_EDITOR
         [Test]
         public void AssetPostProcessor_GetTypesForAssetPath_DoesNotErrorOnNullValue()
         {
@@ -302,6 +302,6 @@ namespace UnityEditor.AddressableAssets.Tests
                 AssetPathToTypes.s_PathToTypes = prevPathToTypes;
             }
         }
-#endif
+        #endif
     }
 }

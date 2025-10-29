@@ -346,6 +346,7 @@ namespace Unity.Entities
     /// subset of entities matching a specific query - such as prediction systems in netcode - need to include this
     /// component in their queries to make sure entities which are not supposed to be simulated at the moment
     /// are skipped.</remarks>
+	[TypeManager.OverrideTypeHash(2308415037858323387)]	// Changed in Entities 1.3.9
     public struct Simulate : IComponentData, IEnableableComponent
     {
     }

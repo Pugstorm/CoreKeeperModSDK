@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor.AddressableAssets.GUI;
 using UnityEditor.AddressableAssets.Settings;
+using UnityEditor.IMGUI.Controls;
 using UnityEngine;
+using UnityEngine.UIElements;
+using TreeView = UnityEngine.UIElements.TreeView;
 
 namespace UnityEditor.AddressableAssets.Tests
 {
@@ -78,6 +81,128 @@ namespace UnityEditor.AddressableAssets.Tests
             Settings.DefaultGroup = savedDefaultGroup;
             Settings.RemoveGroup(newDefaultGroup);
         }
+
+        private AddressableAssetEntryTreeView InitGroupEditorWithState(AddressableAssetsWindow aaWindow, AddressableAssetEntryTreeViewState treeState, MultiColumnHeaderState mchs)
+        {
+            aaWindow.m_GroupEditor = new AddressableAssetsSettingsGroupEditor(aaWindow);
+            aaWindow.m_GroupEditor.OnDisable();
+            aaWindow.m_GroupEditor.settings = Settings;
+            aaWindow.m_GroupEditor.m_TreeState = treeState;
+            aaWindow.m_GroupEditor.m_Mchs = mchs;
+            aaWindow.m_GroupEditor.InitialiseEntryTree();
+            return aaWindow.m_GroupEditor.m_EntryTree;
+        }
+
+        [Test]
+        public void AddressableAssetWindow_GroupWindow_ColumnWidthsAreSetWhenValid()
+        {
+            var mchs = AddressableAssetEntryTreeView.CreateDefaultMultiColumnHeaderState();
+            AddressableAssetEntryTreeViewState treeState = new AddressableAssetEntryTreeViewState();
+            treeState.columnWidths = new float[mchs.columns.Length];
+            for (var i = 0; i < treeState.columnWidths.Length; i++)
+            {
+                treeState.columnWidths[i] = 9999.0f;
+            }
+
+            AddressableAssetsWindow aaWindow = ScriptableObject.CreateInstance<AddressableAssetsWindow>();
+            var treeView = InitGroupEditorWithState(aaWindow, treeState, mchs);
+            foreach (var col in treeView.multiColumnHeader.state.columns)
+            {
+                Assert.AreEqual(9999.0f, col.width);
+
+            }
+        }
+
+
+        [Test]
+        public void AddressableAssetWindow_GroupWindow_ColumnWidthsAreDefaultWhenInvalid()
+        {
+            // in this case we'll only set one header column so the widths don't match and nothing is done
+            var defaultMchs = AddressableAssetEntryTreeView.CreateDefaultMultiColumnHeaderState();
+            var mchs = AddressableAssetEntryTreeView.CreateDefaultMultiColumnHeaderState();
+            AddressableAssetEntryTreeViewState treeState = new AddressableAssetEntryTreeViewState();
+            treeState.columnWidths = new float[]{9999.0f};
+
+            AddressableAssetsWindow aaWindow = ScriptableObject.CreateInstance<AddressableAssetsWindow>();
+            var treeView = InitGroupEditorWithState(aaWindow, treeState, mchs);
+            Assert.AreEqual(defaultMchs.columns.Length, treeView.multiColumnHeader.state.columns.Length);
+            for (var i = 0; i < defaultMchs.columns.Length; i++)
+            {
+                Assert.AreNotEqual(9999.0f, defaultMchs.columns[i].width);
+                Assert.AreEqual(treeView.multiColumnHeader.state.columns[i].width, defaultMchs.columns[i].width);
+            }
+        }
+
+        [Test]
+        public void AddressableAssetWindow_GroupWindow_AddGroupUpdatesSortSettings()
+        {
+            var defaultMchs = AddressableAssetEntryTreeView.CreateDefaultMultiColumnHeaderState();
+            var mchs = AddressableAssetEntryTreeView.CreateDefaultMultiColumnHeaderState();
+            AddressableAssetEntryTreeViewState treeState = new AddressableAssetEntryTreeViewState();
+
+            AddressableAssetsWindow aaWindow = ScriptableObject.CreateInstance<AddressableAssetsWindow>();
+            var treeView = InitGroupEditorWithState(aaWindow, treeState, mchs);
+
+            AddressableAssetGroup group1 = null, group2 = null;
+            try
+            {
+                Settings.OnModification += aaWindow.m_GroupEditor.OnSettingsModification;
+
+                var defaultGroup = Settings.DefaultGroup;
+                group1 = Settings.CreateGroup("Group 1", false, false, true, new List<AddressableAssetGroupSchema>());
+                group2 = Settings.CreateGroup("Group 2", false, false, true, new List<AddressableAssetGroupSchema>());
+                Assert.AreEqual(3, Settings.groups.Count);
+                Assert.AreEqual(3, treeState.sortOrderList.Count);
+            }
+            finally
+            {
+                if (group1 != null)
+                {
+                    treeView.RemoveGroupImpl(new List<AssetEntryTreeViewItem>() { new AssetEntryTreeViewItem(group1, 1) }, true);
+                }
+                if (group2 != null)
+                {
+                    treeView.RemoveGroupImpl(new List<AssetEntryTreeViewItem>() { new AssetEntryTreeViewItem(group2, 1) }, true);
+                }
+                Settings.OnModification -= aaWindow.m_GroupEditor.OnSettingsModification;
+            }
+        }
+
+//I think there's a bug in AssetDatabase in 2023.1 that's preventing the test from passing when creating a new Settings Scriptable Object.
+#if UNITY_2023_3_OR_NEWER
+        [Test]
+        public void AddressableAssetWindow_GroupWindow_DeleteGroupUpdatesSortSettings()
+        {
+            var defaultMchs = AddressableAssetEntryTreeView.CreateDefaultMultiColumnHeaderState();
+            var mchs = AddressableAssetEntryTreeView.CreateDefaultMultiColumnHeaderState();
+            AddressableAssetEntryTreeViewState treeState = new AddressableAssetEntryTreeViewState();
+
+            AddressableAssetsWindow aaWindow = ScriptableObject.CreateInstance<AddressableAssetsWindow>();
+            var treeView = InitGroupEditorWithState(aaWindow, treeState, mchs);
+
+            AddressableAssetGroup group1 = null, group2 = null;
+            try
+            {
+                Settings.OnModification += aaWindow.m_GroupEditor.OnSettingsModification;
+
+                var defaultGroup = Settings.DefaultGroup;
+                group1 = Settings.CreateGroup("Group 1", false, false, true, new List<AddressableAssetGroupSchema>());
+                Assert.AreEqual(2, Settings.groups.Count);
+                Assert.AreEqual(2, treeState.sortOrderList.Count);
+                Settings.RemoveGroup(group1);
+                Assert.AreEqual(1, Settings.groups.Count);
+                Assert.AreEqual(1, treeState.sortOrderList.Count);
+            }
+            finally
+            {
+                if (group1 != null)
+                {
+                    treeView.RemoveGroupImpl(new List<AssetEntryTreeViewItem>() { new AssetEntryTreeViewItem(group1, 1) }, true);
+                }
+                Settings.OnModification -= aaWindow.m_GroupEditor.OnSettingsModification;
+            }
+        }
+#endif
 
         [Test]
         public void AddressableAssetWindow_CanSelectGroupTreeViewByAddressableAssetEntries()

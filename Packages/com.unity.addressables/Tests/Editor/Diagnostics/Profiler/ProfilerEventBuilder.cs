@@ -1,4 +1,3 @@
-#if ENABLE_ADDRESSABLE_PROFILER && UNITY_2022_2_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -243,4 +242,3 @@ namespace UnityEditor.AddressableAssets.Tests.Diagnostics.Profiler
         public Type ResourceType { get; set; }
     }
 }
-#endif

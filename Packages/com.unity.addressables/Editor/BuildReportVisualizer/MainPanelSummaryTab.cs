@@ -1,13 +1,10 @@
-#if UNITY_2022_2_OR_NEWER
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using UnityEditor;
 using UnityEditor.AddressableAssets.Build.Layout;
-using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 using UnityEngine.UIElements;
+
 namespace UnityEditor.AddressableAssets.BuildReportVisualizer
 {
     internal class MainPanelSummaryTab : IAddressableView, IBuildReportConsumer
@@ -68,13 +65,16 @@ namespace UnityEditor.AddressableAssets.BuildReportVisualizer
             HashSet<string> remoteCatalogNames = new HashSet<string>();
             HashSet<string> localCatalogNames = new HashSet<string>();
 
-            foreach (var catalog in buildReport.AddressablesRuntimeSettings.CatalogLoadPaths)
+            string catalogFileExt = buildReport.AddressablesEditorSettings.EnableJsonCatalog ? ".json" : ".bin";
+
+            foreach (var catalogPath in buildReport.AddressablesRuntimeSettings.CatalogLoadPaths)
             {
-                string name = Path.GetFileName(catalog);
-                if (name.EndsWith(".hash"))
-                    remoteCatalogNames.Add(name.Replace(".hash", ".json"));
+                string catalogFileName = Path.GetFileName(catalogPath);
+
+                if (Path.GetExtension(catalogFileName).Equals(".hash"))
+                    remoteCatalogNames.Add(Path.ChangeExtension(catalogFileName, catalogFileExt));
                 else
-                    localCatalogNames.Add(name);
+                    localCatalogNames.Add(catalogFileName);
             }
 
             SummaryRowBuilder generalInfo = new SummaryRowBuilder("General Information");
@@ -97,11 +97,11 @@ namespace UnityEditor.AddressableAssets.BuildReportVisualizer
             if (buildReport.DuplicatedAssets.Count > 0)
             {
                 ulong duplicatedSize = 0;
-                foreach (var dupeAsset in  m_HelperConsumer.GUIDToDuplicateAssets.Values)
+                foreach (var dupeAsset in m_HelperConsumer.GUIDToDuplicateAssets.Values)
                 {
-                    int duplicationCount = dupeAsset.Bundles.Count;
+                    int duplicationCount = dupeAsset.GUIDToReferencingAssets.Count;
                     if (duplicationCount > 1)
-                        duplicatedSize += (ulong) (duplicationCount - 1) * dupeAsset.Asset.SerializedSize;
+                        duplicatedSize += (ulong)(duplicationCount - 1) * (dupeAsset.Asset.SerializedSize + dupeAsset.Asset.StreamedSize);
                 }
 
                 SummaryRowBuilder duplicatedAssets = new SummaryRowBuilder("Potential Issues")
@@ -152,4 +152,3 @@ namespace UnityEditor.AddressableAssets.BuildReportVisualizer
         }
     }
 }
-#endif

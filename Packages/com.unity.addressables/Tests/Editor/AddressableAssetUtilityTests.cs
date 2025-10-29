@@ -392,7 +392,7 @@ namespace UnityEditor.AddressableAssets.Tests
         public void GetPackageVersion_ReturnsAValidVersion()
         {
             string v = AddressableAssetUtility.GetVersionFromPackageData();
-            Assert.IsTrue(v.StartsWith("1."), $"Failed to get a valid version from package.json data. Expected 1.X but was {v}");
+            Assert.IsTrue(v.StartsWith("2."), $"Failed to get a valid version from package.json data. Expected 2.X but was {v}");
             Assert.IsTrue(v.Split('.').Length == 2,
                 $"Format from GetVersionFromPackageData, produced {v} which is incorrectly formatted");
         }

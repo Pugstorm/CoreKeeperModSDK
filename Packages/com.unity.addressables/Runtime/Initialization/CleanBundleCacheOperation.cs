@@ -136,7 +136,7 @@ namespace UnityEngine.AddressableAssets
             }
         }
 
-#if ENABLE_BINARY_CATALOG
+#if !ENABLE_JSON_CATALOG
         HashSet<string> GetCacheDirsInUse(IList<AsyncOperationHandle> catalogOps)
         {
             var cacheDirsInUse = new HashSet<string>();
@@ -149,7 +149,7 @@ namespace UnityEngine.AddressableAssets
                     var catData = catalogOps[i].Result as ContentCatalogData;
                     if (catData == null)
                         return cacheDirsInUse;
-                    locator = catData.CreateCustomLocator(catData.location.PrimaryKey);
+                    locator = catData.CreateCustomLocator(catData.location.PrimaryKey, null);
                 }
 
                 foreach (var location in locator.AllLocations)

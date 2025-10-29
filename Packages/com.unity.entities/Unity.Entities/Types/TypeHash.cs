@@ -359,7 +359,26 @@ namespace Unity.Entities
         public static ulong CalculateStableTypeHash(Type type, Dictionary<Type, ulong> hashCache)
         {
             Assert.IsNotNull(hashCache, "The cache used for calculating type hashes must not be null");
-            ulong hash = HashType(type, hashCache);
+
+			if (hashCache.TryGetValue(type, out ulong hash))
+			{
+				return hash;
+			}
+			
+			var overrideHashAttribute = type.CustomAttributes.FirstOrDefault(ca => ca.Constructor.DeclaringType.Name == "OverrideTypeHashAttribute");
+			if (overrideHashAttribute != null)
+			{                    
+				hash = (ulong)overrideHashAttribute.ConstructorArguments
+					.First(arg => arg.ArgumentType.Name == "UInt64" || arg.ArgumentType.Name == "ulong")
+					.Value;
+				hashCache.Add(type, hash);
+			}
+			else
+			{
+				hash = HashType(type, hashCache);
+				// Added to cache inside HashType.
+			}
+			
             return hash;
         }
 #endif

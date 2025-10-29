@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine.AddressableAssets.Utility;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
@@ -7,6 +8,7 @@ using UnityEngine.Serialization;
 using UnityEngine.U2D;
 
 #if UNITY_EDITOR
+using System.IO;
 using UnityEditor;
 #endif
 
@@ -15,7 +17,7 @@ namespace UnityEngine.AddressableAssets
     /// <summary>
     /// Generic version of AssetReference class.  This should not be used directly as CustomPropertyDrawers do not support generic types.  Instead use the concrete derived classes such as AssetReferenceGameObject.
     /// </summary>
-    /// <typeparam name="TObject"></typeparam>
+    /// <typeparam name="TObject">The type of object to use with this AssetReference</typeparam>
     [Serializable]
     public class AssetReferenceT<TObject> : AssetReference where TObject : Object
     {
@@ -31,21 +33,6 @@ namespace UnityEngine.AddressableAssets
 #if UNITY_EDITOR
         protected override internal Type DerivedClassType => typeof(TObject);
 #endif
-
-        /// <summary>
-        /// Load the referenced asset as type TObject.
-        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
-        /// on an AssetReference, use <see cref="Addressables.LoadAssetAsync{TObject}(object)"/> and pass your AssetReference in as the key.
-        ///
-        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
-        /// </summary>
-        /// <returns>The load operation.</returns>
-        //[Obsolete("We have added Async to the name of all asynchronous methods (UnityUpgradable) -> LoadAssetAsync(*)", true)]
-        [Obsolete]
-        public AsyncOperationHandle<TObject> LoadAsset()
-        {
-            return LoadAssetAsync();
-        }
 
         /// <summary>
         /// Load the referenced asset as type TObject.
@@ -161,7 +148,7 @@ namespace UnityEngine.AddressableAssets
     }
 
     /// <summary>
-    /// Sprite only asset reference.
+    /// <see cref="AssetReference"/> that only allows <see cref="Sprite"/> objects.
     /// </summary>
     [Serializable]
     public class AssetReferenceSprite : AssetReferenceT<Sprite>
@@ -174,7 +161,21 @@ namespace UnityEngine.AddressableAssets
         {
         }
 
-        /// <inheritdoc/>
+
+        /// <summary>
+        /// Checks whether the asset located at a path is valid for this asset reference. An asset is valid if
+        /// it is of the correct type or if one of its sub-assets are.
+        /// </summary>
+        /// <param name="path">The file path to the asset in question.</param>
+        /// <returns>Whether the referenced asset is valid.</returns>
+        /// <remarks>
+        /// The asset can be either a SpriteAtlas or a Sprite.
+        /// </remarks>
+        /// <example>
+        /// <para>
+        /// The example below uses ValidateAsset to check if an asset at a specific path can be set.</para>
+        /// <code source="../Tests/Editor/DocExampleCode/ScriptReference/UsingAssetRefSpriteValidateAsset.cs" region="SAMPLE"/>
+        /// </example>
         public override bool ValidateAsset(string path)
         {
 #if UNITY_EDITOR
@@ -228,7 +229,8 @@ namespace UnityEngine.AddressableAssets
     }
 
     /// <summary>
-    /// Assetreference that only allows atlassed sprites.
+    /// <see cref="AssetReference"/> that only allows atlassed <see cref="Sprite"/> objects.  This will prevent legacy sprites from being used in this reference.
+    /// If legacy sprite usage is needed, <see cref="AssetReferenceSprite"/> can be used instead.
     /// </summary>
     [Serializable]
     public class AssetReferenceAtlasedSprite : AssetReferenceT<Sprite>
@@ -305,6 +307,9 @@ namespace UnityEngine.AddressableAssets
     [Serializable]
     public class AssetReference : IKeyEvaluator
     {
+        /// <summary>
+        /// The GUID of an asset
+        /// </summary>
         [FormerlySerializedAs("m_assetGUID")]
         [SerializeField]
         protected internal string m_AssetGUID = "";
@@ -317,6 +322,11 @@ namespace UnityEngine.AddressableAssets
 
         AsyncOperationHandle m_Operation;
 #if UNITY_EDITOR
+        // we store the SubObjectGUID in the Editor to track things like renames
+        // and still point to the correct object in the UI
+        [SerializeField]
+        string m_SubObjectGUID;
+
         virtual protected internal Type DerivedClassType { get; }
 #endif
         /// <summary>
@@ -360,7 +370,7 @@ namespace UnityEngine.AddressableAssets
         }
 
         /// <summary>
-        /// Stores the name of the sub object.
+        /// Stores the name of the sub object.  Some assets, such as models and sprite atlases, contain mutliple objects.  These objects can be loaded by specifying their name and type.
         /// </summary>
         public virtual string SubObjectName
         {
@@ -368,10 +378,25 @@ namespace UnityEngine.AddressableAssets
             set { m_SubObjectName = value; }
         }
 
-        internal virtual Type SubOjbectType
+#if UNITY_EDITOR
+        /// <summary>
+        /// Stores the guid of the sub object (if available).
+        /// </summary>
+        public virtual string SubObjectGUID
+        {
+            get { return m_SubObjectGUID; }
+            set { m_SubObjectGUID = value; }
+        }
+#endif
+
+        internal virtual Type SubObjectType
         {
             get
             {
+#if UNITY_EDITOR
+                if (!string.IsNullOrEmpty(m_SubObjectGUID) && m_SubObjectType != null)
+                    return Type.GetType(m_SubObjectType);
+#endif
                 if (!string.IsNullOrEmpty(m_SubObjectName) && m_SubObjectType != null)
                     return Type.GetType(m_SubObjectType);
                 return null;
@@ -379,9 +404,10 @@ namespace UnityEngine.AddressableAssets
         }
 
         /// <summary>
-        /// Returns the state of the internal operation.
+        /// Returns the state of the internal operation.  If the load has not been started or if it has been released, the operation will not be valid and this will return false.
+        /// This can be used to determine if an AssetReference has started loading or not.
         /// </summary>
-        /// <returns>True if the operation is valid.</returns>
+        /// <returns>True if the operation is valid.  A valid operation is created when loading begins and it is invalidated when it has been released.</returns>
         public bool IsValid()
         {
             return m_Operation.IsValid();
@@ -390,6 +416,7 @@ namespace UnityEngine.AddressableAssets
         /// <summary>
         /// Get the loading status of the internal operation.
         /// </summary>
+        /// <value>True if the operation is completed.  If the operation is not valid, it will return false as well.</value>
         public bool IsDone
         {
             get { return m_Operation.IsDone; }
@@ -509,76 +536,14 @@ namespace UnityEngine.AddressableAssets
 
         /// <summary>
         /// Load the referenced asset as type TObject.
-        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
-        /// on an AssetReference, use <see cref="Addressables.LoadAssetAsync{TObject}(object)"/> and pass your AssetReference in as the key.
-        ///
-        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
-        /// </summary>
-        /// <typeparam name="TObject">The object type.</typeparam>
-        /// <returns>The load operation.</returns>
-        //[Obsolete("We have added Async to the name of all asynchronous methods (UnityUpgradable) -> LoadAssetAsync(*)", true)]
-        [Obsolete]
-        public AsyncOperationHandle<TObject> LoadAsset<TObject>()
-        {
-            return LoadAssetAsync<TObject>();
-        }
-
-        /// <summary>
-        /// Loads the reference as a scene.
-        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
-        /// on an AssetReference, use Addressables.LoadSceneAsync() and pass your AssetReference in as the key.
-        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
-        /// </summary>
-        /// <returns>The operation handle for the scene load.</returns>
-        //[Obsolete("We have added Async to the name of all asynchronous methods (UnityUpgradable) -> LoadSceneAsync(*)", true)]
-        [Obsolete]
-        public AsyncOperationHandle<SceneInstance> LoadScene()
-        {
-            return LoadSceneAsync();
-        }
-
-        /// <summary>
-        /// InstantiateAsync the referenced asset as type TObject.
-        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
-        /// on an AssetReference, use Addressables.InstantiateAsync() and pass your AssetReference in as the key.
-        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
-        /// </summary>
-        /// <param name="position">Position of the instantiated object.</param>
-        /// <param name="rotation">Rotation of the instantiated object.</param>
-        /// <param name="parent">The parent of the instantiated object.</param>
-        /// <returns>Returns the instantiation operation.</returns>
-        //[Obsolete("We have added Async to the name of all asynchronous methods (UnityUpgradable) -> InstantiateAsync(*)", true)]
-        [Obsolete]
-        public AsyncOperationHandle<GameObject> Instantiate(Vector3 position, Quaternion rotation, Transform parent = null)
-        {
-            return InstantiateAsync(position, rotation, parent);
-        }
-
-        /// <summary>
-        /// InstantiateAsync the referenced asset as type TObject.
-        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
-        /// on an AssetReference, use Addressables.InstantiateAsync() and pass your AssetReference in as the key.
-        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
-        /// </summary>
-        /// <param name="parent">The parent of the instantiated object.</param>
-        /// <param name="instantiateInWorldSpace">Option to retain world space when instantiated with a parent.</param>
-        /// <returns>Returns the instantiation operation.</returns>
-        //[Obsolete("We have added Async to the name of all asynchronous methods (UnityUpgradable) -> InstantiateAsync(*)", true)]
-        [Obsolete]
-        public AsyncOperationHandle<GameObject> Instantiate(Transform parent = null, bool instantiateInWorldSpace = false)
-        {
-            return InstantiateAsync(parent, instantiateInWorldSpace);
-        }
-
-        /// <summary>
-        /// Load the referenced asset as type TObject.
-        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
-        /// on an AssetReference, use <see cref="Addressables.LoadAssetAsync{TObject}(object)"/> and pass your AssetReference in as the key.
-        ///
-        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
         /// </summary>
         /// <typeparam name="TObject">The object type.</typeparam>
         /// <returns>The load operation if there is not a valid cached operation, otherwise return default operation.</returns>
+        /// <remarks>
+        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
+        /// on an AssetReference, use <see cref="Addressables.LoadAssetAsync{TObject}(object)"/> and pass your AssetReference in as the key.
+        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
+        /// </remarks>
         public virtual AsyncOperationHandle<TObject> LoadAssetAsync<TObject>()
         {
             AsyncOperationHandle<TObject> result = default(AsyncOperationHandle<TObject>);
@@ -595,14 +560,16 @@ namespace UnityEngine.AddressableAssets
 
         /// <summary>
         /// Loads the reference as a scene.
-        /// This cannot be used a second time until the first load is unloaded. If you wish to call load multiple times
-        /// on an AssetReference, use Addressables.LoadSceneAsync() and pass your AssetReference in as the key.
-        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
         /// </summary>
         /// <param name="loadMode">Scene load mode.</param>
         /// <param name="activateOnLoad">If false, the scene will load but not activate (for background loading).  The SceneInstance returned has an Activate() method that can be called to do this at a later point.</param>
         /// <param name="priority">Async operation priority for scene loading.</param>
         /// <returns>The operation handle for the request if there is not a valid cached operation, otherwise return default operation</returns>
+        /// <remarks>
+        /// This cannot be used a second time until the first load is unloaded. If you wish to call load multiple times
+        /// on an AssetReference, use Addressables.LoadSceneAsync() and pass your AssetReference in as the key.
+        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
+        /// </remarks>
         public virtual AsyncOperationHandle<SceneInstance> LoadSceneAsync(LoadSceneMode loadMode = LoadSceneMode.Single, bool activateOnLoad = true, int priority = 100)
         {
             AsyncOperationHandle<SceneInstance> result = default(AsyncOperationHandle<SceneInstance>);
@@ -628,14 +595,16 @@ namespace UnityEngine.AddressableAssets
 
         /// <summary>
         /// InstantiateAsync the referenced asset as type TObject.
-        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
-        /// on an AssetReference, use Addressables.InstantiateAsync() and pass your AssetReference in as the key.
-        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
         /// </summary>
         /// <param name="position">Position of the instantiated object.</param>
         /// <param name="rotation">Rotation of the instantiated object.</param>
         /// <param name="parent">The parent of the instantiated object.</param>
-        /// <returns></returns>
+        /// <returns>The handle for the operation.</returns>
+        /// <remarks>
+        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
+        /// on an AssetReference, use Addressables.InstantiateAsync() and pass your AssetReference in as the key.
+        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
+        /// </remarks>
         public virtual AsyncOperationHandle<GameObject> InstantiateAsync(Vector3 position, Quaternion rotation, Transform parent = null)
         {
             return Addressables.InstantiateAsync(RuntimeKey, position, rotation, parent, true);
@@ -643,13 +612,15 @@ namespace UnityEngine.AddressableAssets
 
         /// <summary>
         /// InstantiateAsync the referenced asset as type TObject.
-        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
-        /// on an AssetReference, use Addressables.InstantiateAsync() and pass your AssetReference in as the key.
-        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
         /// </summary>
         /// <param name="parent">The parent of the instantiated object.</param>
         /// <param name="instantiateInWorldSpace">Option to retain world space when instantiated with a parent.</param>
-        /// <returns></returns>
+        /// <returns>The handle for the operation.</returns>
+        /// <remarks>
+        /// This cannot be used a second time until the first load is released. If you wish to call load multiple times
+        /// on an AssetReference, use Addressables.InstantiateAsync() and pass your AssetReference in as the key.
+        /// See the [Loading Addressable Assets](xref:addressables-api-load-asset-async) documentation for more details.
+        /// </remarks>
         public virtual AsyncOperationHandle<GameObject> InstantiateAsync(Transform parent = null, bool instantiateInWorldSpace = false)
         {
             return Addressables.InstantiateAsync(RuntimeKey, parent, instantiateInWorldSpace, true);
@@ -778,6 +749,7 @@ namespace UnityEngine.AddressableAssets
                 CachedAsset = null;
                 m_AssetGUID = string.Empty;
                 m_SubObjectName = null;
+                m_SubObjectGUID = string.Empty;
                 m_EditorAssetChanged = true;
                 return true;
             }
@@ -785,6 +757,7 @@ namespace UnityEngine.AddressableAssets
             if (CachedAsset != value)
             {
                 m_SubObjectName = null;
+                m_SubObjectGUID = string.Empty;
                 var path = AssetDatabase.GetAssetOrScenePath(value);
                 if (string.IsNullOrEmpty(path))
                 {
@@ -860,6 +833,7 @@ namespace UnityEngine.AddressableAssets
             if (value == null)
             {
                 m_SubObjectName = null;
+                m_SubObjectGUID = string.Empty;
                 m_SubObjectType = null;
                 m_EditorAssetChanged = true;
                 return true;
@@ -869,15 +843,25 @@ namespace UnityEngine.AddressableAssets
                 return false;
             if (editorAsset.GetType() == typeof(SpriteAtlas))
             {
-                var spriteName = value.name;
-                if (spriteName.EndsWith("(Clone)", StringComparison.Ordinal))
-                    spriteName = spriteName.Replace("(Clone)", "");
-                if ((editorAsset as SpriteAtlas).GetSprite(spriteName) == null)
+                var spriteName = AssetReferenceUtilities.FormatName(value.name);
+                var atlas = editorAsset as SpriteAtlas;
+
+                var foundMatch = false;
+                var subObjects = AssetReferenceUtilities.GetAtlasSpritesAndPackables(ref atlas);
+                foreach ((Object sprite, string guid) in subObjects)
+                {
+                    var namesMatch = AssetReferenceUtilities.FormatName(sprite.name) == spriteName;
+                    if (namesMatch)
+                    {
+                        foundMatch = true;
+                        m_SubObjectGUID = guid;
+                    }
+                }
+                if (!foundMatch)
                 {
                     Debug.LogWarningFormat("Unable to find sprite {0} in atlas {1}.", spriteName, editorAsset.name);
                     return false;
                 }
-
                 m_SubObjectName = spriteName;
                 m_SubObjectType = typeof(Sprite).AssemblyQualifiedName;
                 m_EditorAssetChanged = true;
@@ -889,6 +873,7 @@ namespace UnityEngine.AddressableAssets
             {
                 if (s.name == value.name && s.GetType() == value.GetType())
                 {
+                    m_SubObjectGUID = String.Empty;
                     m_SubObjectName = s.name;
                     m_SubObjectType = s.GetType().AssemblyQualifiedName;
                     m_EditorAssetChanged = true;
@@ -909,9 +894,8 @@ namespace UnityEngine.AddressableAssets
 
         public static HashSet<Type> GetTypesForAssetPath(string path)
         {
-#if UNITY_2020_1_OR_NEWER
             AssetDatabase.SaveAssetIfDirty(AssetDatabase.GUIDFromAssetPath(path));
-#endif
+
             if (s_PathToTypes.TryGetValue(path, out HashSet<Type> value))
                 return value;
 
@@ -937,6 +921,7 @@ namespace UnityEngine.AddressableAssets
         {
             foreach (string str in importedAssets)
                 s_PathToTypes.Remove(str);
+
             foreach (string str in deletedAssets)
                 s_PathToTypes.Remove(str);
 

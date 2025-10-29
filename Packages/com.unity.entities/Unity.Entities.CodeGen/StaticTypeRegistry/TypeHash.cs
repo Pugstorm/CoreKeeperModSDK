@@ -204,6 +204,15 @@ namespace Unity.Entities.CodeGen
         //        Generating hashes from System.Reflection and to match hashes using Mono.Cecil must account for this difference
         public static ulong CalculateStableTypeHash(TypeReference typeRef)
         {
+			var typeDef = typeRef.Resolve();
+			var overrideHashAttribute = typeDef.CustomAttributes.FirstOrDefault(ca => ca.Constructor.DeclaringType.Name == nameof(TypeManager.OverrideTypeHashAttribute));
+			if (overrideHashAttribute != null)
+			{                    
+				return (ulong)overrideHashAttribute.ConstructorArguments
+				.First(arg => arg.Type.MetadataType == MetadataType.UInt64)
+				.Value;
+			}
+
             ulong versionHash = HashVersionAttribute(typeRef);
             ulong typeHash = HashType(typeRef, new Dictionary<TypeReference, ulong>(new TypeReferenceComparer()));
 

@@ -10,6 +10,9 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.TestTools;
 using UnityEngine.U2D;
+using NUnit.Framework;
+
+
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.AddressableAssets.Settings;
@@ -73,6 +76,7 @@ public static class AddressablesTestUtility
 #if UNITY_EDITOR
         bool currentIgnoreState = LogAssert.ignoreFailingMessages;
         LogAssert.ignoreFailingMessages = true;
+        EditorSettings.spritePackerMode = SpritePackerMode.SpriteAtlasV2;
 
         var RootFolder = string.Format(pathFormat, testType, suffix);
 
@@ -152,7 +156,7 @@ public static class AddressablesTestUtility
         aRefTestBehavior.ReferenceWithSubObject.SubObjectName = "sub-shown";
         aRefTestBehavior.LabelReference = new AssetLabelReference()
         {
-            labelString = settings.labelTable.labelNames[0]
+            labelString = settings.labelTable[0]
         };
 
         string hasBehaviorPath = RootFolder + "/AssetReferenceBehavior.prefab";
@@ -179,6 +183,8 @@ public static class AddressablesTestUtility
         settings.CreateOrMoveEntry(AssetDatabase.AssetPathToGUID(hasBehaviorPath), group, false, false);
 
         CreateFolderEntryAssets(RootFolder, settings, group);
+
+        CreateAsset(RootFolder + "/nonAddressableAsset.prefab", "nonAddressableAsset");
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
@@ -238,12 +244,14 @@ public static class AddressablesTestUtility
 
             string atlasPath = folderPath + "/atlas.spriteatlas";
             var sa = new SpriteAtlas();
-            AssetDatabase.CreateAsset(sa, atlasPath);
-            sa.Add(new UnityEngine.Object[]
+            sa.Add(new []
             {
                 AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(AssetDatabase.GUIDToAssetPath(spriteGuid))
             });
-            SpriteAtlasUtility.PackAtlases(new SpriteAtlas[] {sa}, EditorUserBuildSettings.activeBuildTarget, false);
+
+            AssetDatabase.CreateAsset(sa, atlasPath);
+            SpriteAtlasUtility.PackAtlases(new SpriteAtlas[] { sa }, EditorUserBuildSettings.activeBuildTarget, false);
+            SpriteAtlasUtility.CleanupAtlasPacking();
         }
 
         var folderEntry = settings.CreateOrMoveEntry(AssetDatabase.AssetPathToGUID(folderPath), group, false, false);
@@ -261,7 +269,7 @@ public static class AddressablesTestUtility
         return AssetDatabase.AssetPathToGUID(assetPath);
     }
     const string kCatalogExt =
-#if ENABLE_BINARY_CATALOG
+#if !ENABLE_JSON_CATALOG
             ".bin";
 #else
             ".json";
@@ -274,7 +282,7 @@ public static class AddressablesTestUtility
         foreach (var db in settings.DataBuilders)
         {
             var b = db as IDataBuilder;
-            if (b.GetType().Name != testType)
+            if (b?.GetType().Name != testType)
                 continue;
 
             buildContext.PathSuffix = "_TEST_" + suffix;

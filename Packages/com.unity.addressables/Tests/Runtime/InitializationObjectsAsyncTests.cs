@@ -145,7 +145,30 @@ public abstract class InitializationObjectsAsyncTests : AddressablesTestFixture
         handle.WaitForCompletion();
         Assert.IsTrue(handle.IsDone);
     }
+#if !ENABLE_JSON_CATALOG
+    [UnityTest]
+    public IEnumerator BinaryCatalogCacheInitializationObject_FullySetsCachingData()
+    {
+        BinaryCatalogInitialization.ResetToDefaults();
+        var setStorageBufferCacheSize = 123;
+        var setLocationCacheSize = 456;
+        var cacheSettings = new UnityEditor.AddressableAssets.BinaryCatalogInitializationSettings()
+        {
+            BinaryStorageBufferCacheSize = setStorageBufferCacheSize,
+            CatalogLocationCacheSize = setLocationCacheSize
+        };
 
+        var initData = cacheSettings.CreateObjectInitializationData();
+        Assert.NotNull(initData);
+
+        var handle = initData.GetAsyncInitHandle(m_Addressables.ResourceManager);
+        yield return handle;
+        Assert.AreEqual(setStorageBufferCacheSize, BinaryCatalogInitialization.BinaryStorageBufferCacheSize);
+        Assert.AreEqual(setLocationCacheSize, BinaryCatalogInitialization.CatalogLocationCacheSize);
+        BinaryCatalogInitialization.ResetToDefaults();
+        handle.Release();
+    }
+#endif
 #endif
 
     [UnityTest]
@@ -278,14 +301,6 @@ public abstract class InitializationObjectsAsyncTests : AddressablesTestFixture
         protected override TestBuildScriptMode BuildScriptMode
         {
             get { return TestBuildScriptMode.Fast; }
-        }
-    }
-
-    class InitializationObjects_VirtualMode : InitializationObjectsAsyncTests
-    {
-        protected override TestBuildScriptMode BuildScriptMode
-        {
-            get { return TestBuildScriptMode.Virtual; }
         }
     }
 

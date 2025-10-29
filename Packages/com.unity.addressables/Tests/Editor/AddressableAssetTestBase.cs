@@ -14,12 +14,12 @@ namespace UnityEditor.AddressableAssets.Tests
     public abstract class AddressableAssetTestBase
     {
         protected const string k_TestConfigName = "AddressableAssetSettings.Tests";
-
         protected string TestFolder => $"Assets/{TestFolderName}";
         protected string TestFolderName => $"{GetType()}_Tests";
         protected string ConfigFolder => TestFolder + "/Config";
         protected string AddressablesFolder => $"Assets/AddressableAssetsData";
 
+        protected string m_PackagePath;
 
         protected string GetAssetPath(string assetName)
         {
@@ -70,7 +70,7 @@ namespace UnityEditor.AddressableAssets.Tests
             AssetDatabase.CreateFolder("Assets", TestFolderName);
             AssetDatabase.CreateFolder(TestFolder, "Config");
 
-            Settings.labelTable.labelNames.Clear();
+            Settings.labelTable.Clear();
             GameObject testObject = new GameObject("TestObject");
             GameObject testObject1 = new GameObject("TestObject 1");
             GameObject testObject2 = new GameObject("TestObject 2");
@@ -111,6 +111,10 @@ namespace UnityEditor.AddressableAssets.Tests
             Application.logMessageReceived -= CheckLogForWarning;
             if (resetFailingMessages)
                 LogAssert.ignoreFailingMessages = false;
+
+            // the way our package isolation tests work the tests are built into their own package
+            // which means we have to load expected files from a different location
+            m_PackagePath = AddressablesTestUtility.GetPackagePath() + "/Tests/Editor";
         }
 
         private bool resetFailingMessages = false;
@@ -202,7 +206,18 @@ namespace UnityEditor.AddressableAssets.Tests
         {
             m_Settings = null;
             EditorBuildSettings.RemoveConfigObject(AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName);
-            EditorBuildSettings.TryGetConfigObject(AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, out m_Settings);            
+            EditorBuildSettings.TryGetConfigObject(AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, out m_Settings);
         }
+
+        protected string GetExpectedPath(string filename)
+        {
+            return $"{m_PackagePath}/Expected/{filename}";
+        }
+
+        protected string GetFixturePath(string filename)
+        {
+            return $"{m_PackagePath}/Fixtures/{filename}";
+        }
+
     }
 }

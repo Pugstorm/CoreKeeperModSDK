@@ -16,10 +16,6 @@ namespace UnityEditor.AddressableAssets.Settings
         [Serializable]
         class ConfigSaveData
         {
-            [FormerlySerializedAs("m_postProfilerEvents")]
-            [SerializeField]
-            internal bool postProfilerEventsInternal;
-
             [FormerlySerializedAs("m_localLoadSpeed")]
             [SerializeField]
             internal long localLoadSpeedInternal = 1024 * 1024 * 10;
@@ -49,14 +45,15 @@ namespace UnityEditor.AddressableAssets.Settings
 
             [SerializeField]
             internal List<string> buildReports = new List<string>();
-#if UNITY_2022_2_OR_NEWER
+
             [SerializeField]
             internal bool autoOpenAddressablesReport = true;
             [SerializeField]
             internal bool userHasBeenInformedAboutBuildReportSettingPreBuild = false;
-#endif
             [SerializeField]
             internal bool userHasBeenInformedAboutPathPairMigration = false;
+            [SerializeField]
+            internal bool userHasBeenInformedAboutNestedFolderStructure = false;
         }
 
         static ConfigSaveData s_Data;
@@ -100,7 +97,6 @@ namespace UnityEditor.AddressableAssets.Settings
             }
         }
 
-#if UNITY_2022_2_OR_NEWER
         internal static bool AutoOpenAddressablesReport
         {
             get
@@ -137,9 +133,6 @@ namespace UnityEditor.AddressableAssets.Settings
             }
         }
 
-
-#endif
-
         internal static bool UserHasBeenInformedAboutPathPairMigration
         {
             get
@@ -153,6 +146,24 @@ namespace UnityEditor.AddressableAssets.Settings
                 if (s_Data.userHasBeenInformedAboutPathPairMigration != value)
                 {
                     s_Data.userHasBeenInformedAboutPathPairMigration = value;
+                    SaveData();
+                }
+            }
+        }
+
+        internal static bool UserHasBeenInformedAbouNestedFolderStructure
+        {
+            get
+            {
+                ValidateData();
+                return s_Data.userHasBeenInformedAboutNestedFolderStructure;
+            }
+            set
+            {
+                ValidateData();
+                if (s_Data.userHasBeenInformedAboutNestedFolderStructure != value)
+                {
+                    s_Data.userHasBeenInformedAboutNestedFolderStructure = value;
                     SaveData();
                 }
             }
@@ -232,7 +243,7 @@ namespace UnityEditor.AddressableAssets.Settings
         /// <summary>
         /// Removes the build report located at reportFilePath from the list of build reports shown in the Build Reports window
         /// </summary>
-        /// <param name="reportFilePath"></param>
+        /// <param name="reportFilePath">The file path of the report</param>
         public static void RemoveBuildReportFilePath(string reportFilePath)
         {
             ValidateData();
@@ -265,24 +276,6 @@ namespace UnityEditor.AddressableAssets.Settings
             {
                 ValidateData();
                 s_Data.activePlayModeIndex = value;
-                SaveData();
-            }
-        }
-
-        /// <summary>
-        /// Whether to post profiler events in the ResourceManager profiler window.
-        /// </summary>
-        public static bool PostProfilerEvents
-        {
-            get
-            {
-                ValidateData();
-                return s_Data.postProfilerEventsInternal;
-            }
-            set
-            {
-                ValidateData();
-                s_Data.postProfilerEventsInternal = value;
                 SaveData();
             }
         }
