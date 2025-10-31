@@ -1,0 +1,18 @@
+{
+  "name": "dev.pugstorm.sprite",
+  "displayName": "Pug Sprite",
+  "version": "0.3.0",
+  "author": {
+    "name": "Pugstorm",
+    "url": "https://pugstorm.eu/"
+  },
+  "unity": "2021.3",
+  "description": "Optimized sprite workflow/rendering system",
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "12.1.8",
+    "com.unity.collections": "2.1.4",
+    "com.unity.burst": "1.8.4",
+    "com.unity.mathematics": "1.2.1"
+  },
+  "_fingerprint": "0a82ef079b4c6630ae21d27aadacd73b956403d7"
+}
