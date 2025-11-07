@@ -820,7 +820,7 @@ namespace Unity.Entities.Serialization
 
             var sectionComponent = new SectionMetadataSetup {SceneSectionIndex = sectionIndex};
             cachedSceneSectionEntityQuery.SetSharedComponentFilter(sectionComponent);
-            using (var sectionEntities = cachedSceneSectionEntityQuery.ToEntityArray(Allocator.TempJob))
+            using (var sectionEntities = cachedSceneSectionEntityQuery.ToEntityArray(Allocator.Persistent)) // Replaced Allocator.TempJob since Core Keeper serialization took more than 4 frames (limit for TempJob allocator) in some use cases
             {
                 if (sectionEntities.Length == 0)
                 {
@@ -1385,7 +1385,7 @@ namespace Unity.Entities.Serialization
                                 w.Write(patch.ChunkOffset);
                                 w.Write(patch.AllocSizeBytes);
                                 w.WriteBytes(bufferData, patch.AllocSizeBytes);
-                                Memory.Unmanaged.Free(bufferData, Allocator.TempJob);
+                                Memory.Unmanaged.Free(bufferData, Allocator.Persistent); // Replaced Allocator.TempJob since Core Keeper serialization took more than 4 frames (limit for TempJob allocator) in some use cases
                             }
                             curRecordStartIndex += recordCount;
                         }
@@ -2123,9 +2123,9 @@ namespace Unity.Entities.Serialization
             out NativeList<BlobAssetPtr> blobAssets,
             out NativeParallelHashMap<BlobAssetPtr, int> blobAssetMap)
         {
-            blobAssetMap = new NativeParallelHashMap<BlobAssetPtr, int>(100, Allocator.TempJob);
+            blobAssetMap = new NativeParallelHashMap<BlobAssetPtr, int>(100, Allocator.Persistent); // Replaced Allocator.TempJob since Core Keeper serialization took more than 4 frames (limit for TempJob allocator) in some use cases
 
-            blobAssets = new NativeList<BlobAssetPtr>(100, Allocator.TempJob);
+            blobAssets = new NativeList<BlobAssetPtr>(100, Allocator.Persistent); // Replaced Allocator.TempJob since Core Keeper serialization took more than 4 frames (limit for TempJob allocator) in some use cases
 
             var access = entityManager.GetCheckedEntityDataAccess();
             for (int a = 0; a < archetypeArray.Length; ++a)
