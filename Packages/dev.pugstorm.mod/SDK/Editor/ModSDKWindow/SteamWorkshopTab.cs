@@ -21,6 +21,7 @@ namespace PugMod
 
 			private DropdownField _steamWorkshopTags;
 			private DropdownField _steamModList;
+			private DropdownField _steamVisibility;
 
 			private Button _steamUploadButton;
 
@@ -41,6 +42,8 @@ namespace PugMod
 			private List<ModBuilderSettings> _modSettings;
 			private List<string> _steamWorkshopTagsToList = new();
 
+			public enum TagType { Category, AppType, AccessType };
+
 			public void Refresh()
 			{
 				RefreshSteamWorkshopUI();
@@ -53,10 +56,14 @@ namespace PugMod
 			}
 			public void OnEnable(VisualElement root)
 			{
+				var steamWorkshopTagType = root.Q<EnumField>("SteamWorkshopTagType");
+				steamWorkshopTagType.Init(TagType.Category);
+
 				_steamInitButton = root.Q<Button>("SteamInitButton");
 				_steamConfigButton = root.Q<Button>("SteamConfigButton");
 				_steamWorkshopView = root.Q<VisualElement>("SteamWorkshopViewContainer");
 				_steamModList = root.Q<DropdownField>("SteamBuiltModsDropdown");
+				_steamVisibility = root.Q<DropdownField>("SteamVisibility");
 
 				_modSettings = new List<ModBuilderSettings>(AssetDatabase.FindAssets("t:PugMod.ModBuilderSettings")
 				.Select(guid => AssetDatabase.GUIDToAssetPath(guid))
@@ -86,7 +93,14 @@ namespace PugMod
 				.Select(guid => AssetDatabase.GUIDToAssetPath(guid))
 				.Select(path => AssetDatabase.LoadAssetAtPath<SteamWorkshopModSettings>(path)));
 
-				_steamWorkshopTags.choices = new List<string> { "World (Tag)", "Music (Tag)", "Tweaks (Tag)", "NPC (Tag)", "Language (Tag)", "Overhaul (Category)", "Other (Category)", "Visual (Category)", "Audio (Category)", "Item (Category)", "Quality of Life (Category)", "Library (Category)", "Client (App. Type)", "Server (App. Type)", "Asset (Access Type)", "Script (Access Type)", "Script (Elevated Access) (Access Type)" };
+				_steamWorkshopTags.choices = new List<string> { "World", "Music", "Tweaks", "NPC", "Language", "Overhaul", "Other", "Visual", "Audio", "Item", "Quality of Life", "Library", "Client", "Server", "Asset", "Script", "Script (Elevated Access)" };
+
+				_steamVisibility.choices = new List<string> { "Public", "Friends Only", "Private" };
+
+				steamWorkshopTagType.RegisterValueChangedCallback(evt =>
+				{
+					UpdateTagChoices((TagType)evt.newValue);
+				});
 
 				_steamWorkshopTags.RegisterValueChangedCallback(evt =>
 				{
@@ -188,6 +202,39 @@ namespace PugMod
 				}
 			}
 
+			private void UpdateManifestDisplayName(string buildPath, string newDisplayName)
+			{
+				var manifestPath = Path.Combine(buildPath, Constants.MOD_MANIFEST_FILE);
+
+				try
+				{
+					var oldJson = File.ReadAllText(manifestPath);
+					var modmetadata = JsonUtility.FromJson<ModMetadata>(oldJson);
+
+					modmetadata.displayName = newDisplayName;
+
+					var newJson = JsonUtility.ToJson(modmetadata, true);
+					File.WriteAllText(manifestPath, newJson);
+				}
+				catch (Exception ex)
+				{
+					Debug.LogError($"Failed to update display name: {ex.Message}");
+				}
+			}
+
+			private void UpdateTagChoices(TagType tagType)
+			{
+				_steamWorkshopTags.choices = tagType switch
+				{
+					TagType.Category => new List<string> { "World", "Music", "Tweaks", "NPC", "Language", "Overhaul", "Visual", "Audio", "Item", "Quality of Life", "Library", "Other" },
+					TagType.AppType => new List<string> { "Client", "Server" },
+					TagType.AccessType => new List<string> { "Asset", "Script", "Script (Elevated Access)" },
+					_ => null
+				};
+
+				_steamWorkshopTags.SetValueWithoutNotify(string.Empty);
+			}
+
 			private void OpenSteamConfig()
 			{
 				var steamConfiguration = AssetDatabase.LoadAssetAtPath<SteamConfiguration>("Packages/dev.pugstorm.mod/SDK/Editor/SteamConfiguration.asset");
@@ -234,6 +281,8 @@ namespace PugMod
 
 			private void UploadOrUpdateMod()
 			{
+				UpdateManifestDisplayName(_selectedWorkshopPath, _steamWorkshopFolderName.value);
+
 				if (ModHasBeenUploadedToSteamWorkshop())
 				{
 					UpdateSteamWorkshopMod();
@@ -337,6 +386,14 @@ namespace PugMod
 						mod = mod.WithTag(tag);
 					}
 
+					mod = _steamVisibility.value switch
+					{
+						"Private" => mod.WithPrivateVisibility(),
+						"Friends Only" => mod.WithFriendsOnlyVisibility(),
+						"Public" => mod.WithPublicVisibility(),
+						_ => mod.WithPrivateVisibility()
+					};
+
 					var result = await mod.SubmitAsync(new ProgressClass("Upload"));
 
 					if (result.Success)
@@ -383,6 +440,14 @@ namespace PugMod
 					{
 						mod = mod.WithTag(tag);
 					}
+
+					mod = _steamVisibility.value switch
+					{
+						"Private" => mod.WithPrivateVisibility(),
+						"Friends Only" => mod.WithFriendsOnlyVisibility(),
+						"Public" => mod.WithPublicVisibility(),
+						_ => mod.WithPrivateVisibility()
+					};
 
 					var result = await mod.SubmitAsync(new ProgressClass("Update"));
 

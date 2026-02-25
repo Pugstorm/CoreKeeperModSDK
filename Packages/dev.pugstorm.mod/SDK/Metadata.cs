@@ -14,6 +14,7 @@ namespace PugMod
 	{
 		public string guid;
 		public string name;
+		[HideInInspector] public string displayName;
 		public bool skipSafetyChecks;
 		public bool disableScripts;
 		public bool accessesExtraAssemblies;

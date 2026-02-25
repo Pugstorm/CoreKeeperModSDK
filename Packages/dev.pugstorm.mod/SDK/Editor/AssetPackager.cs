@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.PackageManager;
@@ -193,29 +194,54 @@ namespace PugMod
 			EditorUtility.ClearProgressBar();
 			if (_addRequest.Status == StatusCode.Success)
 			{
+				MakeManifestJsonPathRelative();
+
 				EditorUtility.DisplayDialog("Success", "Core Keeper assets have been packaged and installed!", "Ok");
 				//Debug.Log("Core Keeper assets have been packaged and installed, setting art textures as addressables next");
 				//EditorApplication.update += SetTexturesAsAddressable;
 			}
-        }
+		}
 
-		//private static void SetTexturesAsAddressable()
-		//{
-		//	EditorApplication.update -= SetTexturesAsAddressable;
+		private static void MakeManifestJsonPathRelative()
+		{
+			try
+			{
+				var manifestPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Packages", "manifest.json");
+				var manifestJson = File.ReadAllText(manifestPath);
+				var regex = new Regex("\"file:.*?[\\\\/]+ImportedGameFolders[\\\\/]+");
+				var replacementString = "\"file:../ImportedGameFolders/";
 
-		//	var addressableSettings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
-		//	var guids = AssetDatabase.FindAssets("t:Texture2D", new[] { $"Packages/{ASSET_PACKAGE_NAME}/Art" });
+				if (regex.IsMatch(manifestJson))
+				{
+					manifestJson = regex.Replace(manifestJson, replacementString);
+					File.WriteAllText(manifestPath, manifestJson);
+					Client.Resolve();
+					Debug.Log($"Updated path for package: {ASSET_PACKAGE_NAME} in manifest.json to use a relative path.");
+				}
+			}
+			catch (Exception ex)
+			{
+				Debug.LogError($"Failed to patch manifest.json: {ex.Message}");
+			}
+		}
 
-		//	foreach (var guid in guids)
-		//	{
-		//		var path = AssetDatabase.GUIDToAssetPath(guid);
-		//		addressableSettings.CreateOrMoveEntry(guid, addressableSettings.DefaultGroup).address = Path.GetFileName(path);
-		//	}
+		private static void SetTexturesAsAddressable()
+		{
+			EditorApplication.update -= SetTexturesAsAddressable;
 
-		//	AssetDatabase.SaveAssets();
+			var addressableSettings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
+			var guids = AssetDatabase.FindAssets("t:Texture2D", new[] { $"Packages/{ASSET_PACKAGE_NAME}/Art" });
+
+			foreach (var guid in guids)
+			{
+				var path = AssetDatabase.GUIDToAssetPath(guid);
+				addressableSettings.CreateOrMoveEntry(guid, addressableSettings.DefaultGroup).address = Path.GetFileName(path);
+			}
+
+			AssetDatabase.SaveAssets();
 
 
-		//	EditorUtility.DisplayDialog("Success", "Core Keeper assets have been packaged and installed!", "Ok");
-		//}
+			EditorUtility.DisplayDialog("Success", "Core Keeper assets have been packaged and installed!", "Ok");
+		}
 	}
 }

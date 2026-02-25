@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 094250a4269b7f144a0c2e3978ea6a2f, type: 3}
   m_Name: SteamConfiguration
   m_EditorClassIdentifier: 
-  CoreKeeperAppID: 3621230
+  CoreKeeperAppID: 1621690
   AutoInitialize: 0

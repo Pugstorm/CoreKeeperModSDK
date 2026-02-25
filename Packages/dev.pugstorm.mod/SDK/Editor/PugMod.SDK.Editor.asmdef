@@ -11,7 +11,8 @@
         "ScriptableData",
         "ScriptableData.Editor",
         "Unity.Addressables",
-        "Unity.Addressables.Editor"
+        "Unity.Addressables.Editor",
+        "Pug.Base"
     ],
     "includePlatforms": [
         "Editor"
@@ -27,7 +28,7 @@
         "PugSprite.Editor.dll",
         "Facepunch.Steamworks.Win64.dll",
         "Facepunch.Steamworks.Posix.dll",
-        "Facepunch.Steamworks.PosixMac.dll"
+	"Pug.Base.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

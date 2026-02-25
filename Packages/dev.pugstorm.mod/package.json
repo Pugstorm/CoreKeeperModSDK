@@ -8,5 +8,6 @@
   },
   "unity": "2021.3",
   "description": "Mod loader and other tooling.",
-  "dependencies": {}
+  "dependencies": {},
+  "_fingerprint": "19ddbdf2c1cdf0454180841cab39c670ce5fae7a"
 }

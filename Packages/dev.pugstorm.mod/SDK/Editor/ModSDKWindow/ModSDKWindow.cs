@@ -111,10 +111,10 @@ namespace PugMod
 				
 				ModSDKWindow wnd = GetWindow<ModSDKWindow>("Mod SDK");
 
-				wnd.minSize = new Vector2(500, 400);
+				wnd.minSize = new Vector2(500, 450);
 				// Want to set size without messing with position so doing it in a somewhat hacky way
 				var oldMaxSize = wnd.maxSize;
-				wnd.maxSize = new Vector2(500, 400);
+				wnd.maxSize = new Vector2(500, 450);
 				wnd.maxSize = oldMaxSize;
 			});
 		}
