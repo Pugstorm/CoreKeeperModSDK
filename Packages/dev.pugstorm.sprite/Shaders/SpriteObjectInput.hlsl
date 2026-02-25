@@ -198,4 +198,31 @@ v2f vert(appdata v)
 	return o;
 }
 
+int _ObjectId;
+int _PassValue;
+
+float4 fragSceneHighlightPass(v2f i) : SV_Target
+{
+	float4 colorAlpha;
+	float3 emission, normal;
+	GetSpriteColor(i, colorAlpha, emission, normal);
+#if ALPHATEST_ON
+	clip(colorAlpha.a - 0.5);
+#endif
+	return float4(_ObjectId, _PassValue, 1, 1);
+}
+
+float4 _SelectionID;
+
+float4 fragScenePickingPass(v2f i) : SV_Target
+{
+	float4 colorAlpha;
+	float3 emission, normal;
+	GetSpriteColor(i, colorAlpha, emission, normal);
+#if ALPHATEST_ON
+	clip(colorAlpha.a - 0.5);
+#endif
+	return _SelectionID;
+}
+
 #endif // SPRITE_INSTANCING_STANDARD_INCLUDED

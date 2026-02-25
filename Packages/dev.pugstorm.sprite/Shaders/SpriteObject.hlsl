@@ -144,7 +144,7 @@ SO_SAMPLER(_gradient_point_clamp_sampler);
 
 float4 GetUVRange(float4 rect)
 {
-	return float4(rect.xy, rect.xy + rect.zw) * TEXEL_SIZE.xyxy;
+	return float4(rect.xy + 0.5, rect.xy + rect.zw - 0.5) * TEXEL_SIZE.xyxy;
 }
 
 float2x2 RotationMatrixRadians(float radians)

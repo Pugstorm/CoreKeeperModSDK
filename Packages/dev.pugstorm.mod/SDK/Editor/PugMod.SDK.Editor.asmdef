@@ -1,0 +1,38 @@
+{
+    "name": "ModSDK.Editor",
+    "rootNamespace": "",
+    "references": [
+        "Unity.ScriptableBuildPipeline",
+        "Unity.ScriptableBuildPipeline.Editor",
+        "PugMod.SDK",
+        "PugMod.Importer",
+        "modio.UnityPlugin",
+        "PugSprite",
+        "ScriptableData",
+        "ScriptableData.Editor",
+        "Unity.Addressables",
+        "Unity.Addressables.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "modio.UnityPlugin.dll",
+        "ScriptableData.dll",
+        "ScriptableData.Editor.dll",
+        "PugSprite.dll",
+        "PugSprite.Editor.dll",
+        "Facepunch.Steamworks.Win64.dll",
+        "Facepunch.Steamworks.Posix.dll",
+        "Facepunch.Steamworks.PosixMac.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "PUG_USE_STEAM"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

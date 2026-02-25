@@ -1,0 +1,16 @@
+{
+  "name": "dev.pugstorm.scriptabledata",
+  "displayName": "Scriptable Data",
+  "version": "0.1.0",
+  "author": {
+    "name": "Pugstorm",
+    "url": "https://pugstorm.eu/"
+  },
+  "unity": "2021.3",
+  "description": "ScriptableObject-based data handling and authoring system.",
+  "dependencies": {
+    "com.unity.addressables": "1.21.21",
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  },
+  "_fingerprint": "07620c9d9292c030a60feeb348e95ad2cf300b61"
+}

@@ -1,0 +1,97 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="Main" style="flex-direction: row; flex-grow: 1; border-top-width: 3px; border-right-width: 0; border-bottom-width: 0; border-left-width: 0; background-color: rgba(103, 109, 113, 0); -unity-background-image-tint-color: rgb(255, 255, 255); -unity-background-scale-mode: stretch-to-fill; display: flex; opacity: 1; flex-wrap: nowrap; text-overflow: clip; -unity-text-align: upper-left; align-self: auto; border-left-color: rgb(47, 47, 47); border-right-color: rgb(47, 47, 47); border-top-color: rgb(47, 47, 47); border-bottom-color: rgb(47, 47, 47); border-top-left-radius: 2px; border-top-right-radius: 2px; border-bottom-right-radius: 2px; border-bottom-left-radius: 2px;">
+        <ui:VisualElement name="Tabs" style="width: 208px; margin-right: 10px; height: 3039px; background-color: rgba(0, 0, 0, 0); border-left-color: rgb(47, 47, 47); border-right-color: rgb(47, 47, 47); border-top-color: rgb(47, 47, 47); border-bottom-color: rgb(47, 47, 47); border-top-width: 0; border-right-width: 2px; border-bottom-width: 0.8px; border-left-width: 0; margin-top: 0; justify-content: flex-start; -unity-slice-left: 0; border-top-left-radius: 0.5px; border-top-right-radius: 0.5px; border-bottom-right-radius: 0.5px; border-bottom-left-radius: 0.5px; align-items: stretch; flex-direction: column; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;">
+            <ui:Button text="Information" display-tooltip-when-elided="true" name="StartTabButton" style="background-color: rgb(128, 128, 128);" />
+            <ui:Button text="Update SDK" display-tooltip-when-elided="true" name="UpdateSDKTabButton" style="background-color: rgb(128, 128, 128);" />
+            <ui:Button text="Mod Management" display-tooltip-when-elided="true" name="CreateModTabButton" style="display: flex; background-color: rgb(128, 128, 128);" />
+            <ui:Button text="Steam Workshop" display-tooltip-when-elided="true" name="SteamWorkshopTabButton" style="display: flex; background-color: rgb(128, 128, 128);" />
+            <ui:Button text="Mod.IO" display-tooltip-when-elided="true" name="LogInTabButton" style="margin-top: 20px; margin-right: 15px; margin-left: 15px; min-width: 100px; background-color: rgb(128, 128, 128);" />
+            <ui:Button text="Search Mods" display-tooltip-when-elided="true" name="SearchModTabButton" style="display: none; background-color: rgb(128, 128, 128);" />
+            <ui:Button text="Mod.IO" display-tooltip-when-elided="true" name="UploadModTabButton" style="display: none; background-color: rgb(128, 128, 128);" />
+        </ui:VisualElement>
+        <ui:VisualElement name="Content" style="min-width: 350px;">
+            <ui:Label text="Welcome to Core Keepers&apos; ModSDK!" name="Title" style="align-items: center; justify-content: center; -unity-text-align: upper-center; -unity-font-style: bold; font-size: 18px; color: rgb(210, 210, 210); margin-bottom: 10px;" />
+            <ui:VisualElement name="StartView" style="visibility: visible; flex-grow: 1; overflow: visible; display: flex;">
+                <ui:Label text="First go to the &lt;link=UpdateSDKTabButton&gt;Update SDK&lt;/link&gt; menu and pull in the necessary game files from the &lt;i&gt;Core Keeper&lt;/i&gt; game folder, afterwards follow the Asset Ripper workflow from the GitBook modding guide.&#10;&#10;Once you&apos;ve updated the SDK and the Assets you can feel free to check out the examples mods made by us by extracting the Assets/Examples zip file into the same folder as the zip.&#10;&#10;You can create a Mod in the &lt;link=ModTabButton&gt;Mod Management&lt;/link&gt; menu. The typical workflow is to name and create the mod, which will construct the basic mod structure in the project at &quot;Assets/Mod_Name&quot;. Then you can add and modify mod files as you wish to create the desired functionality.&#10;&#10;Once you&apos;re ready to upload your mod you can head over to either the Steam Workshop or the Mod.IO page, depending on which platform you want to upload the mod to. Do the upload step again when you want to update the mod." display-tooltip-when-elided="true" name="StartViewText" enable-rich-text="true" style="-unity-font-style: normal; white-space: normal; -unity-text-align: upper-center; margin-right: 10px; margin-left: 10px; width: 320px; height: 400px; min-width: 320px; max-width: 320px; min-height: 400px; max-height: 400px;" />
+            </ui:VisualElement>
+            <ui:VisualElement name="UpdateSDKView" style="visibility: visible; flex-grow: 1; display: none; ">
+                <ui:Label text="Select the path to Core Keepers&apos; install folder and Assets extracted by Asset Ripper, then press Update to import the latest modding resources into the ModSDK." display-tooltip-when-elided="true" name="UpdateSDKInfoText" enable-rich-text="true" tooltip="Always update Core Keeper files first, and Assets after, not the other way around!" style="-unity-font-style: normal; white-space: normal; -unity-text-align: upper-center; margin-right: 10px; margin-left: 10px; width: 250px; height: 60px; min-width: 250px; min-height: 60px; max-width: 250px; max-height: 60px; align-self: center; " />
+                <ui:DropdownField label="Install Path -" index="-1" name="UpdateSDKChooseGamePath" style="-unity-text-align: middle-right; left: -50px; margin-top: 40px; width: 380px; height: 22px; min-width: 380px; min-height: 22px; max-width: 380px; max-height: 22px; -unity-font-style: normal; font-size: 12px; " />
+                <ui:VisualElement name="UpdateSDKButtons" style="align-items: stretch; margin-top: 5px; margin-left: 0; max-width: none; max-height: none; width: auto; height: auto; min-height: auto; min-width: auto; -unity-text-align: middle-center; left: 0; ">
+                    <ui:Button text="Select path to Core Keeper Install" display-tooltip-when-elided="true" name="UpdateSDKChooseGamePathManually" style="margin-top: 10px; width: 257px; min-width: 257px; white-space: normal; max-width: 257px; max-height: 22px; min-height: 22px; height: 22px; position: relative; top: auto; left: 72px; right: auto; bottom: auto; font-size: 12px; " />
+                    <ui:Button text="Update Game Files" display-tooltip-when-elided="true" name="UpdateSDKUpdateButton" style="margin-top: 4px; width: 257%; min-width: 257px; white-space: normal; left: 72px; height: 22px; max-width: 257px; min-height: 22px; max-height: 22px; font-size: 12px; " />
+                </ui:VisualElement>
+                <ui:DropdownField label="Assets Path -" index="-1" name="UpdateAssetsChooseAssetRipperPath" style="-unity-text-align: middle-right; left: -50px; margin-bottom: 2px; margin-top: 50px; width: 380px; height: 22px; min-width: 380px; max-width: 380px; min-height: 22px; max-height: 22px; -unity-font-style: normal; font-size: 12px; " />
+                <ui:VisualElement name="UpdateAssetsButtons" style="align-items: stretch; margin-top: 5px; -unity-text-align: middle-center; left: 0; ">
+                    <ui:Button text="Select path to Core Keeper Assets" display-tooltip-when-elided="true" name="UpdateAssetsChooseGamePathManually" style="margin-top: 10px; width: 257px; min-width: 257px; white-space: normal; max-width: 257px; height: 22px; min-height: 22px; max-height: 22px; left: 72px; -unity-font-style: normal; font-size: 12px;  background-image: none; background-color: rgb(88, 88, 88);" />
+                    <ui:Button text="Update Game Assets" display-tooltip-when-elided="true" name="UpdateAssetsUpdateButton" style="margin-top: 4px; width: 257px; min-width: 257px; white-space: normal; left: 72px; max-width: 257px; height: 22px; min-height: 22px; max-height: 22px; -unity-font-style: normal; font-size: 12px;  background-color: rgb(88, 88, 88); background-image: none;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="SearchModView" style="visibility: visible; flex-grow: 1; display: none;">
+                <ui:ListView focusable="true" />
+            </ui:VisualElement>
+            <ui:VisualElement name="SteamWorkshopView" style="visibility: visible; display: none;">
+                <ui:Button text="Initialize Steam" name="SteamInitButton" />
+                <ui:Button text="Open Steam Config" name="SteamConfigButton" />
+                <ui:VisualElement name="SteamWorkshopViewContainer" style="flex-grow: 1;">
+                    <ui:DropdownField label="Select a Built Mod" name="SteamBuiltModsDropdown" />
+                    <ui:Label display-tooltip-when-elided="true" name="SteamExportGamePath" style="margin-left: 5px;" />
+                    <ui:TextField picking-mode="Ignore" label="Title" name="SteamWorkshopFolderName" />
+                    <ui:TextField picking-mode="Ignore" label="Description" name="SteamUploadModSummary" />
+                    <ui:TextField picking-mode="Ignore" label="File ID" name="SteamWorkshopFileID" tooltip="Set to 0 for a new file, set to Steam Workshops&apos; exact file ID if updating" />
+                    <ui:DropdownField label="Tags" name="SteamWorkshopTags" text="Select Tag for Steam Workshop" style="width: initial; align-self: auto; align-items: auto; margin-left: 2px; justify-content: flex-start; flex-direction: row; margin-right: 3px; margin-bottom: 0; margin-top: 0;" />
+                    <ui:VisualElement name="SteamWorkshopTagsList" picking-mode="Ignore" style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; margin-top: 6px; margin-bottom: 20px; width: auto; height: 26px; min-height: auto; position: relative; display: flex; visibility: visible; opacity: 1; max-height: none; min-width: auto; max-width: none; background-size: 100% 100%; padding-left: 4px; padding-right: 4px; font-size: 10%; -unity-text-align: upper-center; padding-bottom: 0; -unity-font-style: bold;">
+                        <ui:Button text="Button" name="TagBase" picking-mode="Ignore" style="margin-right: 2px; margin-bottom: 2px; display: none; opacity: 0.8; width: 75%; height: 75%; min-width: 75%; min-height: 75%; max-height: 75%; max-width: 75%; background-color: rgb(173, 232, 243); background-size: 75% 75%;" />
+                    </ui:VisualElement>
+                    <ui:Button text="Select Thumbnail for Mod" display-tooltip-when-elided="true" name="SteamThumbnailUploadButton" style="margin-top: 24px;" />
+                    <ui:Image name="SteamThumbnailUpload" style="width: 280px; height: 160px; margin-left: 30px; margin-top: 12px; margin-bottom: 12px; margin-right: 0; -unity-background-scale-mode: scale-and-crop;" />
+                    <ui:Button text="Upload to Steam Workshop" display-tooltip-when-elided="true" name="SteamUploadModButton" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="UploadModView" style="visibility: visible; display: none;">
+                <ui:DropdownField label="Mod" index="-1" name="UploadModModList" style="margin-bottom: 10px;" />
+                <ui:VisualElement name="UploadModForm">
+                    <ui:VisualElement style="flex-direction: row;">
+                        <ui:VisualElement>
+                            <ui:TextField picking-mode="Ignore" label="ID" name="UploadModID" readonly="true" style="display: none;" />
+                            <ui:VisualElement style="flex-direction: column; justify-content: space-between; margin-bottom: 5px;">
+                                <ui:TextField picking-mode="Ignore" label="Name" name="UploadModName" readonly="false" style="display: none;" />
+                                <ui:TextField picking-mode="Ignore" name="UploadModSummary" multiline="true" value="Describe mod here with a short summary." style="margin-top: 5px; margin-bottom: 5px; width: 200px; height: auto; white-space: normal; min-height: 50px;" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="UploadModLogo" style="width: 80px; height: 45px; margin-left: 45px; margin-top: 7px;">
+                            <ui:Button display-tooltip-when-elided="true" tooltip="Press to change logo" name="UploadModLogoButton" style="display: flex; visibility: visible; height: 45px; width: 80px; opacity: 0;" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:TextField picking-mode="Ignore" label="URL" name="UploadModURL" readonly="false" style="display: none;" />
+                    <ui:TextField picking-mode="Ignore" label="Tags" name="UploadModTags" readonly="false" style="display: none;" />
+                    <ui:Button text="Register at mod.io" display-tooltip-when-elided="true" name="CreateModProfile" />
+                    <ui:Button text="Go to mod page" display-tooltip-when-elided="true" name="GoToProfileButton" />
+                    <ui:Button text="Upload to mod.io" display-tooltip-when-elided="true" name="UploadModButton" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="CreateModView" style="visibility: visible; display: none;">
+                <ui:DropdownField label="Mod Select -" index="-1" name="CreateModModList" choices="New Mod" style="margin-bottom: 2px; left: 0; width: 387px; height: 22px; margin-top: 4px; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; -unity-text-align: middle-right; margin-left: -48px;  font-size: 12px; margin-right: 14px;" />
+                <ui:VisualElement name="CreateModForm">
+                    <ui:TextField picking-mode="Ignore" label="Mod Name -" name="CreateModName" readonly="false" style="min-width: 300px; left: 0; -unity-text-align: middle-right; margin-top: 5px; margin-left: -48px; margin-right: 12px; font-size: 12px; " />
+                    <ui:VisualElement style="align-items: center; margin-top: 10px;">
+                        <ui:Button text="Create Mod" display-tooltip-when-elided="true" name="CreateModButton" style="width: 266px; left: 72px; height: 22px; margin-left: 0; margin-right: -45px; -unity-text-align: middle-center; align-self: flex-start; margin-top: 4px;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="LocalExportForm">
+                    <ui:VisualElement name="ModSettings">
+                        <ui:Toggle label="Require for multiplayer" name="RequiredOnServerAndClient" tooltip="Will enforce the mod to be present for connecting clients as well" />
+                        <ui:ListView focusable="true" name="ModDependencies" show-foldout-header="true" show-add-remove-footer="true" header-title="Dependencies" reorderable="true" reorder-mode="Simple" show-border="true" virtualization-method="DynamicHeight" show-alternating-row-backgrounds="All" />
+                    </ui:VisualElement>
+                    <ui:Label display-tooltip-when-elided="true" name="LocalExportGamePath" text="Go to &apos;Update SDK&apos; to set correct path for mod loading." style="margin-left: 0%; white-space: normal;" />
+                    <ui:Button text="Build Mod" display-tooltip-when-elided="true" name="BuildingButton" />
+                    <ui:Button text="Install Mod" display-tooltip-when-elided="true" name="InstallModButton" />
+                    <ui:Button text="Build and Install Mod" display-tooltip-when-elided="true" name="LocalExportButton" />
+                    <ui:Button text="Open Last Build/Install Folder" display-tooltip-when-elided="true" name="OpenLastBuildFolderButton" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <TabbedView />
+    <TabButton />
+</ui:UXML>

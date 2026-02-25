@@ -28,12 +28,16 @@ namespace Unity.Entities
 
         // The function to call from a managed context to create/update/destroy.
         internal fixed ulong ManagedFunctions[(int)UnmanagedSystemFunctionType.Count];
+		
+		// The function to call from a managed context to create/update/destroy. Always unbursted to support switching off burst.
+		internal fixed ulong ManagedFunctionsUnBursted[(int)UnmanagedSystemFunctionType.Count];
 
         // Maintain a reference to any burst->managed delegate wrapper so they are not collected
         internal fixed ulong GCDefeat1[(int)UnmanagedSystemFunctionType.Count];
 
         internal ushort PresentFunctionBits;
-        internal ushort BurstFunctionBits;
+		internal ushort BurstFunctionBits;
+        internal ushort BurstFunctionEnabledBits;
 
         internal void Dispose()
         {
@@ -43,6 +47,11 @@ namespace Unity.Entities
                 {
                     GCHandle.FromIntPtr((IntPtr)ManagedFunctions[i]).Free();
                 }
+				
+				if (ManagedFunctionsUnBursted[i] != 0)
+				{
+					GCHandle.FromIntPtr((IntPtr)ManagedFunctionsUnBursted[i]).Free();
+				}
 
                 if (GCDefeat1[i] != 0)
                 {
@@ -106,6 +115,11 @@ namespace Unity.Entities
         {
             return ref m_Delegates.Ptr[index];
         }
+
+		internal ref UnmanagedComponentSystemDelegates GetSystemDelegatesRW(int index)
+		{
+			return ref m_Delegates.Ptr[index];
+		}
     }
 
     /// <summary>
@@ -273,6 +287,7 @@ namespace Unity.Entities
 
                 ushort functionBit = 1;
                 delegates.BurstFunctionBits = 0;
+				delegates.BurstFunctionEnabledBits = ushort.MaxValue;
                 for (int i = 0; i < r.m_Functions.Length; ++i, functionBit <<= 1)
                 {
                     var dlg = r.m_Functions[i];
@@ -281,10 +296,14 @@ namespace Unity.Entities
                     {
                         var useBurstFunction = (burstCompileBits & functionBit) != 0;
                         ulong burstFunc = useBurstFunction ? (ulong)BurstCompiler.CompileFunctionPointer(dlg).Value : 0;
+						ulong noBurst = 0;
 
                         // Select what to call when calling into a system from managed code.
                         SelectManagedFn(out delegates.ManagedFunctions[i], ref burstFunc, dlg);
 
+						// Always add the unbursted delegate to support switching off burst for some systems.
+						SelectManagedFn(out delegates.ManagedFunctionsUnBursted[i], ref noBurst, dlg);
+						
                         // Select what to call when calling into a system from Burst code.
                         SelectBurstFn(out delegates.BurstFunctions[i], out delegates.GCDefeat1[i], burstFunc, dlg);
 
@@ -300,6 +319,20 @@ namespace Unity.Entities
 
             Managed.s_PendingRegistrations = null;
         }
+		
+		public static void SetBurstEnabledForSystem(Type systemType, bool enabled)
+		{
+			var systemTypeHash = TypeManager.GetSystemTypeHash(systemType);
+			var systemMetaIndex = SystemBaseRegistry.GetSystemTypeMetaIndex(systemTypeHash);
+			if (systemMetaIndex >= 0)
+			{
+				s_Data.Data.GetSystemDelegatesRW(systemMetaIndex).BurstFunctionEnabledBits = enabled ? ushort.MaxValue : (ushort)0;
+			}
+			else
+			{
+				Debug.LogError($"could not find system type info for {systemType}");
+			}
+		}
 
         [BurstDiscard]
         internal static void CheckBurst(ref bool status)
@@ -325,13 +358,19 @@ namespace Unity.Entities
                     // In any case, creating the function pointer from the IntPtr is free.
                     new FunctionPointer<ForwardingFunc>((IntPtr)delegates.BurstFunctions[functionIndex]).Invoke((IntPtr)systemPointer, (IntPtr)systemState);
                 }
-                else
+                else if (0 != (delegates.BurstFunctionEnabledBits & (1 << functionIndex)))
                 {
                     // We're in managed land. We may be calling into either a managed routine, or into Burst code.
                     // We have a managed delegate GCHandle ready to go.
                     var delegatePtr = (IntPtr)delegates.ManagedFunctions[functionIndex];
                     ForwardToManaged(delegatePtr, systemState, systemPointer);
                 }
+				else
+				{
+					// Burst is disabled, call function without burst
+					var delegatePtr = (IntPtr)delegates.ManagedFunctionsUnBursted[functionIndex];
+					ForwardToManaged(delegatePtr, systemState, systemPointer);
+				}
             }
         }
 

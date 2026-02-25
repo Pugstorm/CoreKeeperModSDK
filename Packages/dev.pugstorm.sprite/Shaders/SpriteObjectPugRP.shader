@@ -228,6 +228,36 @@ Shader "SpriteObject/PugRP"
 			
 			ENDHLSL
 		}
+
+		Pass
+		{
+			Name "Selection"
+			Tags { "LightMode" = "SceneSelectionPass" }
+
+			Cull Off
+
+			HLSLPROGRAM
+			#pragma vertex vert
+			#pragma fragment fragSceneHighlightPass
+			#pragma shader_feature_fragment ALPHATEST_ON
+
+			ENDHLSL
+		}
+
+		Pass
+		{
+			Name "ScenePickingPass"
+			Tags { "LightMode" = "Picking" }
+
+			Cull Off
+
+			HLSLPROGRAM
+			#pragma vertex vert
+			#pragma fragment fragScenePickingPass
+			#pragma shader_feature_fragment ALPHATEST_ON
+
+			ENDHLSL
+		}
 	}
 	CustomEditor "SpriteObjectStandardEditor"
 }

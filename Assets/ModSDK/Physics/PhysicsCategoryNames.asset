@@ -32,7 +32,7 @@ MonoBehaviour:
   - PlacementBlocker
   - WaterCollider
   - ShorelineCollider
-  - 
+  - PassThroughDamageTrigger
   - 
   - 
   - 

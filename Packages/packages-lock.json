@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.dbrizov.naughtyattributes": {
+      "version": "file:com.dbrizov.naughtyattributes",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.unity.2d.sprite": {
       "version": "1.0.0",
       "depth": 0,
@@ -121,6 +127,13 @@
     },
     "com.unity.nuget.mono-cecil": {
       "version": "1.11.4",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.nuget.newtonsoft-json": {
+      "version": "3.2.1",
       "depth": 1,
       "source": "registry",
       "dependencies": {},
@@ -298,6 +311,21 @@
       "dependencies": {
         "com.unity.modules.ui": "1.0.0",
         "com.unity.modules.imgui": "1.0.0"
+      }
+    },
+    "dev.pugstorm.mod": {
+      "version": "file:dev.pugstorm.mod",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
+    "dev.pugstorm.scriptabledata": {
+      "version": "file:dev.pugstorm.scriptabledata",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.addressables": "1.21.21",
+        "com.unity.nuget.newtonsoft-json": "3.2.1"
       }
     },
     "dev.pugstorm.sprite": {

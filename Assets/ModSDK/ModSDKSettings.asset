@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   includeAllAssemblies: 1
   includeGameAssemblies:
-  - NaughtyAttributes.Core.dll
   - DomainReloadHelper.Runtime.dll
   - Pug.Base.dll
   - Pug.ECS.Authoring.dll
@@ -30,6 +29,11 @@ MonoBehaviour:
   - System.Text.Encodings.dll
   - System.Text.Json.dll
   - System.Runtime.CompilerServices.Unsafe.dll
+  - Facepunch.Steamworks.Posix.dll
+  - Facepunch.Steamworks.Win64.dll
+  - libsteam_api.dylib
+  - libsteam_api.so
+  - steam_api64.dll
   excludeGameAssemblies:
   - mscorlib.dll
   - netstandard.dll
@@ -47,6 +51,16 @@ MonoBehaviour:
   - ^MonoMod.
   - ^modio.
   - SpriteInstancing.dll
+  - PugSprite.dll
+  - ScriptableData.dll
+  - ^NaughtyAttributes
   sdkAssemblyPath: Assets/Plugins/CoreKeeperModSDK/
   gameAssemblyPath: Assets/Plugins/CoreKeeper/
-  initializedToVersion: 3
+  assetRipperAssembliesPath: ExportedProject/Assets/Plugins
+  assetRipperSpritePath: ExportedProject/Assets/Sprite
+  assetRipperTexture2DPath: ExportedProject/Assets/Texture2D
+  assetRipperArtPath: ExportedProject/Assets/Art
+  assetRipperEquipmentSlotPrefabsPath: ExportedProject/Assets/GameObject
+  assetRipperDataPath: ExportedProject/Assets/Data
+  assetRipperAddressablesCatalogPath: ExportedProject/Assets/StreamingAssets/aa/catalog.bin
+  initializedToVersion: 6
