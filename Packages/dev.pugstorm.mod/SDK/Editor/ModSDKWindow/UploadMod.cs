@@ -16,7 +16,8 @@ namespace PugMod
 		private class UploadMod
 		{
 			private DropdownField _modList;
-			private VisualElement _modLogo;
+            private VisualElement _uploadModForm;
+            private VisualElement _modLogo;
 			private Button _modLogoButton;
 			private Button _uploadButton;
 			private Button _goToProfileButton;
@@ -43,7 +44,8 @@ namespace PugMod
 			public void OnEnable(VisualElement root)
 			{
 				_modList = root.Q<DropdownField>("UploadModModList");
-				_modLogo = root.Q<VisualElement>("UploadModLogo");
+                _uploadModForm = root.Q<VisualElement>("UploadModForm");
+                _modLogo = root.Q<VisualElement>("UploadModLogo");
 				_modLogoButton = root.Q<Button>("UploadModLogoButton");
 				_uploadButton = root.Q<Button>("UploadModButton");
 				_goToProfileButton = root.Q<Button>("GoToProfileButton");
@@ -119,7 +121,8 @@ namespace PugMod
 					}
 
 					modIOSettings.summary = evt.newValue;
-				});
+                    EditorUtility.SetDirty(modIOSettings);
+                });
 
 				_modLogoButton.clicked += () =>
 				{
@@ -186,16 +189,6 @@ namespace PugMod
 						ShowError("Failed to load image");
 					}
 				};
-
-				_modLogoButton.RegisterCallback<MouseEnterEvent>(evt =>
-				{
-					_modLogo.style.unityBackgroundImageTintColor = new StyleColor(new UnityEngine.Color(1, 1, 1, 0.33f));
-				});
-
-				_modLogoButton.RegisterCallback<MouseLeaveEvent>(evt =>
-				{
-					_modLogo.style.unityBackgroundImageTintColor = UnityEngine.Color.white;
-				});
 
 				_createModProfileButton.clicked += () =>
 				{
@@ -478,32 +471,33 @@ namespace PugMod
 				return modBuilderSettings != null;
 			}
 
-			internal void UpdateSelection()
-			{
-				//_form.style.display = DisplayStyle.None;
-				_modLogo.style.backgroundImage = AssetDatabase.LoadAssetAtPath<Texture2D>(DEFAULT_LOGO_PATH);
-				_uploadButton.style.display = DisplayStyle.None;
-				_goToProfileButton.style.display = DisplayStyle.None;
-				_createModProfileButton.style.display = DisplayStyle.None;
-				_summaryTextField.style.display = DisplayStyle.None;
-				_modLogo.style.display = DisplayStyle.None;
+            internal void UpdateSelection()
+            {
+                _uploadModForm.style.display = DisplayStyle.None;
 
-				if (!GetModSettings(out var modBuilderSettings, out var modIOSettings))
-				{
-					EditorPrefs.DeleteKey(CHOSEN_MOD_KEY);
-					return;
-				}
+                _modLogo.style.backgroundImage = AssetDatabase.LoadAssetAtPath<Texture2D>(DEFAULT_LOGO_PATH);
+                _uploadButton.style.display = DisplayStyle.None;
+                _goToProfileButton.style.display = DisplayStyle.None;
+                _createModProfileButton.style.display = DisplayStyle.None;
+                _summaryTextField.style.display = DisplayStyle.None;
+                _modLogo.style.display = DisplayStyle.None;
 
-				EditorPrefs.SetString(CHOSEN_MOD_KEY, modBuilderSettings.metadata.name);
+                if (!GetModSettings(out var modBuilderSettings, out var modIOSettings))
+                {
+                    EditorPrefs.DeleteKey(CHOSEN_MOD_KEY);
+                    return;
+                }
 
-				_summaryTextField.style.display = DisplayStyle.Flex;
-				_summaryTextField.value = "Describe your mod here.\n";
-				_modLogo.style.display = DisplayStyle.Flex;
-				//_form.style.display = DisplayStyle.Flex;
-				_nameTextField.value = modBuilderSettings.metadata.name;
-				_createModProfileButton.style.display = DisplayStyle.Flex;
+                EditorPrefs.SetString(CHOSEN_MOD_KEY, modBuilderSettings.metadata.name);
 
-				if (modIOSettings == null || modIOSettings.modId <= 0)
+                _uploadModForm.style.display = DisplayStyle.Flex;
+
+                _summaryTextField.style.display = DisplayStyle.Flex;
+                _modLogo.style.display = DisplayStyle.Flex;
+                _nameTextField.value = modBuilderSettings.metadata.name;
+                _createModProfileButton.style.display = DisplayStyle.Flex;
+
+                if (modIOSettings == null || modIOSettings.modId <= 0)
 				{
 					return;
 				}

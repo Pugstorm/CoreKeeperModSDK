@@ -51,26 +51,24 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="UploadModView" style="visibility: visible; display: none;">
-                <ui:DropdownField label="Mod" index="-1" name="UploadModModList" style="margin-bottom: 10px;" />
-                <ui:VisualElement name="UploadModForm">
-                    <ui:VisualElement style="flex-direction: row;">
-                        <ui:VisualElement>
-                            <ui:TextField picking-mode="Ignore" label="ID" name="UploadModID" readonly="true" style="display: none;" />
-                            <ui:VisualElement style="flex-direction: column; justify-content: space-between; margin-bottom: 5px;">
-                                <ui:TextField picking-mode="Ignore" label="Name" name="UploadModName" readonly="false" style="display: none;" />
-                                <ui:TextField picking-mode="Ignore" name="UploadModSummary" multiline="true" value="Describe mod here with a short summary." style="margin-top: 5px; margin-bottom: 5px; width: 200px; height: auto; white-space: normal; min-height: 50px;" />
-                            </ui:VisualElement>
-                        </ui:VisualElement>
-                        <ui:VisualElement name="UploadModLogo" style="width: 80px; height: 45px; margin-left: 45px; margin-top: 7px;">
-                            <ui:Button display-tooltip-when-elided="true" tooltip="Press to change logo" name="UploadModLogoButton" style="display: flex; visibility: visible; height: 45px; width: 80px; opacity: 0;" />
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:TextField picking-mode="Ignore" label="URL" name="UploadModURL" readonly="false" style="display: none;" />
-                    <ui:TextField picking-mode="Ignore" label="Tags" name="UploadModTags" readonly="false" style="display: none;" />
-                    <ui:Button text="Register at mod.io" display-tooltip-when-elided="true" name="CreateModProfile" />
-                    <ui:Button text="Go to mod page" display-tooltip-when-elided="true" name="GoToProfileButton" />
-                    <ui:Button text="Upload to mod.io" display-tooltip-when-elided="true" name="UploadModButton" />
-                </ui:VisualElement>
+                <ui:DropdownField label="Select a Built Mod" index="-1" name="UploadModModList" style="margin-bottom: 10px;" />
+<ui:VisualElement name="UploadModForm">
+    <ui:VisualElement style="flex-direction: column;">
+        <ui:TextField picking-mode="Ignore" label="ID" name="UploadModID" readonly="true" style="display: none;" />
+        <ui:TextField picking-mode="Ignore" label="Name" name="UploadModName" readonly="false" style="display: none;" />
+        
+        <ui:TextField picking-mode="Ignore" label="Description" name="UploadModSummary" style="margin-bottom: 10px;" />
+        
+        <ui:Button text="Select Thumbnail for Mod.io" display-tooltip-when-elided="true" name="UploadModLogoButton" style="margin-top: 10px;" />
+        <ui:VisualElement name="UploadModLogo" style="width: 280px; height: 160px; margin-top: 12px; margin-bottom: 12px; -unity-background-scale-mode: scale-and-crop;" />
+    </ui:VisualElement>
+    
+    <ui:TextField picking-mode="Ignore" label="URL" name="UploadModURL" readonly="false" style="display: none;" />
+    <ui:TextField picking-mode="Ignore" label="Tags" name="UploadModTags" readonly="false" style="display: none;" />
+    <ui:Button text="Register at mod.io" display-tooltip-when-elided="true" name="CreateModProfile" />
+    <ui:Button text="Go to mod page" display-tooltip-when-elided="true" name="GoToProfileButton" />
+    <ui:Button text="Upload to mod.io" display-tooltip-when-elided="true" name="UploadModButton" />
+</ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="CreateModView" style="visibility: visible; display: none;">
                 <ui:DropdownField label="Mod Select -" index="-1" name="CreateModModList" choices="New Mod" style="margin-bottom: 2px; left: 0; width: 387px; height: 22px; margin-top: 4px; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; -unity-text-align: middle-right; margin-left: -48px; font-size: 12px; margin-right: 14px;" />

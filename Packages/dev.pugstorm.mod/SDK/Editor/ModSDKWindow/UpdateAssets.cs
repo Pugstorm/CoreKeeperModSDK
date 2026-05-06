@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -16,14 +17,6 @@ namespace PugMod
             private const string ASSET_RIPPER_PATH_KEY = "PugMod/SDKWindow/AssetRipperPath";
             public const string TEMP_IMPORT_PATH = "Assets/ImportedGameAssets_Temp";
 
-            private readonly List<string> _gameAssemblyMetaFilesToCopy = new List<string>
-            {
-                "Pug.Other.dll.meta",
-                "Pug.Base.dll.meta",
-                "Pug.Changelog.dll.meta",
-
-            };
-
             private readonly List<string> _sdkAssemblyMetaFilesToCopy = new List<string>
             {
                 "PugSprite.dll.meta",
@@ -33,6 +26,8 @@ namespace PugMod
             private DropdownField _assetRipperPathDropDown;
             private Button _browseButton;
             private Button _updateAssetsButton;
+
+            private static readonly Regex GUIDRegex = new(@"guid:\s*([a-f0-9]{32})", RegexOptions.Compiled);
 
             public void OnEnable(VisualElement root)
             {
@@ -147,7 +142,6 @@ namespace PugMod
                     if (Directory.Exists(Path.GetFullPath(TEMP_IMPORT_PATH)))
                     {
                         FileUtil.DeleteFileOrDirectory(TEMP_IMPORT_PATH);
-                        AssetDatabase.Refresh();
                     }
 
                     Directory.CreateDirectory(Path.GetFullPath(TEMP_IMPORT_PATH));
@@ -169,30 +163,74 @@ namespace PugMod
                 {
                     var foldersToFixGUIDFor = new List<string>
                     {
-						// Skip "fallback" paths like Texture2D, GameObject or we might get duplicates
-						Path.Combine(TEMP_IMPORT_PATH, "Data" ),
-                        Path.Combine(TEMP_IMPORT_PATH, "Art" ),
-                        Path.Combine(TEMP_IMPORT_PATH, "Prefabs" ),
+                        Path.Combine(TEMP_IMPORT_PATH, "Data"),
+                        Path.Combine(TEMP_IMPORT_PATH, "Art"),
+                        Path.Combine(TEMP_IMPORT_PATH, "Prefabs"),
+                        Path.Combine(TEMP_IMPORT_PATH, "Shader"),
+                        Path.Combine(TEMP_IMPORT_PATH, "Material"),
                     };
 
                     foreach (var folder in foldersToFixGUIDFor)
                     {
                         AddressablesGUIDRestorer.RestoreGUIDsFromAddressablesCatalog(
-                            Path.Combine(assetRipperPath, ImporterSettings.Instance.assetRipperAddressablesCatalogPath), folder);
+                        Path.Combine(assetRipperPath, ImporterSettings.Instance.assetRipperAddressablesCatalogPath), folder);
                     }
 
+                    var scriptRemaps = RemapScripts();
+
+                    string[] prefabsToRemap = Directory.GetFiles(TEMP_IMPORT_PATH, "*.*", SearchOption.AllDirectories).Where(prefab => prefab.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase)).ToArray();
+
+                    foreach (string prefab in prefabsToRemap)
+                    {
+                        string prefabYAML = File.ReadAllText(prefab);
+                        bool modifiedPrefab = false;
+
+                        foreach (var remap in scriptRemaps)
+                        {
+                            if (prefabYAML.Contains(remap.Key))
+                            {
+                                prefabYAML = prefabYAML.Replace(remap.Key, remap.Value);
+                                modifiedPrefab = true;
+                            }
+                        }
+
+                        if (modifiedPrefab)
+                        {
+                            File.WriteAllText(prefab, prefabYAML);
+                        }
+                    }
                     EditorPrefs.SetBool(PENDING_PACKAGING_FLAG, true);
                 }
                 catch (Exception ex)
                 {
                     EditorPrefs.DeleteKey(PENDING_PACKAGING_FLAG);
-                    ShowError($"An error occurred during addressables guid parsing: {ex.Message}");
+                    ShowError($"An error occurred during asset processing: {ex.Message}");
                 }
                 finally
                 {
                     AssetDatabase.StopAssetEditing();
-                    AssetDatabase.Refresh();
+                    AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
                 }
+            }
+            private Dictionary<string, string> RemapScripts() // For non-compiled assemblies we can't import their .dll.meta files to fix references, so we do this instead.
+            {
+                return new Dictionary<string, string>()
+                {
+                    // GhostAuthoringComponent
+                    { "fileID: 1928767635, guid: ec628a550dac988fecc0ebcb3605f68c", "fileID: 11500000, guid: 7c79d771cedb4794bf100ce60df5f764" },
+                    
+                    // PhysicsShapeAuthoring
+                    { "fileID: -2046304025, guid: e9c46758b721c46dac5f2259b9351b17", "fileID: 11500000, guid: b275e5f92732148048d7b77e264ac30e" },
+                    
+                    // LinkedEntityGroupAuthoring
+                    { "fileID: 1626740080, guid: fbbadae9385c14e32dcf65cf1eba05dd", "fileID: 11500000, guid: c16549610bfe4458aa9389201d072bb6" },
+
+                    // Physics Body
+                    { "fileID: -327389624, guid: e9c46758b721c46dac5f2259b9351b17", "fileID: 11500000, guid: ccea9ea98e38942e0b0938c27ed1903e" },
+
+                    // Ghost Authoring Inspection Component
+                    { "fileID: 2065810304, guid: ec628a550dac988fecc0ebcb3605f68c", "fileID: 11500000, guid: bfdaa6c06fe64fbda2b16e07a4ee0b25" },
+                };
             }
 
             private void CopyAssetFolders(string assetRipperPath, string destinationRootRelative)
@@ -209,7 +247,9 @@ namespace PugMod
                     { settings.assetRipperArtPath, "Art" },
                     { settings.assetRipperSpritePath, "Sprite" },
                     { settings.assetRipperTexture2DPath, "Texture2D" },
-                    { settings.assetRipperEquipmentSlotPrefabsPath, "Prefabs" },
+                    { settings.assetRipperPrefabsPath, "Prefabs" },
+                    { settings.assetRipperShadersPath, "Shader" },
+                    { settings.assetRipperMaterialsPath, "Material" },
                 };
 
                 foreach (var folderPair in foldersToCopy)
@@ -249,41 +289,8 @@ namespace PugMod
                                 }
                             }
                         }
-
-                        if (folderPair.Value == "Texture2D")
-                        {
-                            foreach (var texture in Directory.GetFiles(destPath, "*.*", SearchOption.AllDirectories))
-                            {
-                                if (texture.EndsWith(".meta"))
-                                {
-                                    continue;
-                                }
-
-                                var textureName = Path.GetFileNameWithoutExtension(texture);
-
-                                if (textureName.EndsWith("_0") || textureName.EndsWith("_1"))
-                                {
-                                    var newTexturePath = Path.Combine(Path.GetDirectoryName(texture), textureName.Substring(0, textureName.Length - 2) + Path.GetExtension(texture));
-                                    var textureMetaFile = texture + ".meta";
-                                    var newMetaPath = newTexturePath + ".meta";
-
-                                    if (File.Exists(newTexturePath))
-                                    {
-                                        File.Delete(newTexturePath);
-                                    }
-
-                                    if (File.Exists(newMetaPath))
-                                    {
-                                        File.Delete(newMetaPath);
-                                    }
-
-                                    File.Move(texture, newTexturePath);
-
-                                    if (File.Exists(textureMetaFile)) File.Move(textureMetaFile, newMetaPath);
-                                }
-                            }
-                        }
                     }
+
                     else
                     {
                         Debug.Log($"Directory not found skipping {sourcePath}");
@@ -299,6 +306,7 @@ namespace PugMod
                 var auxiliaryFilesPath = Path.Combine(assetRipperPath, settings.assetRipperAssembliesPath);
                 if (!Directory.Exists(auxiliaryFilesPath)) return;
 
+                var guidRemap = new Dictionary<string, string>();
                 var sdkDestinationPath = settings.sdkAssemblyPath;
                 foreach (var metaFileName in _sdkAssemblyMetaFilesToCopy)
                 {
@@ -306,19 +314,105 @@ namespace PugMod
                     var destPath = Path.Combine(sdkDestinationPath, metaFileName);
                     if (File.Exists(sourcePath))
                     {
+                        var oldGUID = GetGUIDFromMetaFile(destPath);
                         File.Copy(sourcePath, destPath, true);
+                        var newGUID = GetGUIDFromMetaFile(destPath);
+
+                        if (!string.IsNullOrEmpty(oldGUID) && !string.IsNullOrEmpty(newGUID) && oldGUID != newGUID)
+                        {
+                            guidRemap[oldGUID] = newGUID;
+                        }
                     }
                 }
 
                 var gameDestinationPath = settings.gameAssemblyPath;
-                foreach (var metaFileName in _gameAssemblyMetaFilesToCopy)
+                if (Directory.Exists(gameDestinationPath))
                 {
-                    var sourcePath = Path.Combine(auxiliaryFilesPath, metaFileName);
-                    var destPath = Path.Combine(gameDestinationPath, metaFileName);
-                    if (File.Exists(sourcePath))
+                    string[] gameDlls = Directory.GetFiles(gameDestinationPath, "*.dll");
+
+                    foreach (string dllPath in gameDlls)
                     {
-                        File.Copy(sourcePath, destPath, true);
+                        string metaFileName = Path.GetFileName(dllPath) + ".meta";
+                        var sourcePath = Path.Combine(auxiliaryFilesPath, metaFileName);
+                        var destPath = Path.Combine(gameDestinationPath, metaFileName);
+
+                        if (File.Exists(sourcePath))
+                        {
+                            var oldGuid = GetGUIDFromMetaFile(destPath);
+                            File.Copy(sourcePath, destPath, true);
+                            var newGuid = GetGUIDFromMetaFile(destPath);
+
+                            if (!string.IsNullOrEmpty(oldGuid) && !string.IsNullOrEmpty(newGuid) && oldGuid != newGuid)
+                                guidRemap[oldGuid] = newGuid;
+                        }
                     }
+                }
+
+                if (guidRemap.Count > 0)
+                {
+                    RemapGUIDs("Assets", guidRemap);
+                }
+            }
+
+            public static string GetGUIDFromMetaFile(string metaFilePath)
+            {
+                if (!File.Exists(metaFilePath))
+                {
+                    return null;
+                }
+
+                foreach (var line in File.ReadLines(metaFilePath))
+                {
+                    var match = GUIDRegex.Match(line);
+
+                    if (match.Success)
+                    {
+                        return match.Groups[1].Value;
+                    }
+                }
+                return null;
+            }
+
+            public static void RemapGUIDs(string rootFolder, Dictionary<string, string> guidRemap)
+            {
+                if (guidRemap == null || guidRemap.Count == 0)
+                {
+                    return;
+                }
+
+                var importedAssets = Directory.GetFiles(rootFolder, "*.*", SearchOption.AllDirectories);
+                int guidsSwapped = 0;
+
+                foreach (var asset in importedAssets)
+                {
+                    if (!asset.EndsWith(".prefab", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var yaml = File.ReadAllText(asset);
+                    bool swappedGUID = false;
+
+                    foreach (var guid in guidRemap)
+                    {
+                        var newYaml = yaml.Replace($"guid: {guid.Key}", $"guid: {guid.Value}");
+                        if (newYaml != yaml)
+                        {
+                            yaml = newYaml;
+                            swappedGUID = true;
+                        }
+                    }
+
+                    if (swappedGUID)
+                    {
+                        File.WriteAllText(asset, yaml);
+                        guidsSwapped++;
+                    }
+                }
+
+                if (guidsSwapped > 0)
+                {
+                    AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
                 }
             }
 
