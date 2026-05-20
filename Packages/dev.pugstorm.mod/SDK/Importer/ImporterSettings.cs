@@ -53,6 +53,8 @@ namespace PugMod
         public string assetRipperPrefabsPath = "ExportedProject/Assets/GameObject";
         public string assetRipperShadersPath = "ExportedProject/Assets/Shader";
         public string assetRipperMaterialsPath = "ExportedProject/Assets/Material";
+        public string assetRipperAnimationClipPath = "ExportedProject/Assets/AnimationClip";
+        public string assetRipperAnimatorControllerPath = "ExportedProject/Assets/AnimatorController";
 
         public string assetRipperAddressablesCatalogPath = "ExportedProject/Assets/StreamingAssets/aa/catalog.bin";
 

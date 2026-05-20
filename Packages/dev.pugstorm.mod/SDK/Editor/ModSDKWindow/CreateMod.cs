@@ -88,7 +88,9 @@ namespace PugMod
 					_modList.index = 0;
 				}
 
-				_hintName = _modNameField.value;
+                UpdateSelection();
+
+                _hintName = _modNameField.value;
 
 				_createButton.clicked += () =>
 				{

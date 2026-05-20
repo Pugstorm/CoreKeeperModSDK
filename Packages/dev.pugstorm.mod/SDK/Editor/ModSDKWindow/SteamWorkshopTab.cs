@@ -279,9 +279,52 @@ namespace PugMod
 				return true;
 			}
 
+            private string GetDescriptionFromFile()
+            {
+                var modName = _steamModList.value;
+                var modBuilderSettings = _modSettings.FirstOrDefault(x => x.metadata.name == modName);
+                if (modBuilderSettings != null && !string.IsNullOrEmpty(modBuilderSettings.modPath))
+                {
+                    var descriptionTxtPath = Path.Combine(modBuilderSettings.modPath, "description.txt");
+
+                    if (File.Exists(descriptionTxtPath))
+                    {
+						return File.ReadAllText(descriptionTxtPath);
+                    }
+                }
+
+                return null;
+            }
+
+            private string SetDescription()
+			{
+				if (!string.IsNullOrEmpty(_summaryTextField.value))
+				{
+					return _summaryTextField.value;
+				}
+
+				var fileDescription = GetDescriptionFromFile();
+
+				if (!string.IsNullOrEmpty(fileDescription))
+				{
+					return fileDescription;
+				}
+
+				return "";
+			}
+
 			private void UploadOrUpdateMod()
 			{
-				UpdateManifestDisplayName(_selectedWorkshopPath, _steamWorkshopFolderName.value);
+                if (string.IsNullOrEmpty(_selectedWorkshopPath))
+                {
+                    ShowError($"No built mod found for: {_steamWorkshopFolderName.value}. \nPlease build your mod first.");
+                    return;
+                }
+
+                if (!string.IsNullOrEmpty(_steamWorkshopFolderName.value))
+				{
+					UpdateManifestDisplayName(_selectedWorkshopPath, _steamWorkshopFolderName.value);
+				}
 
 				if (ModHasBeenUploadedToSteamWorkshop())
 				{
@@ -375,11 +418,21 @@ namespace PugMod
 				}
 				try
 				{
+					var description = SetDescription();
+
 					var mod = Steamworks.Ugc.Editor.NewCommunityFile
-								.WithTitle(_steamWorkshopFolderName.value)
-								.WithDescription(_summaryTextField.value)
 								.WithContent(_selectedWorkshopPath)
 								.WithPreviewFile(_thumbnailPath);
+
+					if (!string.IsNullOrEmpty(_steamWorkshopFolderName.value))
+					{
+						mod = mod.WithTitle(_steamWorkshopFolderName.value);
+					}
+
+					if (!string.IsNullOrEmpty(description))
+					{
+						mod = mod.WithDescription(description);
+					}
 
 					foreach (var tag in _steamWorkshopTagsToList)
 					{
@@ -400,6 +453,7 @@ namespace PugMod
 					{
 						EditorUtility.DisplayDialog("the mod was uploaded via steam workshop!", $"published file ID: {result.FileId}.", "OK.");//could add more info here next to the published file ID
 						SaveSteamWorkshopSettings(result.FileId, _steamWorkshopFolderName.value, _selectedWorkshopPath, _steamWorkshopTagsToList);
+						_steamWorkshopFileID.value = Convert.ToString(result.FileId);
 						RefreshSteamWorkshopUploadButton();
 					}
 					else
@@ -420,21 +474,38 @@ namespace PugMod
 					return;
 				}
 
-				var steamWorkshopModSettings = _steamWorkshopModSettings.FirstOrDefault(x => x.fileId == Convert.ToUInt64(_steamWorkshopFileID.value));
-
-				if (steamWorkshopModSettings == null || steamWorkshopModSettings.modOwner != SteamApps.AppOwner.ToString())
-				{
-					ShowError("you don't own this SteamWorkshop item.");
-					return;
-				}
-
 				try
 				{
-					var mod = new Steamworks.Ugc.Editor(Convert.ToUInt64(_steamWorkshopFileID.value))
-								.WithTitle(_steamWorkshopFolderName.value)
+					var fileId = Convert.ToUInt64(_steamWorkshopFileID.value);
+					var fileInfo = await Steamworks.Ugc.Item.GetAsync(fileId);
+
+					if (!fileInfo.HasValue)
+					{
+						ShowError("Could not find this Workshop item. Please verify the File ID is correct.");
+						return;
+					}
+
+					if (fileInfo.Value.Owner.Id != SteamClient.SteamId)
+					{
+						ShowError("You don't own this Steam Workshop item.");
+						return;
+					}
+
+					var description = SetDescription();
+
+					var mod = new Steamworks.Ugc.Editor(fileId)
 								.WithContent(_selectedWorkshopPath)
-								.WithDescription(_summaryTextField.value)
 								.WithPreviewFile(_thumbnailPath);
+
+					if (!string.IsNullOrEmpty(_steamWorkshopFolderName.value))
+					{
+						mod = mod.WithTitle(_steamWorkshopFolderName.value);
+					}
+
+					if (!string.IsNullOrEmpty(description))
+					{
+						mod = mod.WithDescription(description);
+					}
 
 					foreach (var tag in _steamWorkshopTagsToList)
 					{
@@ -485,7 +556,7 @@ namespace PugMod
 					_steamWorkshopModSettings.Add(steamSettings);
 				}
 				steamSettings.fileId = FileID;
-				steamSettings.tags = Tags;
+				steamSettings.tags = new List<string>(Tags);
 				steamSettings.modName = ModName;
 				steamSettings.selectedPath = _selectedWorkshopPath;
 				steamSettings.modOwner = SteamApps.AppOwner.ToString();

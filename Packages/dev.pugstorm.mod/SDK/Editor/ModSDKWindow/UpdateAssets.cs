@@ -168,6 +168,8 @@ namespace PugMod
                         Path.Combine(TEMP_IMPORT_PATH, "Prefabs"),
                         Path.Combine(TEMP_IMPORT_PATH, "Shader"),
                         Path.Combine(TEMP_IMPORT_PATH, "Material"),
+                        Path.Combine(TEMP_IMPORT_PATH, "AnimationClip"),
+                        Path.Combine(TEMP_IMPORT_PATH, "AnimatorController"),
                     };
 
                     foreach (var folder in foldersToFixGUIDFor)
@@ -250,6 +252,8 @@ namespace PugMod
                     { settings.assetRipperPrefabsPath, "Prefabs" },
                     { settings.assetRipperShadersPath, "Shader" },
                     { settings.assetRipperMaterialsPath, "Material" },
+                    { settings.assetRipperAnimationClipPath, "AnimationClip" },
+                    { settings.assetRipperAnimatorControllerPath, "AnimatorController" },
                 };
 
                 foreach (var folderPair in foldersToCopy)
