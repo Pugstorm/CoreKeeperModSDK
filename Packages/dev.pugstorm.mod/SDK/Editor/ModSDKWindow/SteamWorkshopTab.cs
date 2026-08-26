@@ -187,11 +187,12 @@ namespace PugMod
 				.Select(guid => AssetDatabase.GUIDToAssetPath(guid))
 				.Select(path => AssetDatabase.LoadAssetAtPath<SteamWorkshopModSettings>(path)));
 
-				var steamWorkshopModSettings = _steamWorkshopModSettings.FirstOrDefault(x => x.modName == modName);
+				var settingsByName = _steamWorkshopModSettings.FirstOrDefault(x => x.modName == modName);
+				var steamWorkshopModSettings = settingsByName != null ? settingsByName : FindLegacySettingsByPath(modName);
 
 				if (steamWorkshopModSettings != null)
 				{
-					SelectSteamWorkshopModSettings(modName);
+					SelectSteamWorkshopModSettings(steamWorkshopModSettings);
 				}
 				else
 				{
@@ -361,10 +362,43 @@ namespace PugMod
 				}
 			}
 
-			private void SelectSteamWorkshopModSettings(string modName)
+			// Recovers settings written before the title field existed, whose modName
+			// holds the Workshop title: their selectedPath still ends in the mod's
+			// internal name, and the next upload rewrites modName and title. Comparing
+			// the last path segment avoids matching a mod whose name is merely a suffix
+			// of the stored folder name. UpdateSelectedWorkshopPath still selects that
+			// path with EndsWith, so such a pair can already have the wrong path stored.
+			private SteamWorkshopModSettings FindLegacySettingsByPath(string modName)
 			{
-				var steamWorkshopModSettings = _steamWorkshopModSettings.FirstOrDefault(x => x.modName == modName);
+				// Steam file ids grow over time, so of several candidates the newest is the
+				// better guess, and ordering makes the choice reproducible where the asset
+				// database's own order is not.
+				var candidates = _steamWorkshopModSettings.Where(x =>
+					string.IsNullOrEmpty(x.title) &&
+					!string.IsNullOrEmpty(x.selectedPath) &&
+					x.selectedPath.Split('/', '\\').Last() == modName).OrderByDescending(x => x.fileId).ToList();
 
+				if (candidates.Count == 0)
+				{
+					return null;
+				}
+
+				// A mod that hit this bug can own more than one settings asset, because every
+				// upload that lost its file id created another Workshop item.
+				if (candidates.Count > 1)
+				{
+					Debug.LogWarning($"Found {candidates.Count} Workshop settings without a title for '{modName}'. Using file id {candidates[0].fileId} ({AssetDatabase.GetAssetPath(candidates[0])}), ignoring {string.Join(", ", candidates.Skip(1).Select(x => x.fileId))}. Check the File ID before uploading.");
+				}
+				else
+				{
+					Debug.Log($"Recovered Workshop settings for '{modName}' from {AssetDatabase.GetAssetPath(candidates[0])}.");
+				}
+
+				return candidates[0];
+			}
+
+			private void SelectSteamWorkshopModSettings(SteamWorkshopModSettings steamWorkshopModSettings)
+			{
 				_steamWorkshopFileID.value = Convert.ToString(steamWorkshopModSettings.fileId);
 				// Settings with no recorded title keep it in modName.
 				var title = steamWorkshopModSettings.title;
@@ -549,7 +583,7 @@ namespace PugMod
 				// would leave the settings unreachable by either lookup, so take it from the
 				// asset this file id already belongs to. Settings that still keep their title
 				// in modName are left alone: adopting that title as the name would cost them
-				// the empty title that identifies them as predating this field.
+				// the empty title that the recovery above identifies them by.
 				if (string.IsNullOrEmpty(ModName) && existingSettings != null && !string.IsNullOrEmpty(existingSettings.title))
 				{
 					ModName = existingSettings.modName;

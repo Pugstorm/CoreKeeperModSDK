@@ -17,8 +17,8 @@ namespace PugMod
 		// The mod's internal name, matching ModMetadata.name. The Steam Workshop tab
 		// looks up settings by this field, so it must not hold a display title.
 		public string modName;
-		// The Workshop title, which may differ from modName. Empty in settings
-		// written before this field existed.
+		// The Workshop title, which may differ from modName. Empty in settings written
+		// before this field existed, which is how the tab recognises and repairs them.
 		public string title;
 		public string selectedPath;
 		public List<string> tags = new();
