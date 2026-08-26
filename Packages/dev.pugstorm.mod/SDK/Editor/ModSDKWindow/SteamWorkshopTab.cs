@@ -366,7 +366,9 @@ namespace PugMod
 				var steamWorkshopModSettings = _steamWorkshopModSettings.FirstOrDefault(x => x.modName == modName);
 
 				_steamWorkshopFileID.value = Convert.ToString(steamWorkshopModSettings.fileId);
-				_steamWorkshopFolderName.value = steamWorkshopModSettings.modName;
+				// Settings with no recorded title keep it in modName.
+				var title = steamWorkshopModSettings.title;
+				_steamWorkshopFolderName.value = string.IsNullOrEmpty(title) ? steamWorkshopModSettings.modName : title;
 				_selectedWorkshopPath = steamWorkshopModSettings.selectedPath;
 				_steamWorkshopTagsToList.Clear();
 				_steamWorkshopTagsToList.AddRange(steamWorkshopModSettings.tags);
@@ -452,7 +454,7 @@ namespace PugMod
 					if (result.Success)
 					{
 						EditorUtility.DisplayDialog("the mod was uploaded via steam workshop!", $"published file ID: {result.FileId}.", "OK.");//could add more info here next to the published file ID
-						SaveSteamWorkshopSettings(result.FileId, _steamWorkshopFolderName.value, _selectedWorkshopPath, _steamWorkshopTagsToList);
+						SaveSteamWorkshopSettings(result.FileId, _steamModList.value, _steamWorkshopFolderName.value, _selectedWorkshopPath, _steamWorkshopTagsToList);
 						_steamWorkshopFileID.value = Convert.ToString(result.FileId);
 						RefreshSteamWorkshopUploadButton();
 					}
@@ -525,7 +527,7 @@ namespace PugMod
 					if (result.Success)
 					{
 						EditorUtility.DisplayDialog("the mod was updated successfully", $"updated file id: {result.FileId}.", "OK.");//could add more info here next to the published file ID
-						SaveSteamWorkshopSettings(result.FileId, _steamWorkshopFolderName.value, _selectedWorkshopPath, _steamWorkshopTagsToList);
+						SaveSteamWorkshopSettings(result.FileId, _steamModList.value, _steamWorkshopFolderName.value, _selectedWorkshopPath, _steamWorkshopTagsToList);
 					}
 					else
 					{
@@ -537,10 +539,27 @@ namespace PugMod
 					ShowError($"an error occurred: {ex.Message}");
 				}
 			}
-			private void SaveSteamWorkshopSettings(ulong FileID, string ModName, string SelectedPath, List<string> Tags)
+			private void SaveSteamWorkshopSettings(ulong FileID, string ModName, string Title, string SelectedPath, List<string> Tags)
 			{
 				SteamWorkshopModSettings steamSettings;
 				var existingSettings = _steamWorkshopModSettings.FirstOrDefault(x => x.fileId == FileID);
+
+				// The mod dropdown reads null when its selection is out of step with the
+				// stored mod preference, and when no mod exists at all. Saving that name
+				// would leave the settings unreachable by either lookup, so take it from the
+				// asset this file id already belongs to. Settings that still keep their title
+				// in modName are left alone: adopting that title as the name would cost them
+				// the empty title that identifies them as predating this field.
+				if (string.IsNullOrEmpty(ModName) && existingSettings != null && !string.IsNullOrEmpty(existingSettings.title))
+				{
+					ModName = existingSettings.modName;
+				}
+
+				if (string.IsNullOrEmpty(ModName))
+				{
+					ShowError($"No mod is selected, so the Workshop settings were not saved. The published file id is {FileID}. Pick the mod in the dropdown, put that id in the File ID field, and upload again to store it.");
+					return;
+				}
 
 				if (_steamWorkshopModSettings == null)
 				{
@@ -558,6 +577,7 @@ namespace PugMod
 				steamSettings.fileId = FileID;
 				steamSettings.tags = new List<string>(Tags);
 				steamSettings.modName = ModName;
+				steamSettings.title = Title;
 				steamSettings.selectedPath = _selectedWorkshopPath;
 				steamSettings.modOwner = SteamApps.AppOwner.ToString();
 				//steamSettings.Change(SteamApps.AppOwner.ToString()); if we want to serialize modOnwer ID but don't want it visible in inspector, uncomment Change method first in SteamWorkshopSettings.cs
