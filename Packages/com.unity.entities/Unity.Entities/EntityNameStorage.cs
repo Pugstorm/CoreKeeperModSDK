@@ -53,7 +53,7 @@ namespace Unity.Entities
         internal static readonly SharedStatic<State> s_State = SharedStatic<State>.GetOrCreate<EntityNameStorage>();
 
 
-        internal const int kMaxEntries = 16 << 10;
+        internal const int kMaxEntries = 64 << 10;
         internal const int kMaxChars = kMaxEntries * 64;
         internal const int kErrorExceedMaxEntryCapacity = -1;
 

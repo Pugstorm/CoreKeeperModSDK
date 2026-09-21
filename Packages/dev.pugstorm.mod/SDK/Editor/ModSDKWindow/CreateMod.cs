@@ -21,6 +21,7 @@ namespace PugMod
 			private ListView _modDependencyList;
 			private Toggle _requiredMultiplayerToggle;
 			private Button _installModButton;
+			private Button _uninstallModButton;
 			private Button _buildModButton;
 			private Button _openLastBuildFolder;
 
@@ -62,6 +63,7 @@ namespace PugMod
 				_modDependencyList = root.Q<ListView>("ModDependencies");
 				_requiredMultiplayerToggle = root.Q<Toggle>("RequiredOnServerAndClient");
 				_installModButton = root.Q<Button>("InstallModButton");
+				_uninstallModButton = root.Q<Button>("UninstallModButton");
 				_buildModButton = root.Q<Button>("BuildingButton");
 				_openLastBuildFolder = root.Q<Button>("OpenLastBuildFolderButton");
 
@@ -106,7 +108,12 @@ namespace PugMod
 				};
 
 				_modDependencyList.fixedItemHeight = 40;
-				_modDependencyList.makeItem = () => modDependencyEntryTemplate.CloneTree();
+				_modDependencyList.makeItem = () =>
+				{
+					var item = modDependencyEntryTemplate.CloneTree();
+					ApplyTextInputCaretTheme(item);
+					return item;
+				};
 				_modDependencyList.bindItem = (element, index) =>
 				{
 					if (_dependencies[index] == null)
@@ -202,44 +209,13 @@ namespace PugMod
 
 				_installModButton.clicked += () =>
 				{
-					if (_modList.choices == null || _modList.index < 0 || _modList.index >= _modList.choices.Count)
+					if (!TryGetSelectedModSettings(out var modSettings))
 					{
-						ShowError("No mod chosen");
 						return;
 					}
 
-					var modSettings = _modSettings.Find(x => x.metadata.name.Equals(_modList.choices[_modList.index]));
-
-					if (modSettings == null)
+					if (!TryGetModsPath(out var path))
 					{
-						ShowError("Can't find mod settings");
-						return;
-					}
-
-					if (!EditorPrefs.HasKey(GAME_INSTALL_PATH_KEY))
-					{
-						ShowError("You will need to choose the game install path in \"Find game files\" tab");
-						return;
-					}
-
-					var path = EditorPrefs.GetString(GAME_INSTALL_PATH_KEY);
-
-					if (Directory.Exists(Path.Combine(path, "CoreKeeper_Data")))
-					{
-						path = Path.Combine(path, "CoreKeeper_Data", "StreamingAssets", "Mods");
-					}
-					else if (Directory.Exists(Path.Combine(path, "CoreKeeperServer_Data")))
-					{
-						path = Path.Combine(path, "CoreKeeperServer_Data", "StreamingAssets", "Mods");
-					}
-					else if (Directory.Exists(Path.Combine(path, "Assets")))
-					{
-						// Installing to another Unity project
-						path = Path.Combine(path, "Assets", "StreamingAssets", "Mods");
-					}
-					else
-					{
-						ShowError($"Can't find game at {path}");
 						return;
 					}
 
@@ -262,6 +238,35 @@ namespace PugMod
 
 					_lastBuildPath = installModPath;
 					AddPath(_lastBuildPath);
+				};
+
+				_uninstallModButton.clicked += () =>
+				{
+					if (!TryGetSelectedModSettings(out var modSettings))
+					{
+						return;
+					}
+
+					if (!TryGetModsPath(out var path))
+					{
+						return;
+					}
+
+					string installModPath = Path.Combine(path, modSettings.metadata.name);
+
+					if (!Directory.Exists(installModPath))
+					{
+						ShowError($"Mod {modSettings.metadata.name} is not installed at {installModPath}");
+						return;
+					}
+
+					if (!EditorUtility.DisplayDialog("Uninstall", $"Uninstall mod {modSettings.metadata.name} from {installModPath}?", "Uninstall", "Cancel"))
+					{
+						return;
+					}
+
+					Directory.Delete(installModPath, true);
+					EditorUtility.DisplayDialog("Uninstall", $"Mod {modSettings.metadata.name} successfully uninstalled from {installModPath}", "OK");
 				};
 
 				_openLastBuildFolder.clicked += () =>
@@ -392,6 +397,60 @@ namespace PugMod
 					EditorUtility.SetDirty(modPaths);
 					AssetDatabase.SaveAssetIfDirty(modPaths);
 				}
+			}
+
+			private bool TryGetSelectedModSettings(out ModBuilderSettings modSettings)
+			{
+				if (_modList.choices == null || _modList.index < 0 || _modList.index >= _modList.choices.Count)
+				{
+					ShowError("No mod chosen");
+					modSettings = null;
+					return false;
+				}
+
+				modSettings = _modSettings.Find(x => x.metadata.name.Equals(_modList.choices[_modList.index]));
+
+				if (modSettings == null)
+				{
+					ShowError("Can't find mod settings");
+					return false;
+				}
+
+				return true;
+			}
+
+			private bool TryGetModsPath(out string path)
+			{
+				if (!EditorPrefs.HasKey(GAME_INSTALL_PATH_KEY))
+				{
+					ShowError("You will need to choose the game install path in \"Find game files\" tab");
+					path = null;
+					return false;
+				}
+
+				path = EditorPrefs.GetString(GAME_INSTALL_PATH_KEY);
+
+				if (Directory.Exists(Path.Combine(path, "CoreKeeper_Data")))
+				{
+					path = Path.Combine(path, "CoreKeeper_Data", "StreamingAssets", "Mods");
+					return true;
+				}
+
+				if (Directory.Exists(Path.Combine(path, "CoreKeeperServer_Data")))
+				{
+					path = Path.Combine(path, "CoreKeeperServer_Data", "StreamingAssets", "Mods");
+					return true;
+				}
+
+				if (Directory.Exists(Path.Combine(path, "Assets")))
+				{
+					// Installing to another Unity project
+					path = Path.Combine(path, "Assets", "StreamingAssets", "Mods");
+					return true;
+				}
+
+				ShowError($"Can't find game at {path}");
+				return false;
 			}
 
 			private void SyncDependencyListToScriptableObject()

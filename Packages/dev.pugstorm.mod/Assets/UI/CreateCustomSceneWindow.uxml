@@ -1,0 +1,12 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement style="padding: 15px;">
+        <ui:Label text="Create Custom Scene" style="font-size: 16px; -unity-font-style: bold; margin-bottom: 10px;" />
+        <ui:VisualElement name="warningContainer" />
+        <ui:VisualElement name="mainContent">
+            <ui:DropdownField name="modFolderDropdown" label="Mod Folder" />
+            <ui:TextField name="customSceneNameField" label="Scene Name" />
+            <ui:VisualElement style="height: 20px;" />
+            <ui:Button name="createSceneButton" text="Create Custom Scene" style="height: 30px;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

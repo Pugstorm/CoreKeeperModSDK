@@ -79,9 +79,12 @@ namespace PugMod
 				{
 #if PUG_MOD_SDK
 					PugMod.ImporterWindow.UpdateFromGamePath(ImporterSettings.Instance, _gamePathDropDown.text, out _);
+					var target = UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
+					if (!PlayerSettings.GetScriptingDefineSymbols(target).Contains("USE_PUG_OTHER")) PlayerSettings.SetScriptingDefineSymbols(target, PlayerSettings.GetScriptingDefineSymbols(target) + ";USE_PUG_OTHER");
 #else
 					Debug.Log($"Should have updated SDK files from {_gamePathDropDown.text}, skipping since not SDK project");
 #endif
+					GameVersionTagRegistry.TryRegisterFromGamePath(_gamePathDropDown.text);
 				};
 			}
 

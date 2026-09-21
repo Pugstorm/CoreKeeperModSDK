@@ -1,4 +1,4 @@
-﻿#if PUG_USE_MODIO
+#if PUG_USE_MODIO
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,10 +28,13 @@ namespace PugMod
 
 			private TextField _idTextField;
 			private TextField _nameTextField;
+			private TextField _titleTextField;
 			private TextField _summaryTextField;
 
-			private string _summaryPrompt;
-			private string _cachedModPath;
+			private DropdownField _tagsDropdown;
+			private DropdownField _visibilityDropdown;
+			private VisualElement _gameVersionTagsList;
+			private List<string> _tagsToList = new();
 
 			public void Refresh()
 			{
@@ -53,9 +56,42 @@ namespace PugMod
 
 				_idTextField = root.Q<TextField>("UploadModID");
 				_nameTextField = root.Q<TextField>("UploadModName");
+				_titleTextField = root.Q<TextField>("UploadModTitle");
 				_summaryTextField = root.Q<TextField>("UploadModSummary");
 
-				_summaryPrompt = _summaryTextField.value;
+				_visibilityDropdown = root.Q<DropdownField>("UploadModVisibility");
+				_visibilityDropdown.choices = new List<string> { "Public", "Hidden" };
+				_visibilityDropdown.SetValueWithoutNotify("Public");
+
+				var tagTypeField = root.Q<EnumField>("UploadModTagType");
+				tagTypeField.Init(TagType.Category);
+
+				_tagsDropdown = root.Q<DropdownField>("UploadModTagsDropdown");
+				_gameVersionTagsList = root.Q<VisualElement>("UploadModTagsList");
+
+				UpdateTagChoices(TagType.Category);
+
+				tagTypeField.RegisterValueChangedCallback(evt =>
+				{
+					UpdateTagChoices((TagType)evt.newValue);
+				});
+
+				_tagsDropdown.RegisterValueChangedCallback(evt =>
+				{
+					if (string.IsNullOrWhiteSpace(evt.newValue))
+					{
+						return;
+					}
+
+					if (_tagsToList.Contains(evt.newValue, StringComparer.OrdinalIgnoreCase))
+					{
+						return;
+					}
+
+					_tagsToList.Add(evt.newValue);
+					RefreshTagsList();
+					SaveCurrentTags();
+				});
 
 				_modIOSettings = new List<ModSettings>(AssetDatabase.FindAssets("t:PugMod.ModIO.ModSettings")
 				.Select(guid => AssetDatabase.GUIDToAssetPath(guid))
@@ -108,22 +144,6 @@ namespace PugMod
 					modBuilderSettings.metadata.name = evt.newValue;
 				});
 
-				_summaryTextField.RegisterValueChangedCallback(evt =>
-				{
-					if (evt.newValue.Equals(_summaryPrompt))
-					{
-						return;
-					}
-
-					if (!GetModSettings(out _, out var modIOSettings, createModIOSettingsIfMissing: true))
-					{
-						return;
-					}
-
-					modIOSettings.summary = evt.newValue;
-                    EditorUtility.SetDirty(modIOSettings);
-                });
-
 				_modLogoButton.clicked += () =>
 				{
 					if (!GetModSettings(out var modBuilderSettings, out var modIOSettings, createModIOSettingsIfMissing: true))
@@ -131,7 +151,7 @@ namespace PugMod
 						return;
 					}
 
-					var path = EditorUtility.OpenFilePanel("Select image", "", "");
+					var path = EditorUtility.OpenFilePanel("Select image", "", "png,jpg,jpeg");
 
 					if (string.IsNullOrEmpty(path))
 					{
@@ -143,6 +163,13 @@ namespace PugMod
 					if (!ext.Equals(".png") && !ext.Equals(".jpeg") && !ext.Equals(".jpg"))
 					{
 						ShowError("Needs to be an image in .png or .jpeg/.jpg format");
+						return;
+					}
+
+					var imageError = ValidateImage(path, maxBytes: 8 * 1024 * 1024, minWidth: 512, minHeight: 288);
+					if (imageError != null)
+					{
+						ShowError(imageError);
 						return;
 					}
 
@@ -200,38 +227,52 @@ namespace PugMod
 						return;
 					}
 
-					if (string.IsNullOrEmpty(modIOSettings.summary))
-					{
-						ShowError("Summary has to be set");
-						return;
-					}
-
-					var modProfileDetails = new ModProfileDetails
-					{
-						name = modBuilderSettings.metadata.name,
-						logo = modIOSettings.logo,
-						summary = modIOSettings.summary,
-						visible = false,
-					};
-
-					if (!InitializeModIO())
-					{
-						return;
-					}
-
-					var creationToken = ModIOUnity.GenerateCreationToken();
-
-					ModIOUnity.CreateModProfile(creationToken, modProfileDetails, result =>
-					{
-						if (!result.result.Succeeded())
+					if (string.IsNullOrEmpty(_summaryTextField.value))
 						{
-							ShowError($"Failed to create mod on mod.io: {result.result.message}");
+							ShowError("Summary has to be set");
 							return;
 						}
 
-						modIOSettings.modId = result.value;
+						var currentLogo = _modLogo.style.backgroundImage.value.texture as Texture2D;
+						if (currentLogo == null)
+						{
+							ShowError("A logo image is required. Please set one before creating a mod profile.");
+							return;
+						}
 
-						EditorUtility.SetDirty(modIOSettings);
+						var modProfileDetails = new ModProfileDetails
+						{
+							name = string.IsNullOrWhiteSpace(_titleTextField.value) ? modBuilderSettings.metadata.name : _titleTextField.value,
+							logo = currentLogo,
+							summary = _summaryTextField.value,
+							visible = _visibilityDropdown.value == "Public",
+							tags = GetTagsWithVersion(),
+							};
+
+						if (!InitializeModIO())
+						{
+							return;
+						}
+
+						var creationToken = ModIOUnity.GenerateCreationToken();
+
+						ModIOUnity.CreateModProfile(creationToken, modProfileDetails, result =>
+						{
+							if (!result.result.Succeeded())
+							{
+								ShowError($"Failed to create mod on mod.io: {result.result.message}");
+								return;
+							}
+
+							modIOSettings.modId = result.value;
+							modIOSettings.title = _titleTextField.value;
+							modIOSettings.summary = _summaryTextField.value;
+							modIOSettings.visible = _visibilityDropdown.value == "Public";
+							modIOSettings.logo = currentLogo;
+
+							EditorUtility.SetDirty(modIOSettings);
+
+							AssetDatabase.SaveAssets();
 
 						UpdateSelection();
 
@@ -268,14 +309,17 @@ namespace PugMod
 
 						Debug.Assert(modIOSettings.modId == result.value.id);
 
+						var currentLogo = _modLogo.style.backgroundImage.value.texture as Texture2D;
+
 						var modProfileDetails = new ModProfileDetails
 						{
 							modId = new ModId(modIOSettings.modId),
-							name = modBuilderSettings.metadata.name,
-							logo = modIOSettings.logo,
-							summary = modIOSettings.summary,
-							visible = result.value.visible, // Not setting this will always set true anyway
-						};
+							name = string.IsNullOrWhiteSpace(_titleTextField.value) ? modBuilderSettings.metadata.name : _titleTextField.value,
+							logo = currentLogo,
+							summary = _summaryTextField.value,
+							visible = _visibilityDropdown.value == "Public",
+							tags = GetTagsWithVersion(),
+							};
 
 						ModIOUnity.EditModProfile(modProfileDetails, result =>
 						{
@@ -284,6 +328,12 @@ namespace PugMod
 								ShowError("Failed to update mod details");
 								return;
 							}
+
+							modIOSettings.title = _titleTextField.value;
+							modIOSettings.summary = _summaryTextField.value;
+							modIOSettings.visible = _visibilityDropdown.value == "Public";
+							modIOSettings.logo = currentLogo;
+							EditorUtility.SetDirty(modIOSettings);
 
 							var modPath = TempExport(modIOSettings.modSettings, modIOSettings);
 							if (string.IsNullOrEmpty(modPath))
@@ -335,6 +385,11 @@ namespace PugMod
 					});
 				};
 
+				if (EditorPrefs.HasKey(CHOSEN_MOD_KEY))
+				{
+					_modList.index = _modList.choices.IndexOf(EditorPrefs.GetString(CHOSEN_MOD_KEY));
+				}
+
 				UpdateSelection();
 
 				_modList.RegisterValueChangedCallback(evt =>
@@ -344,30 +399,24 @@ namespace PugMod
 			}
 			
 			private void UpdateModIOSettings(ModSettings modIOSettings)
-			{
-				bool dirty = false;
-
-				if (!string.Equals(modIOSettings.summary, _summaryTextField.value))
 				{
-					modIOSettings.summary = _summaryTextField.value;
-					dirty = true;
-				}
+					bool dirty = false;
 
-				if (modIOSettings.logo != _modLogo.style.backgroundImage.value.texture &&
-					_modLogo.style.backgroundImage.value.texture != null)
-				{
-					modIOSettings.logo = _modLogo.style.backgroundImage.value.texture;
-					dirty = true;
-				}
+					if (modIOSettings.logo != _modLogo.style.backgroundImage.value.texture &&
+						_modLogo.style.backgroundImage.value.texture != null)
+					{
+						modIOSettings.logo = _modLogo.style.backgroundImage.value.texture;
+						dirty = true;
+					}
 
-				if (modIOSettings.logo == null)
-				{
-					modIOSettings.logo = AssetDatabase.LoadAssetAtPath<Texture2D>(DEFAULT_LOGO_PATH);
-				}
+					if (modIOSettings.logo == null)
+					{
+						modIOSettings.logo = AssetDatabase.LoadAssetAtPath<Texture2D>(DEFAULT_LOGO_PATH);
+					}
 
-				if (dirty)
-					EditorUtility.SetDirty(modIOSettings);
-			}
+					if (dirty)
+						EditorUtility.SetDirty(modIOSettings);
+				}
 
 			private string TempExport(ModBuilderSettings modBuilderSettings, ModSettings modIOSettings)
 			{
@@ -417,7 +466,7 @@ namespace PugMod
 				});
 			}
 
-			private static ModSettings CreateNewModIOSettings(ModBuilderSettings modBuilderSettings)
+			private ModSettings CreateNewModIOSettings(ModBuilderSettings modBuilderSettings)
 			{
 				AssetDatabase.StartAssetEditing();
 
@@ -430,6 +479,7 @@ namespace PugMod
 					settings.modSettings = modBuilderSettings;
 
 					AssetDatabase.CreateAsset(settings, Path.Combine(dir, $"{modBuilderSettings.metadata.name}_modio.asset"));
+					_modIOSettings.Add(settings);
 
 					return settings;
 				}
@@ -471,6 +521,67 @@ namespace PugMod
 				return modBuilderSettings != null;
 			}
 
+			private void UpdateTagChoices(TagType tagType)
+			{
+				_tagsDropdown.choices = GetModIOTagChoices(tagType);
+				_tagsDropdown.SetValueWithoutNotify(string.Empty);
+			}
+
+			private string[] GetTagsWithVersion()
+			{
+				var tags = new List<string>(_tagsToList);
+				var currentVersion = GameVersionTagRegistry.GetCurrentVersion();
+				if (!string.IsNullOrEmpty(currentVersion) && !tags.Contains(currentVersion))
+				{
+					tags.Add(currentVersion);
+				}
+				return tags.ToArray();
+			}
+
+			private void RefreshTagsList()
+			{
+				if (_gameVersionTagsList == null)
+				{
+					return;
+				}
+
+				_gameVersionTagsList.Clear();
+
+				foreach (var tag in _tagsToList)
+				{
+					var tagButton = new Button(() =>
+					{
+						_tagsToList.Remove(tag);
+						RefreshTagsList();
+						SaveCurrentTags();
+					})
+					{
+						text = tag
+					};
+					tagButton.AddToClassList("TagBase");
+					tagButton.AddToClassList(GetTagTypeUssClass(GetTagTypeForValue(tag, GetModIOTagChoices)));
+					tagButton.style.fontSize = 10;
+					_gameVersionTagsList.Add(tagButton);
+				}
+			}
+
+			private void SaveCurrentTags()
+			{
+				if (!GetModSettings(out _, out var modIOSettings))
+				{
+					return;
+				}
+
+				if (modIOSettings == null)
+				{
+					return;
+				}
+
+				modIOSettings.tags = new List<string>(_tagsToList);
+				EditorUtility.SetDirty(modIOSettings);
+				AssetDatabase.SaveAssets();
+			}
+
             internal void UpdateSelection()
             {
                 _uploadModForm.style.display = DisplayStyle.None;
@@ -496,6 +607,27 @@ namespace PugMod
                 _modLogo.style.display = DisplayStyle.Flex;
                 _nameTextField.value = modBuilderSettings.metadata.name;
                 _createModProfileButton.style.display = DisplayStyle.Flex;
+
+                _tagsToList.Clear();
+                if (modIOSettings != null && modIOSettings.tags != null)
+                {
+                    _tagsToList.AddRange(modIOSettings.tags);
+                }
+                RefreshTagsList();
+
+                _visibilityDropdown.SetValueWithoutNotify(
+                    modIOSettings != null && modIOSettings.visible ? "Public" : "Hidden");
+
+                _titleTextField.SetValueWithoutNotify(
+                    modIOSettings != null ? modIOSettings.title ?? string.Empty : string.Empty);
+
+                _summaryTextField.SetValueWithoutNotify(
+                    modIOSettings != null ? modIOSettings.summary ?? string.Empty : string.Empty);
+
+                if (modIOSettings?.logo != null)
+                {
+                    _modLogo.style.backgroundImage = modIOSettings.logo;
+                }
 
                 if (modIOSettings == null || modIOSettings.modId <= 0)
 				{
@@ -554,6 +686,7 @@ namespace PugMod
 					_idTextField.focusable = false;
 
 					_summaryTextField.value = modIOSettings.summary;
+					_visibilityDropdown.SetValueWithoutNotify(result.value.visible ? "Public" : "Hidden");
 				});
 			}
 		}

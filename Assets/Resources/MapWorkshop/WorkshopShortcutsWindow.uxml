@@ -1,0 +1,77 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:ScrollView class="window-padding">
+        <ui:Label text="Workshop Editor Keyboard Shortcuts" class="header main-header" />
+        <ui:Label text="Paint" class="header" />
+        <ui:VisualElement class="shortcut-container">
+            <ui:VisualElement class="row-layout">
+                <ui:EnumField name="brushDecreaseField" class="dropdown-field" />
+            </ui:VisualElement>
+            <ui:Label text="Decrease the brush size down, to a minimum of 1." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="shortcut-container">
+            <ui:VisualElement class="row-layout">
+                <ui:EnumField name="brushIncreaseField" class="dropdown-field" />
+            </ui:VisualElement>
+            <ui:Label text="Increase the brush size up, to a maximum of 4." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="shortcut-container">
+            <ui:Label text="Hold Shift" class="key-title" />
+            <ui:Label text="Turns Paint and BoxFill into eraser tools." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="divider" />
+        <ui:Label text="Selection" class="header" />
+        <ui:VisualElement class="shortcut-container">
+            <ui:Label text="LMB + Hold + Drag" class="key-title" />
+            <ui:Label text="Moves selected Tiles and Objects." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="shortcut-container">
+            <ui:VisualElement class="row-layout">
+                <ui:EnumField name="rotateKeyField" class="dropdown-field" />
+                <ui:Label text="+ Shift" class="key-title" style="align-self: center;" />
+            </ui:VisualElement>
+            <ui:Label text="Rotate the active selection or a chosen prefab." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="shortcut-container">
+            <ui:Label text="X" class="key-title" />
+            <ui:Label text="Flip the current selection horizontally." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="shortcut-container">
+            <ui:Label text="Y" class="key-title" />
+            <ui:Label text="Flip the current selection vertically." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="shortcut-container">
+            <ui:Label text="Ctrl+C" class="key-title" />
+            <ui:Label text="Copy current selection when using the Select tool." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="shortcut-container">
+            <ui:Label text="Ctrl+X" class="key-title" />
+            <ui:Label text="Cut current selection when using the Select tool." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="shortcut-container">
+            <ui:Label text="Ctrl+V" class="key-title" />
+            <ui:Label text="Paste the cut or copied selection." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement name="VisualElement" class="shortcut-container">
+            <ui:Label text="Del" class="key-title" />
+            <ui:Label text="Delete all tiles and prefabs in the selected area." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement name="VisualElement" class="shortcut-container">
+            <ui:Label text="Shift + Del" class="key-title" />
+            <ui:Label text="Delete all tiles in the selected area." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement name="VisualElement" class="shortcut-container">
+            <ui:Label text="Alt + Del" class="key-title" />
+            <ui:Label text="Delete all prefabs in the selected area." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="divider" />
+        <ui:Label text="General" class="header" />
+        <ui:VisualElement class="shortcut-container">
+            <ui:Label text="Ctrl+Z" class="key-title" />
+            <ui:Label text="Undo the most recent action, only works in new submaps until domain reload." class="description-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="shortcut-container">
+            <ui:Label text="LMB + Alt" class="key-title" />
+            <ui:Label text="Sample a clicked tile." class="description-text" />
+        </ui:VisualElement>
+    </ui:ScrollView>
+</ui:UXML>

@@ -8,6 +8,8 @@
   },
   "unity": "2021.3",
   "description": "Mod loader and other tooling.",
-  "dependencies": {},
-  "_fingerprint": "c6710633ac0ab959fdf72b34f6f530774f85d13a"
+  "dependencies": {
+    "dev.pugstorm.scriptabledata": "0.1.0"
+  },
+  "_fingerprint": "30a5dd62a796df57e214fdc0aeeb4ba4837e7a4a"
 }

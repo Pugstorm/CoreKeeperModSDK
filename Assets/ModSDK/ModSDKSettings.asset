@@ -54,13 +54,18 @@ MonoBehaviour:
   - PugSprite.dll
   - ScriptableData.dll
   - ^NaughtyAttributes
+  - Pug.Changelog.dll
+  - PugTilemap.Editor.Actions.dll
+  - PugTilemap.Editor.Events.dll
   sdkAssemblyPath: Assets/Plugins/CoreKeeperModSDK/
   gameAssemblyPath: Assets/Plugins/CoreKeeper/
   assetRipperAssembliesPath: ExportedProject/Assets/Plugins
+  assetRipperDataPath: ExportedProject/Assets/Data
   assetRipperSpritePath: ExportedProject/Assets/Sprite
   assetRipperTexture2DPath: ExportedProject/Assets/Texture2D
   assetRipperArtPath: ExportedProject/Assets/Art
-  assetRipperEquipmentSlotPrefabsPath: ExportedProject/Assets/GameObject
-  assetRipperDataPath: ExportedProject/Assets/Data
+  assetRipperPrefabsPath: ExportedProject/Assets/GameObject
+  assetRipperShadersPath: ExportedProject/Assets/Shader
+  assetRipperMaterialsPath: ExportedProject/Assets/Material
   assetRipperAddressablesCatalogPath: ExportedProject/Assets/StreamingAssets/aa/catalog.bin
-  initializedToVersion: 6
+  initializedToVersion: 7

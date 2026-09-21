@@ -1,0 +1,699 @@
+fileFormatVersion: 2
+guid: 66fa1875b09d63841985c70dffcba55f
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 21300000
+    second: edtile dirt
+  - first:
+      213: 21300002
+    second: edtile wall
+  - first:
+      213: 21300004
+    second: pseudo clay1 tile
+  - first:
+      213: 21300006
+    second: pseudo clay2 tile
+  - first:
+      213: 21300008
+    second: editor chef
+  - first:
+      213: 21300010
+    second: editor rabbit
+  - first:
+      213: 21300012
+    second: t_editor_6
+  - first:
+      213: 21300014
+    second: t_editor_7
+  - first:
+      213: 21300016
+    second: editor bumper
+  - first:
+      213: 21300018
+    second: editor pot
+  - first:
+      213: 21300020
+    second: editor carrot zero
+  - first:
+      213: 21300022
+    second: t_editor_11
+  - first:
+      213: 21300024
+    second: edtile water
+  - first:
+      213: 21300026
+    second: t_editor_13
+  - first:
+      213: 21300028
+    second: t_editor_14
+  - first:
+      213: 21300030
+    second: t_editor_15
+  - first:
+      213: 21300032
+    second: editor dirt
+  - first:
+      213: 21300034
+    second: editor wall
+  - first:
+      213: 21300036
+    second: editor water
+  - first:
+      213: 21300038
+    second: editor selection
+  - first:
+      213: 21300040
+    second: editor invisitile
+  - first:
+      213: 21300042
+    second: editor lava
+  - first:
+      213: 21300044
+    second: editor clay
+  - first:
+      213: 21300046
+    second: editor select
+  - first:
+      213: 21300048
+    second: editor delete
+  - first:
+      213: 21300050
+    second: editor clear
+  - first:
+      213: 21300052
+    second: editor undo
+  - first:
+      213: 21300054
+    second: editor redo
+  - first:
+      213: 21300056
+    second: editor flipx
+  - first:
+      213: 21300058
+    second: editor flipy
+  - first:
+      213: 21300060
+    second: editor play
+  - first:
+      213: 21300062
+    second: editor curveramp
+  - first:
+      213: 21300064
+    second: editor gunbun
+  - first:
+      213: 21300066
+    second: editor sandbun
+  - first:
+      213: 21300068
+    second: editor error
+  - first:
+      213: 21300070
+    second: editor portal
+  - first:
+      213: 21300072
+    second: editor sgz
+  - first:
+      213: 21300074
+    second: editor paint
+  - first:
+      213: 21300076
+    second: editor pntpfb
+  - first:
+      213: 21300078
+    second: editor fill
+  - first:
+      213: 21300080
+    second: editor rotate
+  - first:
+      213: 21300082
+    second: editor wallhook
+  - first:
+      213: 21300084
+    second: editor patrolpath
+  - first:
+      213: 21300086
+    second: editor deepwater
+  - first:
+      213: 21300088
+    second: editor checkpoint
+  - first:
+      213: 21300090
+    second: editor rabbit zero
+  - first:
+      213: 21300092
+    second: editor rabbit right
+  - first:
+      213: 21300094
+    second: editor rabbit down
+  - first:
+      213: 21300096
+    second: editor rabbit left
+  - first:
+      213: 21300098
+    second: editor rabbit up
+  - first:
+      213: 21300100
+    second: editor bombit zero
+  - first:
+      213: 21300102
+    second: editor bombit right
+  - first:
+      213: 21300104
+    second: editor bombit down
+  - first:
+      213: 21300106
+    second: editor bombit left
+  - first:
+      213: 21300108
+    second: editor bombit up
+  - first:
+      213: 21300110
+    second: editor rollbit zero
+  - first:
+      213: 21300112
+    second: editor rollbit right
+  - first:
+      213: 21300114
+    second: editor rollbit down
+  - first:
+      213: 21300116
+    second: editor rollbit left
+  - first:
+      213: 21300118
+    second: editor rollbit up
+  - first:
+      213: 21300120
+    second: editor gobit zero
+  - first:
+      213: 21300122
+    second: editor batbun zero
+  - first:
+      213: 21300124
+    second: editor fatbun zero
+  - first:
+      213: 21300126
+    second: editor spawnpoint
+  - first:
+      213: 21300128
+    second: editor zombit
+  - first:
+      213: 21300130
+    second: editor knightbun
+  - first:
+      213: 21300132
+    second: editor ground 0
+  - first:
+      213: 21300134
+    second: editor wall 0
+  - first:
+      213: 21300136
+    second: editor clay 0
+  - first:
+      213: 21300138
+    second: editor water 0
+  - first:
+      213: 21300140
+    second: editor deepwater 0
+  - first:
+      213: 21300142
+    second: editor ground 5
+  - first:
+      213: 21300144
+    second: editor wall 5
+  - first:
+      213: 21300146
+    second: editor clay 5
+  - first:
+      213: 21300148
+    second: editor water 5
+  - first:
+      213: 21300150
+    second: editor deepwater 5
+  - first:
+      213: 21300152
+    second: editor ground 6
+  - first:
+      213: 21300154
+    second: editor wall 6
+  - first:
+      213: 21300156
+    second: editor clay 6
+  - first:
+      213: 21300158
+    second: editor ground 7
+  - first:
+      213: 21300160
+    second: editor wall 7
+  - first:
+      213: 21300162
+    second: editor clay 7
+  - first:
+      213: 21300164
+    second: editor water 7
+  - first:
+      213: 21300166
+    second: editor deepwater 7
+  - first:
+      213: 21300168
+    second: editor lava 7
+  - first:
+      213: 21300170
+    second: editor ground 8
+  - first:
+      213: 21300172
+    second: editor wall 8
+  - first:
+      213: 21300174
+    second: editor clay 8
+  - first:
+      213: 21300176
+    second: editor water 8
+  - first:
+      213: 21300178
+    second: editor deepwater 8
+  - first:
+      213: 21300180
+    second: editor ground 9
+  - first:
+      213: 21300182
+    second: editor wall 9
+  - first:
+      213: 21300184
+    second: editor clay 9
+  - first:
+      213: 21300186
+    second: editor water 9
+  - first:
+      213: 21300188
+    second: editor deepwater 9
+  - first:
+      213: 21300190
+    second: editor ground 10
+  - first:
+      213: 21300192
+    second: editor wall 10
+  - first:
+      213: 21300194
+    second: editor clay 10
+  - first:
+      213: 21300196
+    second: editor water 10
+  - first:
+      213: 21300198
+    second: editor deepwater 10
+  - first:
+      213: 21300200
+    second: editor wooden spoon
+  - first:
+      213: 21300202
+    second: editor claw
+  - first:
+      213: 21300204
+    second: editor silver spoon
+  - first:
+      213: 21300206
+    second: editor bombscoop
+  - first:
+      213: 21300208
+    second: editor bomb zero
+  - first:
+      213: 21300210
+    second: editor moundspawner rabbit
+  - first:
+      213: 21300212
+    second: editor moundspawner bombit
+  - first:
+      213: 21300214
+    second: editor moundspawner batbun
+  - first:
+      213: 21300216
+    second: editor moundspawner bomb
+  - first:
+      213: 21300218
+    second: editor moundspawner rollbit
+  - first:
+      213: 21300220
+    second: editor moundspawner fatbun
+  - first:
+      213: 21300222
+    second: editor iceblockspawner
+  - first:
+      213: 21300224
+    second: editor crockpotzone
+  - first:
+      213: 21300226
+    second: editor moundspawner carrot
+  - first:
+      213: -3857569326136687685
+    second: MapWorkshopIcons_0
+  - first:
+      213: -7926620433149063824
+    second: MapWorkshopIcons_1
+  externalObjects: {}
+  serializedVersion: 12
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 16
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 1
+  swizzle: 50462976
+  cookieLightType: 1
+  platformSettings:
+  - serializedVersion: 3
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 1
+  - serializedVersion: 3
+    buildTarget: Windows Store Apps
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 1
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: editor dirt
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 2
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0c84c7535bc010c48b1c8576d2a0ae96
+      internalID: 21300032
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: editor delete
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 2
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a2a141b619773f74bad1d1cc5ab7a89a
+      internalID: 21300048
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: editor play
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 2
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0157654af78a1cc408b72dbb78987ecc
+      internalID: 21300060
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: editor clay 6
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 160
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2166ddbff3588ed4cb77385a26a362a4
+      internalID: 21300156
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: editor bomb zero
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 16
+        height: 18
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6cc4559020cc04b46a7baafbb1dcce55
+      internalID: 21300208
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    physicsShape: []
+    bones: []
+    spriteID: debf497c8fdae884ead4477ea212fc55
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    nameFileIdTable:
+      MapWorkshopIcons_0: -3857569326136687685
+      MapWorkshopIcons_1: -7926620433149063824
+      MapWorkshopIcons_2: 1498160835
+      editor batbun zero: 21300122
+      editor bomb zero: 21300208
+      editor bombit down: 21300104
+      editor bombit left: 21300106
+      editor bombit right: 21300102
+      editor bombit up: 21300108
+      editor bombit zero: 21300100
+      editor bombscoop: 21300206
+      editor bumper: 21300016
+      editor carrot zero: 21300020
+      editor checkpoint: 21300088
+      editor chef: 21300008
+      editor claw: 21300202
+      editor clay: 21300044
+      editor clay 0: 21300136
+      editor clay 10: 21300194
+      editor clay 5: 21300146
+      editor clay 6: 21300156
+      editor clay 7: 21300162
+      editor clay 8: 21300174
+      editor clay 9: 21300184
+      editor clear: 21300050
+      editor crockpotzone: 21300224
+      editor curveramp: 21300062
+      editor deepwater: 21300086
+      editor deepwater 0: 21300140
+      editor deepwater 10: 21300198
+      editor deepwater 5: 21300150
+      editor deepwater 7: 21300166
+      editor deepwater 8: 21300178
+      editor deepwater 9: 21300188
+      editor delete: 21300048
+      editor dirt: 21300032
+      editor error: 21300068
+      editor fatbun zero: 21300124
+      editor fill: 21300078
+      editor flipx: 21300056
+      editor flipy: 21300058
+      editor gobit zero: 21300120
+      editor ground 0: 21300132
+      editor ground 10: 21300190
+      editor ground 5: 21300142
+      editor ground 6: 21300152
+      editor ground 7: 21300158
+      editor ground 8: 21300170
+      editor ground 9: 21300180
+      editor gunbun: 21300064
+      editor iceblockspawner: 21300222
+      editor invisitile: 21300040
+      editor knightbun: 21300130
+      editor lava: 21300042
+      editor lava 7: 21300168
+      editor moundspawner batbun: 21300214
+      editor moundspawner bomb: 21300216
+      editor moundspawner bombit: 21300212
+      editor moundspawner carrot: 21300226
+      editor moundspawner fatbun: 21300220
+      editor moundspawner rabbit: 21300210
+      editor moundspawner rollbit: 21300218
+      editor paint: 21300074
+      editor patrolpath: 21300084
+      editor play: 21300060
+      editor pntpfb: 21300076
+      editor portal: 21300070
+      editor pot: 21300018
+      editor rabbit: 21300010
+      editor rabbit down: 21300094
+      editor rabbit left: 21300096
+      editor rabbit right: 21300092
+      editor rabbit up: 21300098
+      editor rabbit zero: 21300090
+      editor redo: 21300054
+      editor rollbit down: 21300114
+      editor rollbit left: 21300116
+      editor rollbit right: 21300112
+      editor rollbit up: 21300118
+      editor rollbit zero: 21300110
+      editor rotate: 21300080
+      editor sandbun: 21300066
+      editor select: 21300046
+      editor selection: 21300038
+      editor sgz: 21300072
+      editor silver spoon: 21300204
+      editor spawnpoint: 21300126
+      editor undo: 21300052
+      editor wall: 21300034
+      editor wall 0: 21300134
+      editor wall 10: 21300192
+      editor wall 5: 21300144
+      editor wall 6: 21300154
+      editor wall 7: 21300160
+      editor wall 8: 21300172
+      editor wall 9: 21300182
+      editor wallhook: 21300082
+      editor water: 21300036
+      editor water 0: 21300138
+      editor water 10: 21300196
+      editor water 5: 21300148
+      editor water 7: 21300164
+      editor water 8: 21300176
+      editor water 9: 21300186
+      editor wooden spoon: 21300200
+      editor zombit: 21300128
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

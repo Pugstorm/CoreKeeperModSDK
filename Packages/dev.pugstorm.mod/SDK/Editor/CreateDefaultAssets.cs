@@ -24,12 +24,6 @@ namespace PugMod
 					"Assets/Resources/ConditionsTable.asset",
 					"Assets/ModSDK/Data/ConditionsTable.json"
 				),
-				new(
-					"SpriteInstancing.SpriteAssetManifest",
-					"Assets/Scripts/Rendering/SpriteInstancing/Resources/SpriteAssetManifest.asset",
-					"Assets/Resources/SpriteAssetManifest.asset",
-					"Assets/ModSDK/Data/SpriteAssetManifest.json"
-				),
 				//new(
 				//	"PugRP.PugRenderPipelineAsset",
 				//	"Assets/PugRP/PugRP.asset",

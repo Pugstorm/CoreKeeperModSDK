@@ -69,7 +69,7 @@ namespace PugMod
 					ZipFile.ExtractToDirectory(modTemplatePath, newModDirectory);
 				}
 
-				var modSettingsPath = Path.Combine(NEW_MOD_PATH, modName + ".asset");
+				var modSettingsPath = Path.Combine(newModDirectory, modName + ".asset");
 				AssetDatabase.CreateAsset(settings, modSettingsPath);
 
 				var assemblyReferences = new List<string>();
@@ -145,7 +145,9 @@ namespace PugMod
 
 		private bool ModExists(string modName)
 		{
-			if (File.Exists(Path.Combine(NEW_MOD_PATH, modName + ".asset")) || Directory.Exists(Path.Combine(NEW_MOD_PATH, modName)))
+			var newModDirectory = Path.Combine(NEW_MOD_PATH, modName);
+
+			if (File.Exists(Path.Combine(newModDirectory, modName + ".asset")) || Directory.Exists(newModDirectory))
 			{
 				return true;
 			}

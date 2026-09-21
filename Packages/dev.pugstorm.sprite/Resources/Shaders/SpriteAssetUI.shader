@@ -33,6 +33,7 @@ Shader "Hidden/SpriteAssetUI"
 			};
 
 			Texture2D _MainTex;
+			float4 _MainTex_TexelSize;
 			Texture2D _EmissiveTex;
 			SamplerState point_clamp_sampler;
 			float4 _TexelSize;
@@ -42,6 +43,8 @@ Shader "Hidden/SpriteAssetUI"
 			float _PivotMode;
 			float2 _Size;
 			float _Aspect;
+			float4 _SizeOffset;
+			float _IsAnimationPlaying;
 
 			Texture2D _GradientMap1;
 			Texture2D _GradientMap2;
@@ -97,26 +100,52 @@ Shader "Hidden/SpriteAssetUI"
 				clip(tex2D(_GUIClipTexture, i.clipUV).a - 0.5);
 				
 				float2 spriteUV = i.uv;
-				spriteUV.x = (spriteUV.x + _Frame) / _FrameCount;
+
+				float2 pivot = _Pivot;
+
+#if !IS_STATIC_PREVIEW
+				float2 offset = float2(_SizeOffset.z, _SizeOffset.w) / _SizeOffset.xy;
+				float2 scale = _SizeOffset.xy * _MainTex_TexelSize.xy;
+				spriteUV -= offset;
+				spriteUV *= scale;
+
+				pivot.x /= _FrameCount;
+				pivot /= scale;
+				pivot += offset;
+
+				spriteUV.x += _Frame / _FrameCount;
+#endif
 
 				float2 srcPixel = floor(spriteUV * _TexelSize.zw);
 				float checkerboard = (srcPixel.x + srcPixel.y) % 2 == 0;
 
-				float3 color = 0.2 + checkerboard * 0.02;
+				float3 color = 0.2 + checkerboard * 0.05;
 
 				float4 sprite = _MainTex.SampleLevel(point_clamp_sampler, spriteUV, 0);
-
 				if (any(_UseGradientMap >= 1e-5))
 				{
 					sprite.rgb = SampleGradients(sprite.rgb);
 				}
 
 				float4 emissive = _EmissiveTex.SampleLevel(point_clamp_sampler, spriteUV, 0);
-				if (any(abs(i.uv - 0.5) > 0.5))
+
+#if !IS_STATIC_PREVIEW
+				spriteUV.x = spriteUV.x * _FrameCount - _Frame;
+				float2 absp = abs(spriteUV - 0.5);
+				bool inside = all(absp < 0.4999);
+				if (!inside)
 				{
+					color *= float3(0.6, 0.5, 1.0);
 					sprite = 0.0;
 					emissive = 0.0;
 				}
+
+				float2 left = absp - float2(abs(ddx(absp).x), abs(ddy(absp).y));
+				float2 test = left < 0.5;
+				float trimFrame = min(test.x, test.y) && !inside;
+				// color += trimFrame;
+				// color *= 1 - trimFrame;
+#endif
 
 #if IS_STATIC_PREVIEW
 				sprite.a = max(sprite.a, emissive.a);
@@ -129,7 +158,7 @@ Shader "Hidden/SpriteAssetUI"
 				color.rgb = LinearToGammaSpace(color.rgb);
 #endif
 
-				float2 pivotDist = abs(i.uv - _Pivot);
+				float2 pivotDist = abs(i.uv - pivot);
 				float3 R = float3(1, _PivotMode, 0);
 				float3 G = float3(_PivotMode, 1, 0);
 				if (pivotDist.x < 1.0 / _Size.x)
@@ -140,11 +169,13 @@ Shader "Hidden/SpriteAssetUI"
 				{
 					color = lerp(color, G, 0.5);
 				}
+
 #if IS_STATIC_PREVIEW
-				return float4(color, sprite.a);
+				float alpha = sprite.a;
 #else
-				return float4(color, 1.0);
+				float alpha = _IsAnimationPlaying ? sprite.a : 1;
 #endif
+				return float4(color, alpha);
 			}
 			ENDCG
 		}

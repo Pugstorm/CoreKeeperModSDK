@@ -47,6 +47,8 @@ namespace PugMod
 
         public string assetRipperAssembliesPath = "ExportedProject/Assets/Plugins";
         public string assetRipperDataPath = "ExportedProject/Assets/Data";
+        public string assetRipperMonoBehaviourPath = "ExportedProject/Assets/MonoBehaviour";
+        public string assetRipperResourcesPath = "ExportedProject/Assets/Resources";
         public string assetRipperSpritePath = "ExportedProject/Assets/Sprite";
         public string assetRipperTexture2DPath = "ExportedProject/Assets/Texture2D";
         public string assetRipperArtPath = "ExportedProject/Assets/Art";

@@ -1,0 +1,63 @@
+.window-padding {
+    padding: 16px;
+}
+
+.main-header {
+    font-size: 18px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    margin-bottom: 24px;
+}
+
+.header {
+    font-size: 14px;
+    -unity-font-style: bold;
+    margin-top: 16px;
+    margin-bottom: 12px;
+    padding-bottom: 4px;
+}
+
+.shortcut-container {
+    margin-bottom: 12px;
+    padding: 12px;
+    background-color: rgba(128, 128, 128, 0.1);
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: rgba(128, 128, 128, 0.25);
+}
+
+.row-layout {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.dropdown-field {
+    width: 160px;
+    margin-left: 0;
+    margin-right: 8px;
+}
+
+.key-title {
+    background-color: rgba(128, 128, 128, 0.2);
+    border-color: rgba(128, 128, 128, 0.35);
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 4px 8px;
+    -unity-font-style: bold;
+    margin-bottom: 6px;
+    align-self: flex-start;
+}
+
+.description-text {
+    white-space: normal;
+    opacity: 0.8;
+    margin-left: 2px;
+}
+
+.divider {
+    height: 1px;
+    background-color: rgba(128, 128, 128, 0.3);
+    margin-top: 16px;
+    margin-bottom: 8px;
+}

@@ -14,6 +14,7 @@ namespace PugMod
 		[ReadOnly][SerializeField] public string modOwner;
 		public string _modOwner => modOwner;
 
+		[HideInInspector] public string modId;
 		public string modName;
 		public string selectedPath;
 		public List<string> tags = new();

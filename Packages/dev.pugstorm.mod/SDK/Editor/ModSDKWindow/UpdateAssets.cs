@@ -28,6 +28,7 @@ namespace PugMod
             private Button _updateAssetsButton;
 
             private static readonly Regex GUIDRegex = new(@"guid:\s*([a-f0-9]{32})", RegexOptions.Compiled);
+            private static readonly Regex FontGlyphRectRegex = new(@"(?m)^([ \t]+)m_(XMin|YMin|Width|Height):", RegexOptions.Compiled);
 
             public void OnEnable(VisualElement root)
             {
@@ -116,25 +117,49 @@ namespace PugMod
                     return;
                 }
 
-                // Need to remove old package first to avoid any GUID collisions
-                AssetPackager.RemoveExistingPackage((success =>
+                _updateAssetsButton.SetEnabled(false);
+                if (!Directory.Exists("Packages/" + AssetPackager.ASSET_PACKAGE_NAME))
+                {
+                    ImportAfterReload();
+                    return;
+                }
+
+                AssetPackager.RemoveExistingPackage(success =>
                 {
                     if (!success)
                     {
+                        _updateAssetsButton.SetEnabled(true);
                         ShowError("Error during package removal");
                         return;
                     }
 
-                    ImportAssets(assetRipperPath);
-                }));
+                    ScriptableDataEditorLoader.onDataBlocksLoaded += OnDataBlocksLoaded;
+                    ScriptableDataEditorUtility.InvalidateDataBlockCache();
+                });
+
+                void OnDataBlocksLoaded()
+                {
+                    ScriptableDataEditorLoader.onDataBlocksLoaded -= OnDataBlocksLoaded;
+                    EditorApplication.delayCall += ImportAfterReload;
+                }
+
+                void ImportAfterReload()
+                {
+                    try
+                    {
+                        ImportAssets(assetRipperPath);
+                    }
+                    finally
+                    {
+                        _updateAssetsButton.SetEnabled(true);
+                    }
+                }
             }
 
             private void ImportAssets(string assetRipperPath)
             {
                 Debug.Log("Start AssetRipper import");
 
-                // TODO: We might be able to speed up this whole section by wrapping everything in StartAssetEditing,
-                // unless the AssetDatabase.Refresh calls are required for some reason.
                 try
                 {
                     CopyAssemblyMetaFiles(assetRipperPath);
@@ -146,6 +171,8 @@ namespace PugMod
 
                     Directory.CreateDirectory(Path.GetFullPath(TEMP_IMPORT_PATH));
                     CopyAssetFolders(assetRipperPath, TEMP_IMPORT_PATH);
+                    CopyFonts(assetRipperPath, TEMP_IMPORT_PATH);
+                    CopyLocalization(assetRipperPath, TEMP_IMPORT_PATH);
 
                     AssetDatabase.Refresh();
 
@@ -172,6 +199,7 @@ namespace PugMod
                         Path.Combine(TEMP_IMPORT_PATH, "AnimatorController"),
                     };
 
+                    // Extracts/parses the Addressables catalog once per folder.
                     foreach (var folder in foldersToFixGUIDFor)
                     {
                         AddressablesGUIDRestorer.RestoreGUIDsFromAddressablesCatalog(
@@ -214,6 +242,9 @@ namespace PugMod
                     AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
                 }
             }
+
+            private const string PUG_FONT_SCRIPT = "m_Script: {fileID: 1057401628, guid: 548e3dd2d27c1e2d0bdf82f0889cb8a7, type: 3}";
+
             private Dictionary<string, string> RemapScripts() // For non-compiled assemblies we can't import their .dll.meta files to fix references, so we do this instead.
             {
                 return new Dictionary<string, string>()
@@ -263,7 +294,14 @@ namespace PugMod
 
                     if (Directory.Exists(sourcePath))
                     {
-                        FileUtil.CopyFileOrDirectory(sourcePath, destPath);
+                        if (folderPair.Value == "Material")
+                        {
+                            CopyMaterials(sourcePath, destPath);
+                        }
+                        else
+                        {
+                            FileUtil.CopyFileOrDirectory(sourcePath, destPath);
+                        }
 
                         if (folderPair.Value == "Data")
                         {
@@ -300,6 +338,96 @@ namespace PugMod
                         Debug.Log($"Directory not found skipping {sourcePath}");
                     }
                 }
+            }
+
+            private static void CopyMaterials(string sourcePath, string destinationPath)
+            {
+                var packagedMaterialNames = new HashSet<string>(AssetDatabase
+                    .FindAssets("t:Material", new[] { "Packages/dev.pugstorm.mod" })
+                    .Select(AssetDatabase.GUIDToAssetPath)
+                    .Select(Path.GetFileName)
+                    .Where(name => name.StartsWith("UGC ", StringComparison.OrdinalIgnoreCase)),
+                    StringComparer.OrdinalIgnoreCase);
+
+                Directory.CreateDirectory(destinationPath);
+                foreach (var directory in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
+                {
+                    Directory.CreateDirectory(Path.Combine(destinationPath, Path.GetRelativePath(sourcePath, directory)));
+                }
+
+                foreach (var materialPath in Directory.GetFiles(sourcePath, "*", SearchOption.AllDirectories))
+                {
+                    var materialName = Path.GetFileName(materialPath);
+                    if (materialName.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
+                    {
+                        materialName = Path.GetFileNameWithoutExtension(materialName);
+                    }
+
+                    if (packagedMaterialNames.Contains(materialName))
+                    {
+                        continue;
+                    }
+
+                    var destinationFile = Path.Combine(destinationPath, Path.GetRelativePath(sourcePath, materialPath));
+                    File.Copy(materialPath, destinationFile, true);
+                }
+            }
+
+            private void CopyLocalization(string assetRipperPath, string destinationRootRelative)
+            {
+                var sourcePath = Path.Combine(assetRipperPath, ImporterSettings.Instance.assetRipperResourcesPath,
+                    "I2Languages.asset");
+                if (!File.Exists(sourcePath) || !File.Exists(sourcePath + ".meta"))
+                {
+                    throw new FileNotFoundException("I2Languages.asset or its metadata is missing from the AssetRipper export.", sourcePath);
+                }
+
+                // I2 discovers this by Resources name, including inside the installed package.
+                var destPath = Path.Combine(destinationRootRelative, "Resources");
+                Directory.CreateDirectory(destPath);
+                File.Copy(sourcePath, Path.Combine(destPath, "I2Languages.asset"), true);
+                File.Copy(sourcePath + ".meta", Path.Combine(destPath, "I2Languages.asset.meta"), true);
+            }
+
+            private void CopyFonts(string assetRipperPath, string destinationRootRelative)
+            {
+                // Texture2D is copied by CopyAssetFolders. Preserve the exported GUIDs so
+                // these font assets resolve those textures after both folders are packaged.
+                var sourcePath = Path.Combine(assetRipperPath, ImporterSettings.Instance.assetRipperMonoBehaviourPath);
+                var destPath = Path.Combine(destinationRootRelative, "Fonts");
+
+                Directory.CreateDirectory(destPath);
+                foreach (var path in Directory.GetFiles(sourcePath, "*.asset", SearchOption.AllDirectories))
+                {
+                    var yaml = File.ReadAllText(path);
+                    if (!yaml.Contains(PUG_FONT_SCRIPT))
+                    {
+                        continue;
+                    }
+
+                    var destFilePath = Path.Combine(destPath, Path.GetRelativePath(sourcePath, path));
+                    Directory.CreateDirectory(Path.GetDirectoryName(destFilePath));
+                    File.WriteAllText(destFilePath, NormalizeFontGlyphRects(yaml));
+                    File.Copy(path + ".meta", destFilePath + ".meta", true);
+                }
+            }
+
+            private static string NormalizeFontGlyphRects(string yaml)
+            {
+                // Convert AssetRipper's glyph rectangle field names to Unity's RectInt names.
+                return FontGlyphRectRegex.Replace(yaml, match =>
+                {
+                    var fieldName = match.Groups[2].Value switch
+                    {
+                        "XMin" => "x",
+                        "YMin" => "y",
+                        "Width" => "width",
+                        "Height" => "height",
+                        _ => match.Groups[2].Value
+                    };
+
+                    return match.Groups[1].Value + fieldName + ":";
+                });
             }
 
             private void CopyAssemblyMetaFiles(string assetRipperPath)

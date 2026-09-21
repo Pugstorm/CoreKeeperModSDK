@@ -317,7 +317,9 @@
       "version": "file:dev.pugstorm.mod",
       "depth": 0,
       "source": "embedded",
-      "dependencies": {}
+      "dependencies": {
+        "dev.pugstorm.scriptabledata": "0.1.0"
+      }
     },
     "dev.pugstorm.scriptabledata": {
       "version": "file:dev.pugstorm.scriptabledata",

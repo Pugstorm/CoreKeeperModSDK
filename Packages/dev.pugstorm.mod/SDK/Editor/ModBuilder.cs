@@ -1,5 +1,6 @@
 using System;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using System.IO;
 using UnityEditor.Build.Pipeline;
 using UnityEngine;
@@ -30,6 +31,8 @@ namespace PugMod
 
 		public static void BuildMod(ModBuilderSettings settings, string exportPath, Action<bool> callback, bool installInSubDirectory = true)
 		{
+			EditorSceneManager.SaveOpenScenes();
+
 			var modName = settings.metadata.name;
 			var modDirectory = settings.modPath;
 
@@ -51,7 +54,7 @@ namespace PugMod
 				AssetDatabase.DisallowAutoRefresh();
 
 				var assetGuids = AssetDatabase.FindAssets("t:Object", new[] { modDirectory });
-				assetPaths = assetGuids.Select(AssetDatabase.GUIDToAssetPath).Where(x => !Directory.Exists(x)).ToList();
+				assetPaths = assetGuids.Select(AssetDatabase.GUIDToAssetPath).Where(x => !Directory.Exists(x) && !x.EndsWith(".unity") && !IsExcludedSettingsAsset(x)).ToList();
 
 				bool useCachedBundles = settings.cacheBundles && !CheckAssetsForChanges(settings, assetPaths, installDirectoryInfo);
 
@@ -142,11 +145,16 @@ namespace PugMod
 			}
 		}
 
+		private static bool IsExcludedSettingsAsset(string assetPath)
+		{
+			var assetType = AssetDatabase.GetMainAssetTypeAtPath(assetPath);
+			return assetType == typeof(ModBuilderSettings) || assetType == typeof(PugMod.ModIO.ModSettings) || assetType == typeof(SteamWorkshopModSettings);
+		}
+
 		private static void UpdateAssetHashes(ModBuilderSettings settings, string modDirectory)
 		{
 			var assetGuids = AssetDatabase.FindAssets("t:Object", new[] { modDirectory });
-			var assetPaths = assetGuids.Select(AssetDatabase.GUIDToAssetPath).Where(x => !Directory.Exists(x)).ToList();
-            
+			var assetPaths = assetGuids.Select(AssetDatabase.GUIDToAssetPath).Where(x => !Directory.Exists(x) && !x.EndsWith(".unity") && !IsExcludedSettingsAsset(x)).ToList();
 			settings.assets.Clear();
 			foreach (string assetPath in assetPaths)
 			{
@@ -158,7 +166,7 @@ namespace PugMod
 
 				SHA256Managed sha = new SHA256Managed();
 				byte[] hash = sha.ComputeHash(stream);
-				string hashStr = BitConverter.ToString(hash).Replace("-", String.Empty);
+				string hashStr = BitConverter.ToString(hash).Replace("-", String.Empty) + ":" + AssetDatabase.GetAssetDependencyHash(assetPath);
 
 				settings.assets.Add(new ModBuilderSettings.ModAsset()
 				{
@@ -195,7 +203,7 @@ namespace PugMod
 
 				SHA256Managed sha = new SHA256Managed();
 				byte[] hash = sha.ComputeHash(stream);
-				string hashStr = BitConverter.ToString(hash).Replace("-", String.Empty);
+				string hashStr = BitConverter.ToString(hash).Replace("-", String.Empty) + ":" + AssetDatabase.GetAssetDependencyHash(assetPath);
 
 				if (fileInfo.hash != hashStr)
 				{

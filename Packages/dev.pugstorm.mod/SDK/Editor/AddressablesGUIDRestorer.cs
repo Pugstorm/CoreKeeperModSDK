@@ -89,8 +89,6 @@ namespace PugMod
 				{
 					return false;
 				}
-				
-				Debug.Log($"Replacing {guidGroup.Value} with {newGuid} in {match.Groups[0].Value}");
 
 				string updatedContent = content.Substring(0, guidGroup.Index) 
 					+ newGuid 
