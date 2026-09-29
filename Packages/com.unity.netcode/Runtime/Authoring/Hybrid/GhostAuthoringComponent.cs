@@ -14,7 +14,7 @@ namespace Unity.NetCode
     /// the ghost <see cref="Importance"/> (how frequently is sent) and others).</para>
     /// <seealso cref="GhostAuthoringInspectionComponent"/>
     /// </summary>
-    [RequireComponent(typeof(LinkedEntityGroupAuthoring))]
+    // [RequireComponent(typeof(LinkedEntityGroupAuthoring))]
     [DisallowMultipleComponent]
     [HelpURL(Authoring.HelpURLs.GhostAuthoringComponent)]
     public class GhostAuthoringComponent : MonoBehaviour

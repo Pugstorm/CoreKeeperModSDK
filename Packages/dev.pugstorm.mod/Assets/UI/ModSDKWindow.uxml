@@ -35,9 +35,8 @@
                 <ui:ListView focusable="true" />
             </ui:VisualElement>
             <ui:VisualElement name="SteamWorkshopView" class="view">
-                <ui:Button text="Initialize Steam" name="SteamInitButton" class="action-button" />
                 <ui:Button text="Open Steam Config" name="SteamConfigButton" class="action-button" />
-                <ui:VisualElement name="SteamWorkshopViewContainer" style="flex-grow: 1;">
+                <ui:VisualElement name="SteamWorkshopViewContainer" style="flex-grow: 1; margin-top: 12px;">
                     <ui:DropdownField label="Select a Built Mod" name="SteamBuiltModsDropdown" class="field-row" />
                     <ui:Label display-tooltip-when-elided="true" name="SteamExportGamePath" class="hint-text" />
                     <ui:TextField picking-mode="Ignore" label="Title" name="SteamWorkshopFolderName" class="field-row" />

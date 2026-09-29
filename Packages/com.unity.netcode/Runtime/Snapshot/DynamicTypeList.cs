@@ -13,8 +13,8 @@ namespace Unity.NetCode
     [StructLayout(LayoutKind.Sequential)]
     internal struct DynamicTypeList
     {
-        #if NETCODE_COMPONENTS_256
-        public const int MaxCapacity = 256;
+        #if NETCODE_COMPONENTS_512
+        public const int MaxCapacity = 512;
         #else
         public const int MaxCapacity = 128;
         #endif
@@ -30,7 +30,7 @@ namespace Unity.NetCode
             if (listLength == 0)
                 UnityEngine.Debug.LogError("DynamicTypeList length is 0, this is probably initialized before GhostCollectionSystem");
             if (listLength > MaxCapacity)
-                throw new System.Exception($"Invalid number of components used for ghost serialization: {listLength}, max is {MaxCapacity}. The maximum limit can be increased up to 256 by defining NETCODE_COMPONENTS_256.");
+                throw new System.Exception($"Invalid number of components used for ghost serialization: {listLength}, max is {MaxCapacity}. This package supports up to 512 by defining NETCODE_COMPONENTS_512.");
 #endif
             DynamicComponentTypeHandle* GhostChunkComponentTypesPtr = list.GetData();
             list.Length = listLength;
@@ -53,7 +53,7 @@ namespace Unity.NetCode
             DynamicComponentTypeHandle* componentTypesPtr = list.GetData();
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             if (componentTypes.Length > MaxCapacity)
-                throw new System.Exception($"Invalid number of components used for ghost serialization: {componentTypes.Length}, max is {MaxCapacity}. The maximum limit can be increased up to 256 by defining NETCODE_COMPONENTS_256.");
+                throw new System.Exception($"Invalid number of components used for ghost serialization: {componentTypes.Length}, max is {MaxCapacity}. This package supports up to 512 by defining NETCODE_COMPONENTS_512.");
 #endif
             list.Length = componentTypes.Length;
             for (int i = 0; i < list.Length; ++i)
@@ -70,11 +70,19 @@ namespace Unity.NetCode
         private DynamicComponentTypeHandle32 dynamicType032;
         private DynamicComponentTypeHandle32 dynamicType064;
         private DynamicComponentTypeHandle32 dynamicType096;
-        #if NETCODE_COMPONENTS_256
+        #if NETCODE_COMPONENTS_512
         private DynamicComponentTypeHandle32 dynamicType128;
         private DynamicComponentTypeHandle32 dynamicType160;
         private DynamicComponentTypeHandle32 dynamicType192;
         private DynamicComponentTypeHandle32 dynamicType224;
+        private DynamicComponentTypeHandle32 dynamicType256;
+        private DynamicComponentTypeHandle32 dynamicType288;
+        private DynamicComponentTypeHandle32 dynamicType320;
+        private DynamicComponentTypeHandle32 dynamicType352;
+        private DynamicComponentTypeHandle32 dynamicType384;
+        private DynamicComponentTypeHandle32 dynamicType416;
+        private DynamicComponentTypeHandle32 dynamicType448;
+        private DynamicComponentTypeHandle32 dynamicType480;
         #endif
 #pragma warning restore 0169
         public int Length { get; set; }
@@ -93,11 +101,19 @@ namespace Unity.NetCode
             dynamicType032.Update(ref state);
             dynamicType064.Update(ref state);
             dynamicType096.Update(ref state);
-#if NETCODE_COMPONENTS_256
+#if NETCODE_COMPONENTS_512
             dynamicType128.Update(ref state);
             dynamicType160.Update(ref state);
             dynamicType192.Update(ref state);
             dynamicType224.Update(ref state);
+            dynamicType256.Update(ref state);
+            dynamicType288.Update(ref state);
+            dynamicType320.Update(ref state);
+            dynamicType352.Update(ref state);
+            dynamicType384.Update(ref state);
+            dynamicType416.Update(ref state);
+            dynamicType448.Update(ref state);
+            dynamicType480.Update(ref state);
 #endif
         }
     }

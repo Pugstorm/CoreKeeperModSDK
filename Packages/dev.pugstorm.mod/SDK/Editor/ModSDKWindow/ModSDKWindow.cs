@@ -3,7 +3,6 @@ using ModIO;
 using Result = ModIO.Result;
 #endif
 using System.Collections.Generic;
-using Steamworks;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -110,8 +109,6 @@ namespace PugMod
 		private VisualElement[] _views;
 		private Button[] _buttons;
 		private Label _title;
-
-		public SteamConfiguration steamConfiguration;
 
 		private static ModPaths GetModPaths()
 		{
@@ -283,24 +280,7 @@ namespace PugMod
 				});
 			}
 #endif
-			steamConfiguration = AssetDatabase.LoadAssetAtPath<SteamConfiguration>("Packages/dev.pugstorm.mod/SDK/Editor/SteamConfiguration.asset");
 
-			if (SteamClient.IsValid)
-			{
-				Debug.Log("Steam has been already initialized");
-			}
-			if (!SteamClient.IsValid && steamConfiguration.AutoInitialize == true)
-			{
-				try
-				{
-					SteamClient.Init(steamConfiguration.CoreKeeperAppID);
-					Debug.Log("Steam initialized successfully for Mod SDK");
-				}
-				catch (System.Exception e)
-				{
-					Debug.LogError($"Failed to initialize Steam for Mod SDK: {e.Message}");
-				}
-			}
 		}
 
 		private void OnDestroy()

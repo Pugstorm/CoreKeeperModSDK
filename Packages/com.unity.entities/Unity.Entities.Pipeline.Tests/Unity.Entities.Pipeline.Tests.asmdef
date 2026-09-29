@@ -1,0 +1,12 @@
+{
+    "name": "Unity.Entities.Pipeline.Tests",
+    "references": ["Unity.Entities", "Unity.Collections", "Unity.Entities.Pipeline", "Unity.Pipeline", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+    "includePlatforms": ["Editor"],
+    "overrideReferences": true,
+    "precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll"],
+    "autoReferenced": false,
+    "defineConstraints": ["UNITY_INCLUDE_TESTS", "ENTITIES_HAS_PIPELINE"],
+    "versionDefines": [
+        { "name": "com.unity.pipeline", "expression": "0.7.0-exp.1", "define": "ENTITIES_HAS_PIPELINE" }
+    ]
+}

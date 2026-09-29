@@ -13,4 +13,3 @@ MonoBehaviour:
   m_Name: SteamConfiguration
   m_EditorClassIdentifier: 
   CoreKeeperAppID: 1621690
-  AutoInitialize: 0

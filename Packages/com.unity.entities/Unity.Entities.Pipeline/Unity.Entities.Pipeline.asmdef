@@ -1,0 +1,12 @@
+{
+    "name": "Unity.Entities.Pipeline",
+    "rootNamespace": "Unity.Entities.Pipeline",
+    "references": ["Unity.Entities", "Unity.Collections", "Unity.Pipeline"],
+    "overrideReferences": true,
+    "precompiledReferences": ["Newtonsoft.Json.dll"],
+    "autoReferenced": false,
+    "defineConstraints": ["ENTITIES_HAS_PIPELINE", "UNITY_EDITOR || DEVELOPMENT_BUILD || ENABLE_RUNTIME_PIPELINE"],
+    "versionDefines": [
+        { "name": "com.unity.pipeline", "expression": "0.7.0-exp.1", "define": "ENTITIES_HAS_PIPELINE" }
+    ]
+}

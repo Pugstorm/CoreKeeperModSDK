@@ -71,7 +71,7 @@ namespace Unity.NetCode.Editor
             var originalColor = GUI.color;
 
             GUI.color = originalColor;
-            EditorGUILayout.PropertyField(Importance);
+            // EditorGUILayout.PropertyField(Importance);
             EditorGUILayout.PropertyField(SupportedGhostModes);
 
             var self = (GhostAuthoringComponent) target;
@@ -93,7 +93,7 @@ namespace Unity.NetCode.Editor
                 }
             }
 
-            EditorGUILayout.PropertyField(OptimizationMode);
+            // EditorGUILayout.PropertyField(OptimizationMode);
             EditorGUILayout.PropertyField(HasOwner);
 
             if (self.HasOwner)
