@@ -57,15 +57,20 @@ MonoBehaviour:
   - Pug.Changelog.dll
   - PugTilemap.Editor.Actions.dll
   - PugTilemap.Editor.Events.dll
+  - QFSW.QC.Pipeline.dll
   sdkAssemblyPath: Assets/Plugins/CoreKeeperModSDK/
   gameAssemblyPath: Assets/Plugins/CoreKeeper/
   assetRipperAssembliesPath: ExportedProject/Assets/Plugins
   assetRipperDataPath: ExportedProject/Assets/Data
+  assetRipperMonoBehaviourPath: ExportedProject/Assets/MonoBehaviour
+  assetRipperResourcesPath: ExportedProject/Assets/Resources
   assetRipperSpritePath: ExportedProject/Assets/Sprite
   assetRipperTexture2DPath: ExportedProject/Assets/Texture2D
   assetRipperArtPath: ExportedProject/Assets/Art
   assetRipperPrefabsPath: ExportedProject/Assets/GameObject
   assetRipperShadersPath: ExportedProject/Assets/Shader
   assetRipperMaterialsPath: ExportedProject/Assets/Material
+  assetRipperAnimationClipPath: ExportedProject/Assets/AnimationClip
+  assetRipperAnimatorControllerPath: ExportedProject/Assets/AnimatorController
   assetRipperAddressablesCatalogPath: ExportedProject/Assets/StreamingAssets/aa/catalog.bin
   initializedToVersion: 7

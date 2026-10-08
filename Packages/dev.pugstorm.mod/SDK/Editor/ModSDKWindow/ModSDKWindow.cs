@@ -50,18 +50,6 @@ namespace PugMod
 			_ => "Tag-Category"
 		};
 
-		public static void ApplyTextInputCaretTheme(VisualElement root)
-		{
-			var caretColor = new Color(231f / 255f, 231f / 255f, 231f / 255f);
-			var selectionColor = new Color(109f / 255f, 205f / 255f, 255f / 255f, 0.4f);
-
-			root.Query<TextField>().ForEach(field =>
-			{
-				field.textSelection.cursorColor = caretColor;
-				field.textSelection.selectionColor = selectionColor;
-			});
-		}
-
 		private static readonly Dictionary<string, string> LINK_TAG_URLS = new Dictionary<string, string>
 		{
 			{ "gitbook", "https://modding.corekeepergame.com/" },
@@ -80,6 +68,8 @@ namespace PugMod
 				});
 			});
 		}
+
+		private const string NATIVE_THEME_KEY = "PugMod/SDKWindow/NativeTheme";
 
 		private const string WINDOW_SHOWN_KEY = "PugMod/SDKWindow/Shown";
 		
@@ -109,6 +99,8 @@ namespace PugMod
 		private VisualElement[] _views;
 		private Button[] _buttons;
 		private Label _title;
+		private StyleSheet _customTheme;
+		private Button _themeButton;
 
 		private static ModPaths GetModPaths()
 		{
@@ -213,7 +205,11 @@ namespace PugMod
 				root.styleSheets.Add(uss);
 			}
 
-			ApplyTextInputCaretTheme(content);
+			_customTheme = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/dev.pugstorm.mod/Assets/UI/ModSDKWindowTheme.uss");
+			_themeButton = root.Q<Button>("ThemeButton");
+			_themeButton.clicked += OnThemeButtonClicked;
+			ApplyTheme();
+
 			ApplyLinkTagHandlers(content);
 
 			// Define the views and buttons
@@ -281,6 +277,32 @@ namespace PugMod
 			}
 #endif
 
+		}
+
+		private void OnThemeButtonClicked()
+		{
+			bool useNativeTheme = !EditorPrefs.GetBool(NATIVE_THEME_KEY, false);
+			EditorPrefs.SetBool(NATIVE_THEME_KEY, useNativeTheme);
+			ApplyTheme();
+		}
+
+		private void ApplyTheme()
+		{
+			bool useNativeTheme = EditorPrefs.GetBool(NATIVE_THEME_KEY, false);
+
+			if (_customTheme != null)
+			{
+				rootVisualElement.styleSheets.Remove(_customTheme);
+
+				if (!useNativeTheme)
+				{
+					rootVisualElement.styleSheets.Add(_customTheme);
+				}
+			}
+
+			_themeButton.tooltip = useNativeTheme
+				? "Current theme: Unity. Click to use the ModSDK theme."
+				: "Current theme: ModSDK. Click to use Unity's light/dark theme.";
 		}
 
 		private void OnDestroy()

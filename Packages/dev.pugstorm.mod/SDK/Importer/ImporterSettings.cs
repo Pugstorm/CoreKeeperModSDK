@@ -35,7 +35,7 @@ namespace PugMod
 
         public const string GAME_NAME = "CoreKeeper";
 
-        private const int CURRENT_VERSION = 6;
+        private const int CURRENT_VERSION = 7;
         private const string SETTINGS_PATH = "Assets/ModSDK/ModSDKSettings.asset";
 
         public bool includeAllAssemblies = true;
@@ -149,6 +149,12 @@ namespace PugMod
                 includeGameAssemblies.Add("libsteam_api.dylib");
                 includeGameAssemblies.Add("libsteam_api.so");
                 includeGameAssemblies.Add("steam_api64.dll");
+            }
+
+            if (initializedToVersion < 7)
+            {
+                // Pipeline integration depends on Unity.Pipeline, which is not included in the SDK.
+                excludeGameAssemblies.Add("QFSW.QC.Pipeline.dll");
             }
 
             initializedToVersion = CURRENT_VERSION;

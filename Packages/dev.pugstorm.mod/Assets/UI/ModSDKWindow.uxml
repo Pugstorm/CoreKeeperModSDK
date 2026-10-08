@@ -8,11 +8,13 @@
             <ui:Button text="Mod.IO" display-tooltip-when-elided="true" name="LogInTabButton" class="tab-button tab-button--secondary" />
             <ui:Button text="Search Mods" display-tooltip-when-elided="true" name="SearchModTabButton" class="tab-button" style="display: none;" />
             <ui:Button text="Mod.IO" display-tooltip-when-elided="true" name="UploadModTabButton" class="tab-button" style="display: none;" />
+            <ui:VisualElement class="theme-separator" />
+            <ui:Button text="Theme" name="ThemeButton" class="tab-button" />
         </ui:VisualElement>
         <ui:VisualElement name="Content" class="content-panel">
             <ui:Label text="Welcome to Core Keepers&apos; ModSDK!" name="Title" class="window-title" />
             <ui:VisualElement name="StartView" class="view" style="display: flex;">
-                <ui:Label text="First go to the &lt;link=UpdateSDKTabButton&gt;Update SDK&lt;/link&gt; menu and pull in the necessary game files from the &lt;i&gt;Core Keeper&lt;/i&gt; game folder, afterwards follow the Asset Ripper workflow from the &lt;link=gitbook&gt;&lt;color=#6DCDFF&gt;&lt;u&gt;GitBook&lt;/u&gt;&lt;/color&gt;&lt;/link&gt; modding guide.&#10;&#10;Once you&apos;ve updated the SDK and the Assets you can feel free to check out the examples mods made by us by extracting the Assets/Examples zip file into the same folder as the zip.&#10;&#10;You can create a Mod in the &lt;link=ModTabButton&gt;Mod Management&lt;/link&gt; menu. The typical workflow is to name and create the mod, which will construct the basic mod structure in the project at &quot;Assets/Mod_Name&quot;. Then you can add and modify mod files as you wish to create the desired functionality.&#10;&#10;Once you&apos;re ready to upload your mod you can head over to either the Steam Workshop or the Mod.IO page, depending on which platform you want to upload the mod to. Do the upload step again when you want to update the mod." display-tooltip-when-elided="true" name="StartViewText" enable-rich-text="true" class="info-text" />
+                <ui:Label text="First go to the &lt;link=UpdateSDKTabButton&gt;Update SDK&lt;/link&gt; menu and pull in the necessary game files from the &lt;i&gt;Core Keeper&lt;/i&gt; game folder, afterwards follow the Asset Ripper workflow from the &lt;link=gitbook&gt;&lt;u&gt;GitBook&lt;/u&gt;&lt;/link&gt; modding guide.&#10;&#10;Once you&apos;ve updated the SDK and the Assets you can feel free to check out the examples mods made by us by extracting the Assets/Examples zip file into the same folder as the zip.&#10;&#10;You can create a Mod in the &lt;link=ModTabButton&gt;Mod Management&lt;/link&gt; menu. The typical workflow is to name and create the mod, which will construct the basic mod structure in the project at &quot;Assets/Mod_Name&quot;. Then you can add and modify mod files as you wish to create the desired functionality.&#10;&#10;Once you&apos;re ready to upload your mod you can head over to either the Steam Workshop or the Mod.IO page, depending on which platform you want to upload the mod to. Do the upload step again when you want to update the mod." display-tooltip-when-elided="true" name="StartViewText" enable-rich-text="true" class="info-text" />
             </ui:VisualElement>
             <ui:VisualElement name="UpdateSDKView" class="view">
                 <ui:Label text="Select the path to Core Keepers&apos; install folder and Assets extracted by Asset Ripper, then press Update to import the latest modding resources into the ModSDK." display-tooltip-when-elided="true" name="UpdateSDKInfoText" enable-rich-text="true" tooltip="Always update Core Keeper files first, and Assets after, not the other way around!" class="info-text" />
@@ -36,7 +38,7 @@
             </ui:VisualElement>
             <ui:VisualElement name="SteamWorkshopView" class="view">
                 <ui:Button text="Open Steam Config" name="SteamConfigButton" class="action-button" />
-                <ui:VisualElement name="SteamWorkshopViewContainer" style="flex-grow: 1; margin-top: 12px;">
+                <ui:ScrollView name="SteamWorkshopViewContainer" style="flex-grow: 1; margin-top: 12px;">
                     <ui:DropdownField label="Select a Built Mod" name="SteamBuiltModsDropdown" class="field-row" />
                     <ui:Label display-tooltip-when-elided="true" name="SteamExportGamePath" class="hint-text" />
                     <ui:TextField picking-mode="Ignore" label="Title" name="SteamWorkshopFolderName" class="field-row" />
@@ -53,9 +55,17 @@
                     </ui:VisualElement>
                     <ui:Button text="Select Thumbnail for Mod" display-tooltip-when-elided="true" name="SteamThumbnailUploadButton" class="action-button" style="margin-top: 12px;" />
                     <ui:Image name="SteamThumbnailUpload" class="thumbnail-preview" />
+                    <ui:Foldout text="Additional media" value="false" class="workshop-additional-media">
+                        <ui:Label text="Add images and YouTube videos here. Any existing Steam uploads are kept." class="hint-text" />
+                        <ui:Button name="SteamAddImage" text="Add image…" class="action-button" />
+                        <ui:TextField name="SteamVideoUrl" label="YouTube URL" class="field-row" />
+                        <ui:Button name="SteamAddVideo" text="Add video" class="action-button" />
+                        <ui:ScrollView name="SteamAdditionalMediaList" style="max-height: 120px;" />
+                    </ui:Foldout>
+                    <ui:VisualElement class="workshop-media-separator" />
                     <ui:Button text="Go to mod page" display-tooltip-when-elided="true" name="SteamGoToPageButton" class="action-button" />
                     <ui:Button text="Upload to Steam Workshop" display-tooltip-when-elided="true" name="SteamUploadModButton" class="action-button" />
-                </ui:VisualElement>
+                </ui:ScrollView>
             </ui:VisualElement>
             <ui:VisualElement name="UploadModView" class="view">
                 <ui:DropdownField label="Select a Built Mod" index="-1" name="UploadModModList" class="field-row" />
@@ -75,7 +85,8 @@
                         <ui:VisualElement name="UploadModLogo" class="thumbnail-preview" />
 
                         <ui:Button text="Register at mod.io" display-tooltip-when-elided="true" name="CreateModProfile" class="action-button" />
-                        <ui:Button text="Go to mod page" display-tooltip-when-elided="true" name="GoToProfileButton" class="action-button" />
+                        <ui:VisualElement class="workshop-media-separator" />
+                    <ui:Button text="Go to mod page" display-tooltip-when-elided="true" name="GoToProfileButton" class="action-button" />
                         <ui:Button text="Upload to mod.io" display-tooltip-when-elided="true" name="UploadModButton" class="action-button" />
                     </ui:VisualElement>
                 </ui:VisualElement>

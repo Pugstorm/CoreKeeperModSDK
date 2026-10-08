@@ -3,6 +3,8 @@ Shader "UGC_Dummy/Transparent"
 	Properties
 	{
 		[PerRendererData] _MainTex ("Texture", 2D) = "white" {}
+		_Color ("Color", Color) = (1, 1, 1, 1)
+		_FillOpacity ("Fill Opacity", Range(0, 1)) = 0
 	}
 	SubShader
 	{
@@ -23,6 +25,8 @@ Shader "UGC_Dummy/Transparent"
 
 			sampler2D _MainTex;
 			float4 _MainTex_ST;
+			float4 _Color;
+			float _FillOpacity;
 
 			struct appdata
 			{
@@ -49,7 +53,13 @@ Shader "UGC_Dummy/Transparent"
 
 			float4 frag(v2f i) : SV_Target
 			{
-				float4 color = tex2D(_MainTex, i.uv) * i.color;
+				float4 color = tex2D(_MainTex, i.uv) * i.color * _Color;
+
+				float fillAlpha = (1 - color.a) * _FillOpacity * i.color.a * _Color.a;
+				float alpha = color.a + fillAlpha;
+				color.rgb = (color.rgb * color.a + _Color.rgb * i.color.rgb * fillAlpha) / max(alpha, 0.00001);
+				color.a = alpha;
+
 				return color;
 			}
 			ENDCG

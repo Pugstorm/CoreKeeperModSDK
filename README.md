@@ -5,7 +5,7 @@ This is the official Mod SDK for Core Keeper! Use it to create and publish amazi
 
 ## Requirements
 * Unity Hub, available for download on [Unity's website](https://unity.com/unity-hub)
-* Unity Editor 6000.0.59f2. This will be installed automatically by Unity Hub if you follow the instructions below.
+* Unity Editor 6000.0.58f2. This will be installed automatically by Unity Hub if you follow the instructions below.
 
 ## How to run
 

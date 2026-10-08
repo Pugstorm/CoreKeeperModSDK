@@ -40,7 +40,7 @@ public class ModBuilderCustomScenesProcessor : IPugModBuilderProcessor
 
         if (sceneDataBlocks.Count > 0 && hasActiveScene)
         {
-            EditorSceneManager.SaveOpenScenes();
+            ModBuilder.SaveOpenScenesWithPath();
 
             bool[] scenesToInclude = new bool[sceneDataBlocks.Count];
             Array.Fill(scenesToInclude, true);

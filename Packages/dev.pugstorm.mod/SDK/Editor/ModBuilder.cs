@@ -29,9 +29,21 @@ namespace PugMod
 			},
 		};
 
+		public static void SaveOpenScenesWithPath()
+		{
+			for (int i = 0; i < EditorSceneManager.sceneCount; i++)
+			{
+				var scene = EditorSceneManager.GetSceneAt(i);
+				if (scene.isDirty && !string.IsNullOrEmpty(scene.path))
+				{
+					EditorSceneManager.SaveScene(scene);
+				}
+			}
+		}
+
 		public static void BuildMod(ModBuilderSettings settings, string exportPath, Action<bool> callback, bool installInSubDirectory = true)
 		{
-			EditorSceneManager.SaveOpenScenes();
+			SaveOpenScenesWithPath();
 
 			var modName = settings.metadata.name;
 			var modDirectory = settings.modPath;
@@ -52,6 +64,8 @@ namespace PugMod
 			try
 			{
 				AssetDatabase.DisallowAutoRefresh();
+
+				AssetDatabase.SaveAssets();
 
 				var assetGuids = AssetDatabase.FindAssets("t:Object", new[] { modDirectory });
 				assetPaths = assetGuids.Select(AssetDatabase.GUIDToAssetPath).Where(x => !Directory.Exists(x) && !x.EndsWith(".unity") && !IsExcludedSettingsAsset(x)).ToList();

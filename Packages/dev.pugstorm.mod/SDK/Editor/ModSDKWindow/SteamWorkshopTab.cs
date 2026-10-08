@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -42,6 +43,11 @@ namespace PugMod
 			private string _selectedWorkshopPath;
 			private string _thumbnailPath;
 
+			private string _selectedMediaModName;
+			private readonly List<string> _queuedImagePaths = new();
+			private readonly List<string> _queuedYouTubeVideoIds = new();
+			private VisualElement _additionalMediaList;
+
 			private List<ModBuilderSettings> _modSettings;
 			private List<string> _steamWorkshopTagsToList = new();
 
@@ -55,9 +61,9 @@ namespace PugMod
 				}
 			}
 			public void OnEnable(VisualElement root)
-				{
-					var steamWorkshopTagType = root.Q<EnumField>("SteamWorkshopTagType");
-					steamWorkshopTagType.Init(TagType.Category);
+			{
+				var steamWorkshopTagType = root.Q<EnumField>("SteamWorkshopTagType");
+				steamWorkshopTagType.Init(TagType.Category);
 
 				_steamConfigButton = root.Q<Button>("SteamConfigButton");
 				_steamWorkshopView = root.Q<VisualElement>("SteamWorkshopViewContainer");
@@ -90,6 +96,32 @@ namespace PugMod
 
 				_steamThumbnailUpload = root.Q<Image>("SteamThumbnailUpload");
 				_steamThumbnailUploadButton = root.Q<Button>("SteamThumbnailUploadButton");
+				_additionalMediaList = root.Q<ScrollView>("SteamAdditionalMediaList");
+
+				var addImageButton = root.Q<Button>("SteamAddImage");
+				addImageButton.clicked += OnAddImageClicked;
+
+				var youTubeUrlField = root.Q<TextField>("SteamVideoUrl");
+				var addVideoButton = root.Q<Button>("SteamAddVideo");
+
+				addVideoButton.clicked += () =>
+				{
+					string videoId = GetYouTubeVideoId(youTubeUrlField.value);
+
+					if (videoId == null)
+					{
+						ShowError("Enter a valid YouTube URL or video ID.");
+						return;
+					}
+
+					if (!_queuedYouTubeVideoIds.Contains(videoId))
+					{
+						_queuedYouTubeVideoIds.Add(videoId);
+					}
+
+					youTubeUrlField.value = "";
+					RefreshAdditionalMedia();
+				};
 
 				_steamWorkshopModSettings = new List<SteamWorkshopModSettings>(AssetDatabase.FindAssets("t:SteamWorkshopModSettings")
 				.Select(guid => AssetDatabase.GUIDToAssetPath(guid))
@@ -157,7 +189,7 @@ namespace PugMod
 						return;
 					}
 
-					var error = ValidateImage(thumbnailPath, maxBytes: 1 * 1024 * 1024, minWidth: 0, minHeight: 0);
+					var error = GetImageValidationError(thumbnailPath);
 					if (error != null)
 					{
 						ShowError(error);
@@ -191,6 +223,163 @@ namespace PugMod
 				UpdateTagChoices(TagType.Category);
 				RefreshSteamWorkshopUploadButton();
 			}
+
+			private void OnAddImageClicked()
+			{
+				string imagePath = EditorUtility.OpenFilePanel("Add Workshop image", "", "png,jpg,jpeg");
+
+				if (string.IsNullOrEmpty(imagePath))
+				{
+					return;
+				}
+
+				string validationError = GetImageValidationError(imagePath);
+
+				if (validationError != null)
+				{
+					ShowError(validationError);
+					return;
+				}
+
+				if (!_queuedImagePaths.Contains(imagePath))
+				{
+					_queuedImagePaths.Add(imagePath);
+				}
+
+				RefreshAdditionalMedia();
+			}
+
+			private void RefreshAdditionalMedia()
+			{
+				_additionalMediaList.Clear();
+
+				foreach (string imagePath in _queuedImagePaths)
+				{
+					AddQueuedMediaRow(Path.GetFileName(imagePath), imagePath, _queuedImagePaths);
+				}
+
+				foreach (string videoId in _queuedYouTubeVideoIds)
+				{
+					AddQueuedMediaRow("YouTube: " + videoId, videoId, _queuedYouTubeVideoIds);
+				}
+			}
+
+			private void AddQueuedMediaRow(string displayName, string mediaValue, List<string> queuedMedia)
+			{
+				var mediaRow = new VisualElement();
+				mediaRow.style.flexDirection = FlexDirection.Row;
+
+				var mediaLabel = new Label(displayName);
+				mediaLabel.tooltip = mediaValue;
+				mediaLabel.style.flexGrow = 1;
+
+				var removeButton = new Button(() =>
+				{
+					queuedMedia.Remove(mediaValue);
+					RefreshAdditionalMedia();
+				})
+				{
+					text = "Remove"
+				};
+
+				mediaRow.Add(mediaLabel);
+				mediaRow.Add(removeButton);
+				_additionalMediaList.Add(mediaRow);
+			}
+
+			private const long MAX_WORKSHOP_IMAGE_BYTES = 1024 * 1024;
+
+			private static string GetImageValidationError(string imagePath)
+			{
+				try
+				{
+					if (!File.Exists(imagePath))
+					{
+						return "Preview image not found: " + imagePath;
+					}
+
+					var imageFile = new FileInfo(imagePath);
+
+					if (imageFile.Length >= MAX_WORKSHOP_IMAGE_BYTES)
+					{
+						return $"\"{imageFile.Name}\" is too large ({imageFile.Length:N0} bytes). " +
+							"Steam Workshop images must be smaller than 1 MiB (1,048,576 bytes). " +
+							"Resize or compress the image.";
+					}
+
+					return null;
+				}
+				catch (Exception exception)
+				{
+					return "Cannot read preview image: " + exception.Message;
+				}
+			}
+
+			private static string GetYouTubeVideoId(string videoUrlOrId)
+			{
+				const string videoIdPattern = @"^[A-Za-z0-9_-]{11}$";
+
+				videoUrlOrId = (videoUrlOrId ?? string.Empty).Trim();
+
+				if (Regex.IsMatch(videoUrlOrId, videoIdPattern))
+				{
+					return videoUrlOrId;
+				}
+
+				if (!Uri.TryCreate(videoUrlOrId, UriKind.Absolute, out var videoUri))
+				{
+					return null;
+				}
+
+				if (videoUri.Scheme != Uri.UriSchemeHttps && videoUri.Scheme != Uri.UriSchemeHttp)
+				{
+					return null;
+				}
+
+				string videoId = null;
+
+				if (videoUri.Host == "youtu.be")
+				{
+					videoId = videoUri.AbsolutePath.Trim('/');
+				}
+				else if (videoUri.Host == "youtube.com" ||
+						 videoUri.Host == "www.youtube.com" ||
+						 videoUri.Host == "m.youtube.com")
+				{
+					string[] pathParts = videoUri.AbsolutePath.Trim('/').Split('/');
+
+					if (pathParts.Length == 2)
+					{
+						string videoPageType = pathParts[0];
+
+						if (videoPageType == "shorts" || videoPageType == "embed" || videoPageType == "live")
+						{
+							videoId = pathParts[1];
+						}
+					}
+
+					if (videoUri.AbsolutePath == "/watch")
+					{
+						string[] queryParameters = videoUri.Query.TrimStart('?').Split('&');
+
+						foreach (string queryParameter in queryParameters)
+						{
+							if (queryParameter.StartsWith("v="))
+							{
+								videoId = Uri.UnescapeDataString(queryParameter.Substring(2));
+							}
+						}
+					}
+				}
+
+				if (videoId == null || !Regex.IsMatch(videoId, videoIdPattern))
+				{
+					return null;
+				}
+
+				return videoId;
+			}
+
 			private void GetInfoFromSteamModSettings(string modName)
 			{
 				_steamWorkshopModSettings = new List<SteamWorkshopModSettings>(AssetDatabase.FindAssets("t:SteamWorkshopModSettings")
@@ -418,6 +607,20 @@ namespace PugMod
 			}
 			private void UpdateSelectedWorkshopPath(string modName)
 			{
+				if (_selectedMediaModName != modName)
+				{
+					_selectedMediaModName = modName;
+					_queuedImagePaths.Clear();
+					_queuedYouTubeVideoIds.Clear();
+					_thumbnailPath = null;
+					if (_steamThumbnailUpload.image != null)
+					{
+						UnityEngine.Object.DestroyImmediate(_steamThumbnailUpload.image);
+					}
+
+					_steamThumbnailUpload.image = null;
+					RefreshAdditionalMedia();
+				}
 				var modPaths = GetModPaths();
 
 				var modBuildPaths = modPaths.latestBuildOrInstallPaths
@@ -439,6 +642,8 @@ namespace PugMod
 				public ulong FileId;
 				public string ContentPath;
 				public string PreviewPath;
+				public string[] AdditionalImages;
+				public string[] YouTubeVideos;
 				public string Title;
 				public string Description;
 				public string Visibility;
@@ -455,6 +660,24 @@ namespace PugMod
 					return;
 				}
 
+				var imagesToValidate = new List<string>(_queuedImagePaths);
+
+				if (!string.IsNullOrEmpty(_thumbnailPath))
+				{
+					imagesToValidate.Add(_thumbnailPath);
+				}
+
+				foreach (string imagePath in imagesToValidate)
+				{
+					string validationError = GetImageValidationError(imagePath);
+
+					if (validationError != null)
+					{
+						ShowError(validationError);
+						return;
+					}
+				}
+
 				var modName = _steamModList.value;
 				var configPath = Path.Combine(Path.GetTempPath(), $"PugModUploader-{Guid.NewGuid():N}.json");
 				_steamWorkshopView.SetEnabled(false);
@@ -468,6 +691,8 @@ namespace PugMod
 						FileId = ModHasBeenUploadedToSteamWorkshop() ? Convert.ToUInt64(_steamWorkshopFileID.value) : 0,
 						ContentPath = Path.GetFullPath(_selectedWorkshopPath),
 						PreviewPath = string.IsNullOrEmpty(_thumbnailPath) ? null : Path.GetFullPath(_thumbnailPath),
+						AdditionalImages = _queuedImagePaths.ToArray(),
+						YouTubeVideos = _queuedYouTubeVideoIds.ToArray(),
 						Title = _steamWorkshopFolderName.value,
 						Description = SetDescription(),
 						Visibility = _steamVisibility.value,
@@ -509,6 +734,12 @@ namespace PugMod
 						{
 							ulong.TryParse(line.Substring(16), out fileId);
 						}
+						else if (line == "MEDIA_SUBMITTED")
+						{
+							_queuedImagePaths.Clear();
+							_queuedYouTubeVideoIds.Clear();
+							RefreshAdditionalMedia();
+						}
 						else if (line.StartsWith("OWNER:"))
 						{
 							owner = line.Substring(6);
@@ -521,18 +752,21 @@ namespace PugMod
 					await System.Threading.Tasks.Task.Run(() => process.WaitForExit());
 					var errorOutput = await stderr;
 					EditorUtility.ClearProgressBar();
+					if (fileId != 0)
+					{
+						SaveSteamWorkshopSettings(fileId, modName, config.ContentPath, config.Tags, config.Title, owner);
+						if (_steamModList.value == modName)
+						{
+							_steamWorkshopFileID.value = fileId.ToString();
+							RefreshSteamWorkshopUploadButton();
+						}
+					}
 					if (process.ExitCode != 0 || fileId == 0)
 					{
 						ShowError(error ?? $"Steam Workshop upload failed (exit code {process.ExitCode}).\n{errorOutput}");
 						return;
 					}
 
-					SaveSteamWorkshopSettings(fileId, modName, config.ContentPath, config.Tags, config.Title, owner);
-					if (_steamModList.value == modName)
-					{
-						_steamWorkshopFileID.value = fileId.ToString();
-						RefreshSteamWorkshopUploadButton();
-					}
 					EditorUtility.DisplayDialog("Steam Workshop", $"Mod uploaded successfully. Published file ID: {fileId}.", "OK");
 				}
 				catch (Exception ex)

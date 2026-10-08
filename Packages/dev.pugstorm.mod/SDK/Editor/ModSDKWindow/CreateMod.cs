@@ -111,7 +111,6 @@ namespace PugMod
 				_modDependencyList.makeItem = () =>
 				{
 					var item = modDependencyEntryTemplate.CloneTree();
-					ApplyTextInputCaretTheme(item);
 					return item;
 				};
 				_modDependencyList.bindItem = (element, index) =>
