@@ -52,6 +52,8 @@ namespace PugMod
 				}}";
 				File.WriteAllText(jsonPath, jsonContent);
 
+				AssetDatabase.ReleaseCachedFileHandles();
+
 				var destination = PackageDestination;
 				if (Directory.Exists(destination))
 				{

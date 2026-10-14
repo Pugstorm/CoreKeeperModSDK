@@ -303,6 +303,15 @@ namespace PugMod
                             FileUtil.CopyFileOrDirectory(sourcePath, destPath);
                         }
 
+                        if (folderPair.Value == "Shader")
+                        {
+                            foreach (var shaderPath in Directory.GetFiles(destPath, "UGC_Dummy_*.shader", SearchOption.AllDirectories))
+                            {
+                                FileUtil.DeleteFileOrDirectory(shaderPath);
+                                FileUtil.DeleteFileOrDirectory(shaderPath + ".meta");
+                            }
+                        }
+
                         if (folderPair.Value == "Data")
                         {
                             var foldersToRemove = new List<string>
